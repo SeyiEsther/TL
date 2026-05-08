@@ -1658,12 +1658,14 @@
                 const res = await fetch('/api/submissions/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
                 if (!res.ok) throw new Error('Server error ' + res.status);
                 showToast('Changes saved and logged!');
-                btn.textContent = 'Submit & save shift';
-                btn.onclick = doSubmit;
                 editingId = null;
                 showView('today');
             } catch (e) { showToast('Could not save: ' + e.message); }
-            finally { btn.disabled = false; }
+            finally {
+                btn.disabled = false;
+                btn.textContent = editingId ? 'Save changes' : 'Submit & save shift';
+                if (!editingId) btn.onclick = doSubmit;
+            }
         }
 
         function resetForm() {
@@ -1847,3 +1849,206 @@
                         </div>`;
             } catch { c.innerHTML = '<div class="empty">Could not load handover.</div>'; }
         }
+
+        // RAG value → CSS class
+        function rc(val) {
+            if (val === 'Green') return 'g';
+            if (val === 'Amber') return 'a';
+            if (val === 'Red') return 'r';
+            return 'u';
+        }
+
+        // Toast notification
+        let _toastTimer;
+        function showToast(msg, duration = 3000) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+        }
+
+        // Format ISO date string (yyyy-MM-dd) to DD/MM/YYYY
+        function fmtDate(d) {
+            if (!d) return '—';
+            const [y, m, dd] = d.split('-');
+            return `${dd}/${m}/${y}`;
+        }
+
+        // Shared table renderer for dashboard and history
+        function renderShiftTable(items, bodyId) {
+            const tbody = document.getElementById(bodyId);
+            if (!items.length) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty">No shifts found.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(s => `
+                <tr>
+                    <td>${fmtDate(s.shiftDate)}</td>
+                    <td>${s.shift}</td>
+                    <td>${s.area || '—'}</td>
+                    <td>${s.teamLeaderDisplay}</td>
+                    <td><span class="rag ${rc(s.overallSafetyStatus)}">${s.overallSafetyStatus || '—'}</span></td>
+                    <td><span class="rag ${rc(s.overallQualityStatus)}">${s.overallQualityStatus || '—'}</span></td>
+                    <td><span class="rag ${rc(s.overallPerfStatus)}">${s.overallPerfStatus || '—'}</span></td>
+                    <td>${new Date(s.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td><a href="/api/submissions/${s.id}/pdf" target="_blank" class="dl-link">PDF</a></td>
+                </tr>`).join('');
+        }
+
+        // Chart.js instances (kept so we can destroy before re-render)
+        const _charts = {};
+
+        function renderCharts(items) {
+            const ragCounts = field => {
+                const c = { Green: 0, Amber: 0, Red: 0, None: 0 };
+                items.forEach(s => {
+                    const v = s[field];
+                    if (v === 'Green') c.Green++;
+                    else if (v === 'Amber') c.Amber++;
+                    else if (v === 'Red') c.Red++;
+                    else c.None++;
+                });
+                return c;
+            };
+
+            const donut = (id, counts) => {
+                if (_charts[id]) _charts[id].destroy();
+                _charts[id] = new Chart(document.getElementById(id), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Green', 'Amber', 'Red', 'Not set'],
+                        datasets: [{ data: [counts.Green, counts.Amber, counts.Red, counts.None], backgroundColor: ['#16a34a', '#f59e0b', '#dc2626', '#e5e7eb'], borderWidth: 0 }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: '65%' }
+                });
+            };
+
+            donut('chartSafety', ragCounts('overallSafetyStatus'));
+            donut('chartQuality', ragCounts('overallQualityStatus'));
+            donut('chartPerf', ragCounts('overallPerfStatus'));
+
+            // Build last-14-days buckets
+            const days = [], spd = {}, epd = {};
+            for (let i = 13; i >= 0; i--) {
+                const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+                days.push(d); spd[d] = 0; epd[d] = 0;
+            }
+            items.forEach(s => {
+                if (Object.prototype.hasOwnProperty.call(spd, s.shiftDate)) {
+                    spd[s.shiftDate]++;
+                    if (s.escalations) epd[s.shiftDate]++;
+                }
+            });
+            const dayLabels = days.map(d => { const [, m, dd] = d.split('-'); return `${dd}/${m}`; });
+
+            if (_charts.chartBar) _charts.chartBar.destroy();
+            _charts.chartBar = new Chart(document.getElementById('chartBar'), {
+                type: 'bar',
+                data: { labels: dayLabels, datasets: [{ label: 'Shifts', data: days.map(d => spd[d]), backgroundColor: '#0f1117', borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+
+            if (_charts.chartTrend) _charts.chartTrend.destroy();
+            _charts.chartTrend = new Chart(document.getElementById('chartTrend'), {
+                type: 'line',
+                data: { labels: dayLabels, datasets: [{ label: 'Escalations', data: days.map(d => epd[d]), borderColor: '#CC1F2C', backgroundColor: 'rgba(204,31,44,0.08)', tension: 0.3, fill: true, pointRadius: 3 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        }
+
+        // DASHBOARD
+        async function loadDash() {
+            const from = document.getElementById('df-from').value;
+            const to = document.getElementById('df-to').value;
+            const shiftF = document.getElementById('df-shift').value;
+            const areaF = document.getElementById('df-area').value;
+            const tlF = document.getElementById('df-tl').value.trim().toLowerCase();
+            const ragF = document.getElementById('df-rag').value;
+
+            // Update CSV link to reflect current date filters
+            let csvHref = '/api/submissions/export/csv';
+            const csvParams = [];
+            if (from) csvParams.push('from=' + from);
+            if (to) csvParams.push('to=' + to);
+            if (csvParams.length) csvHref += '?' + csvParams.join('&');
+            const csvLink = document.querySelector('a[href*="export/csv"]');
+            if (csvLink) csvLink.href = csvHref;
+
+            let url = '/api/submissions?pageSize=500';
+            if (from) url += '&from=' + from;
+            if (to) url += '&to=' + to;
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                let items = data.items || [];
+
+                if (shiftF) items = items.filter(s => s.shift === shiftF);
+                if (areaF) items = items.filter(s => s.area === areaF);
+                if (tlF) items = items.filter(s => (s.teamLeaderDisplay || '').toLowerCase().includes(tlF));
+                if (ragF) items = items.filter(s => s.overallSafetyStatus === ragF || s.overallQualityStatus === ragF || s.overallPerfStatus === ragF);
+
+                const today = new Date().toISOString().split('T')[0];
+                const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+
+                document.getElementById('kpiShifts').textContent = items.length;
+                document.getElementById('kpiWeek').textContent = items.filter(s => s.shiftDate >= weekAgo).length;
+                document.getElementById('kpiToday').textContent = items.filter(s => s.shiftDate === today).length;
+                document.getElementById('kpiEscl').textContent = items.filter(s => s.escalations).length;
+                document.getElementById('dashCount').textContent = items.length + ' shifts';
+
+                renderCharts(items);
+                renderShiftTable(items, 'dashBody');
+            } catch {
+                document.getElementById('dashBody').innerHTML = '<tr><td colspan="9" class="empty">Could not load data.</td></tr>';
+            }
+        }
+
+        function clearDashFilters() {
+            ['df-from', 'df-to'].forEach(id => document.getElementById(id).value = '');
+            ['df-shift', 'df-area', 'df-rag'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('df-tl').value = '';
+            loadDash();
+        }
+
+        // HISTORY
+        async function loadHistory() {
+            const from = document.getElementById('hf-from').value;
+            const to = document.getElementById('hf-to').value;
+            let url = '/api/submissions?pageSize=500';
+            if (from) url += '&from=' + from;
+            if (to) url += '&to=' + to;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                renderShiftTable(data.items || [], 'histBody');
+            } catch {
+                document.getElementById('histBody').innerHTML = '<tr><td colspan="9" class="empty">Could not load history.</td></tr>';
+            }
+        }
+
+        // Init on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('w-date').value = today;
+            document.getElementById('welcomeTime').textContent = new Date().toLocaleDateString('en-GB', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+
+            try {
+                const res = await fetch('/api/me');
+                if (res.ok) {
+                    const u = await res.json();
+                    const name = u.displayName || u.username || '';
+                    document.getElementById('userChip').textContent = name;
+                    if (name) document.getElementById('welcomeName').textContent = 'Welcome, ' + name;
+                    if (name) document.getElementById('w-tl').value = name;
+                }
+            } catch {
+                document.getElementById('userChip').textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>
