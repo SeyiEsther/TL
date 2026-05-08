@@ -2028,8 +2028,8 @@
             }
         }
 
-        // Init on page load
-        window.addEventListener('DOMContentLoaded', async () => {
+        // Init — script is at bottom of body so DOM is already available; run immediately
+        (async () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('w-date').value = today;
             document.getElementById('welcomeTime').textContent = new Date().toLocaleDateString('en-GB', {
@@ -2044,11 +2044,13 @@
                     document.getElementById('userChip').textContent = name;
                     if (name) document.getElementById('welcomeName').textContent = 'Welcome, ' + name;
                     if (name) document.getElementById('w-tl').value = name;
+                } else {
+                    document.getElementById('userChip').textContent = '';
                 }
             } catch {
                 document.getElementById('userChip').textContent = '';
             }
-        });
+        })();
     </script>
 </body>
 </html>
