@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Rittal — TL Standard Work</title>
+    <style>
+        :root {
+            --red: #CC1F2C;
+            --ink: #0f1117;
+            --muted: #6b7280;
+            --border: #d1d5db;
+            --surface: #f8f9fa;
+            --white: #fff;
+            --green: #16a34a;
+            --green-bg: #dcfce7;
+            --red-bg: #fee2e2;
+            --red-text: #991b1b
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: 'Segoe UI',system-ui,sans-serif;
+            background: #e9ebee;
+            color: var(--ink);
+            min-height: 100vh
+        }
+
+        .topbar {
+            background: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            height: 52px;
+            position: sticky;
+            top: 0;
+            z-index: 100
+        }
+
+        .stripes {
+            display: flex;
+            flex-direction: column;
+            gap: 2px
+        }
+
+        .st {
+            height: 3px;
+            border-radius: 1px
+        }
+
+        .brand {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            color: #fff
+        }
+
+        .subbrand {
+            font-size: 11px;
+            color: #9ca3af;
+            letter-spacing: .04em
+        }
+
+        .topbar-right {
+            margin-left: auto;
+            display: flex;
+            gap: 6px;
+            align-items: center
+        }
+
+        .user-chip {
+            font-size: 12px;
+            color: #9ca3af;
+            padding: 4px 10px;
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 99px
+        }
+
+        .tbtn {
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,.2);
+            border-radius: 6px;
+            background: none;
+            color: #fff;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s
+        }
+
+            .tbtn:hover {
+                background: rgba(255,255,255,.1)
+            }
+
+            .tbtn.active {
+                background: rgba(255,255,255,.15);
+                font-weight: 600
+            }
+
+        .view {
+            display: none
+        }
+
+            .view.active {
+                display: block
+            }
+
+        /* WELCOME */
+        .welcome-wrap {
+            min-height: calc(100vh - 52px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem
+        }
+
+        .welcome-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            max-width: 500px;
+            width: 100%
+        }
+
+        .welcome-name {
+            font-size: 22px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 4px
+        }
+
+        .welcome-time {
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 24px
+        }
+
+        .sf-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 14px
+        }
+
+        .fl {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+            .fl label {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                color: var(--muted);
+                font-weight: 600
+            }
+
+            .fl input, .fl select {
+                padding: 8px 10px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-size: 13px;
+                font-family: inherit;
+                color: var(--ink);
+                background: var(--white)
+            }
+
+                .fl input[readonly] {
+                    background: var(--surface);
+                    color: var(--muted)
+                }
+
+        .area-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 8px;
+            margin-top: 14px;
+            display: block
+        }
+
+        .area-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px
+        }
+
+        .area-btn {
+            width: 44px;
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--muted);
+            transition: all .12s;
+            font-family: inherit
+        }
+
+            .area-btn:hover {
+                border-color: var(--red);
+                color: var(--red)
+            }
+
+            .area-btn.sel {
+                background: var(--red);
+                border-color: var(--red);
+                color: #fff;
+                font-weight: 700
+            }
+
+        .area-err {
+            font-size: 11px;
+            color: var(--red);
+            margin-bottom: 12px;
+            display: none
+        }
+
+        .welcome-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            margin-bottom: 8px;
+            transition: opacity .15s;
+            margin-top: 8px
+        }
+
+            .welcome-btn.primary {
+                background: var(--red);
+                color: #fff
+            }
+
+                .welcome-btn.primary:hover {
+                    opacity: .88
+                }
+
+            .welcome-btn.secondary {
+                background: var(--surface);
+                color: var(--ink);
+                border: 1px solid var(--border);
+                font-size: 13px;
+                padding: 11px
+            }
+
+        /* SUCCESS */
+        .success-wrap {
+            min-height: calc(100vh - 52px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem
+        }
+
+        .success-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px 32px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--green-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            font-size: 26px;
+            color: var(--green)
+        }
+
+        .success-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px
+        }
+
+        .success-sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 20px
+        }
+
+        .success-ref {
+            font-size: 13px;
+            color: var(--muted);
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 22px
+        }
+
+        /* FORM */
+        .page {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 16px 60px
+        }
+
+        .session-bar {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 14px
+        }
+
+        .sf {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+            .sf label {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .06em;
+                color: var(--muted);
+                font-weight: 600
+            }
+
+            .sf input, .sf select {
+                padding: 7px 10px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-size: 13px;
+                font-family: inherit;
+                color: var(--ink);
+                background: var(--white);
+                min-width: 120px
+            }
+
+                .sf input[readonly] {
+                    background: var(--surface);
+                    color: var(--muted)
+                }
+
+        .grid-wrap {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            overflow-x: auto;
+            margin-bottom: 14px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 600px
+        }
+
+        thead th {
+            background: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            border-right: 1px solid #e5e7eb;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            padding: 9px 4px;
+            color: var(--muted)
+        }
+
+            thead th.qcol {
+                text-align: left;
+                padding-left: 14px;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .04em;
+                width: 200px
+            }
+
+            thead th.hcol {
+                width: 82px
+            }
+
+        .hnum {
+            display: inline-block;
+            background: var(--red);
+            color: #fff;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            font-size: 11px;
+            font-weight: 700
+        }
+
+        .sec-row td {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 7px 14px;
+            color: #fff;
+            border-right: 1px solid rgba(255,255,255,.1)
+        }
+
+            .sec-row td.acc {
+                width: 3px;
+                padding: 0
+            }
+
+        .sec-row.safety td {
+            background: #14532d
+        }
+
+            .sec-row.safety td.acc {
+                background: #16a34a
+            }
+
+        .sec-row.quality td {
+            background: #1e3a5f
+        }
+
+            .sec-row.quality td.acc {
+                background: #3b82f6
+            }
+
+        .sec-row.perf td {
+            background: #431407
+        }
+
+            .sec-row.perf td.acc {
+                background: #ea580c
+            }
+
+        .sec-row.morale td {
+            background: #3b0764
+        }
+
+            .sec-row.morale td.acc {
+                background: #9333ea
+            }
+
+        .sec-row.final td {
+            background: #1a0a0a
+        }
+
+            .sec-row.final td.acc {
+                background: var(--red)
+            }
+
+        .dr td {
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid #e5e7eb;
+            vertical-align: middle;
+            height: 42px
+        }
+
+            .dr td.ql {
+                font-size: 12px;
+                padding: 8px 14px;
+                background: var(--surface);
+                font-weight: 500;
+                line-height: 1.3;
+                border-right: 1.5px solid var(--border)
+            }
+
+            .dr td.cell {
+                padding: 4px;
+                text-align: center
+            }
+
+        .nr td {
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid #e5e7eb;
+            vertical-align: top
+        }
+
+            .nr td.ql {
+                font-size: 11px;
+                color: var(--muted);
+                font-style: italic;
+                padding: 8px 14px;
+                background: var(--surface);
+                border-right: 1.5px solid var(--border)
+            }
+
+            .nr td.nc {
+                padding: 5px
+            }
+
+        .nr textarea {
+            width: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: inherit;
+            color: var(--ink);
+            padding: 5px 6px;
+            resize: none;
+            height: 46px;
+            background: var(--white);
+            line-height: 1.4
+        }
+
+            .nr textarea:focus {
+                outline: none;
+                border-color: var(--red)
+            }
+
+        .yn {
+            display: flex;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 0 auto;
+            width: 68px
+        }
+
+            .yn button {
+                flex: 1;
+                border: none;
+                background: none;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 6px 0;
+                cursor: pointer;
+                font-family: inherit;
+                color: var(--muted);
+                transition: all .1s
+            }
+
+                .yn button:first-child {
+                    border-right: 1px solid var(--border)
+                }
+
+                .yn button.y {
+                    background: var(--red-bg);
+                    color: var(--red-text)
+                }
+
+                .yn button.n {
+                    background: var(--green-bg);
+                    color: var(--green)
+                }
+
+        .ssel {
+            width: calc(100% - 8px);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: inherit;
+            padding: 5px 3px;
+            background: var(--white);
+            color: var(--ink);
+            cursor: pointer;
+            margin: 0 4px
+        }
+
+            .ssel.g {
+                background: var(--green-bg);
+                color: var(--green);
+                border-color: #86efac
+            }
+
+            .ssel.a {
+                background: #fef3c7;
+                color: #b45309;
+                border-color: #fcd34d
+            }
+
+            .ssel.r {
+                background: var(--red-bg);
+                color: var(--red-text);
+                border-color: #fca5a5
+            }
+
+        .summary-grid {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+            .summary-grid h3 {
+                grid-column: 1/-1;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .07em;
+                color: var(--muted);
+                font-weight: 700;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border)
+            }
+
+        .sfield {
+            display: flex;
+            flex-direction: column;
+            gap: 4px
+        }
+
+            .sfield.full {
+                grid-column: 1/-1
+            }
+
+            .sfield label {
+                font-size: 11px;
+                color: var(--muted);
+                font-weight: 600
+            }
+
+            .sfield textarea {
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-size: 12px;
+                font-family: inherit;
+                padding: 8px 10px;
+                resize: vertical;
+                min-height: 62px;
+                color: var(--ink);
+                line-height: 1.5
+            }
+
+                .sfield textarea:focus {
+                    outline: none;
+                    border-color: var(--red)
+                }
+
+        .submit-bar {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center
+        }
+
+        .sbtn {
+            padding: 10px 24px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            border: 1px solid var(--border);
+            background: none;
+            color: var(--muted);
+            transition: background .15s
+        }
+
+            .sbtn:hover {
+                background: var(--surface)
+            }
+
+            .sbtn.primary {
+                background: var(--red);
+                border-color: var(--red);
+                color: #fff
+            }
+
+                .sbtn.primary:hover {
+                    opacity: .88
+                }
+
+                .sbtn.primary:disabled {
+                    opacity: .5;
+                    cursor: not-allowed
+                }
+
+        /* SHARED */
+        .wrap {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 16px 60px
+        }
+
+        .dwrap {
+            max-width: 1100px;
+            margin: 20px auto;
+            padding: 0 16px 60px
+        }
+
+        .page-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px
+        }
+
+        .page-title {
+            font-size: 15px;
+            font-weight: 500
+        }
+
+        .page-sub {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 14px
+        }
+
+        .card-head {
+            padding: 12px 18px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        .card-sub {
+            font-size: 11px;
+            color: var(--muted)
+        }
+
+        .meta-row {
+            display: flex;
+            gap: 16px;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px
+        }
+
+        .meta-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: var(--muted);
+            font-weight: 600
+        }
+
+        .meta-val {
+            font-size: 13px;
+            font-weight: 500
+        }
+
+        .rv {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 99px;
+            display: inline-block
+        }
+
+            .rv.g {
+                background: var(--green-bg);
+                color: var(--green)
+            }
+
+            .rv.a {
+                background: #fef3c7;
+                color: #b45309
+            }
+
+            .rv.r {
+                background: var(--red-bg);
+                color: var(--red-text)
+            }
+
+            .rv.u {
+                background: var(--surface);
+                color: var(--muted)
+            }
+
+        .edit-btn {
+            padding: 6px 14px;
+            background: var(--red);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit
+        }
+
+        .audit-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            align-items: flex-start
+        }
+
+            .audit-item:last-child {
+                border-bottom: none
+            }
+
+        .audit-who {
+            font-weight: 600;
+            flex-shrink: 0
+        }
+
+        .audit-field {
+            color: var(--muted)
+        }
+
+        .audit-time {
+            margin-left: auto;
+            color: var(--muted);
+            font-size: 11px;
+            flex-shrink: 0;
+            white-space: nowrap
+        }
+
+        /* KPIs / DASH */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 10px;
+            margin-bottom: 14px
+        }
+
+        .kpi {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px
+        }
+
+        .kpi-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 6px
+        }
+
+        .kpi-val {
+            font-size: 26px;
+            font-weight: 500;
+            line-height: 1
+        }
+
+        .kpi-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px
+        }
+
+        .kpi-val.green {
+            color: #16a34a
+        }
+
+        .kpi-val.amber {
+            color: #b45309
+        }
+
+        .dash-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px
+        }
+
+            .dash-table th {
+                text-align: left;
+                padding: 8px 14px;
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .04em;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+                background: var(--surface)
+            }
+
+            .dash-table td {
+                padding: 10px 14px;
+                border-bottom: 1px solid var(--border)
+            }
+
+            .dash-table tr:last-child td {
+                border-bottom: none
+            }
+
+            .dash-table tr:hover td {
+                background: var(--surface)
+            }
+
+        .rag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 700
+        }
+
+            .rag.g {
+                background: var(--green-bg);
+                color: var(--green)
+            }
+
+            .rag.a {
+                background: #fef3c7;
+                color: #b45309
+            }
+
+            .rag.r {
+                background: var(--red-bg);
+                color: var(--red-text)
+            }
+
+            .rag.u {
+                background: var(--surface);
+                color: var(--muted)
+            }
+
+        .dl-link {
+            color: var(--red);
+            font-size: 11px;
+            font-weight: 500;
+            text-decoration: none
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            padding: 12px 14px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border)
+        }
+
+            .filters input {
+                padding: 6px 10px;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-size: 12px;
+                font-family: inherit;
+                background: var(--white);
+                color: var(--ink)
+            }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--ink);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all .3s ease;
+            z-index: 999
+        }
+
+            .toast.show {
+                transform: translateY(0);
+                opacity: 1
+            }
+
+        @media(max-width:640px) {
+            .kpi-row {
+                grid-template-columns: 1fr 1fr
+            }
+
+            .summary-grid, .sf-row {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="stripes">
+            <div class="st" style="background:#CC1F2C;width:22px"></div>
+            <div class="st" style="background:#9B1E8E;width:17px"></div>
+            <div class="st" style="background:#0066B2;width:12px"></div>
+            <div class="st" style="background:#00A651;width:9px"></div>
+        </div>
+        <div><div class="brand">RITTAL</div><div class="subbrand">Team Leader Standard Work</div></div>
+        <div class="topbar-right">
+            <span class="user-chip" id="userChip">Loading...</span>
+            <button class="tbtn" id="navWelcome" onclick="showView('welcome')">Home</button>
+            <button class="tbtn" id="navToday" onclick="showView('today')">Today</button>
+            <button class="tbtn" id="navHandover" onclick="showView('handover')">Handover</button>
+            <button class="tbtn" id="navDash" onclick="showView('dashboard')">Dashboard</button>
+            <button class="tbtn" id="navHistory" onclick="showView('history')">History</button>
+        </div>
+    </div>
+
+    <!-- WELCOME -->
+    <div class="view active" id="view-welcome">
+        <div class="welcome-wrap">
+            <div class="welcome-card">
+                <div class="welcome-name" id="welcomeName">Welcome</div>
+                <div class="welcome-time" id="welcomeTime"></div>
+                <div class="sf-row">
+                    <div class="fl"><label>Date</label><input type="date" id="w-date"></div>
+                    <div class="fl">
+                        <label>Shift</label>
+                        <select id="w-shift"><option value="">Select shift…</option><option>Day</option><option>Afternoon</option><option>Night</option></select>
+                    </div>
+                </div>
+                <div class="fl"><label>Team leader</label><input type="text" id="w-tl" placeholder="Enter your full name"></div>
+                <div class="fl" style="margin-top:14px">
+                    <label>Area <span style="color:var(--red)">*</span></label>
+                    <select id="w-area">
+                        <option value="">Select area…</option>
+                        <optgroup label="Assembly">
+                            <option value="A1-HP">1 — HP</option>
+                            <option value="A2-OZEKI">2 — OZEKI</option>
+                            <option value="A3-META">3 — META</option>
+                            <option value="A4-SELL">4 — SELL</option>
+                            <option value="A5-MICROSOFT">5 — MICROSOFT</option>
+                            <option value="A6-DELL">6 — DELL GAINS / RAINWATER</option>
+                            <option value="A7-MOR">7 — MOR</option>
+                            <option value="A8-SPECIALS">8 — SPECIALS</option>
+                            <option value="A9-TX">9 — TX</option>
+                            <option value="A10-E40001">10 — E40001</option>
+                            <option value="A11-FLATPARTS">11 — FLAT PARTS</option>
+                            <option value="A12-ACCESSORIES">12 — ACCESSORIES</option>
+                        </optgroup>
+                        <optgroup label="Paint">
+                            <option value="P13-BLACK">13 — Black Line</option>
+                            <option value="P14-WHITE">14 — White Line</option>
+                            <option value="P15-BACKBOOTH">15 — Back Booth</option>
+                            <option value="P16-REWORK">16 — Re-Work</option>
+                        </optgroup>
+                        <optgroup label="Sheet Metal">
+                            <option value="S17-TRUMPF">17 — Trumpf Laser</option>
+                            <option value="S18-T500">18 — T500</option>
+                            <option value="S19-T5000">19 — T5000</option>
+                            <option value="S20-T5000S10">20 — T5000 - S10</option>
+                            <option value="S21-T5000S11">21 — T5000 - S11</option>
+                            <option value="S22-T5000S13">22 — T5000 - S13</option>
+                            <option value="S23-T5000S14">23 — T5000 - S14</option>
+                            <option value="S24-T7000">24 — T7000</option>
+                            <option value="S25-HEILBRONN">25 — Heilbronn</option>
+                            <option value="S26-SALVI1">26 — Salvi 1</option>
+                            <option value="S27-SALVI3">27 — Salvi 3</option>
+                            <option value="S28-HROLLFORM">28 — Horizontal Roll Form</option>
+                            <option value="S29-VROLLFORM">29 — Vertical Roll Form</option>
+                            <option value="S30-MAINFRAME1">30 — Mainframe 1</option>
+                            <option value="S31-MAINFRAME2">31 — Mainframe 2</option>
+                            <option value="S32-MICROSOFT">32 — Microsoft</option>
+                            <option value="S33-HPWELD">33 — HP Weld</option>
+                            <option value="S34-GERMANJIG1SPC">34 — German Jig 1 (SPC)</option>
+                            <option value="S35-GERMANJIG1DELL">35 — German Jig 1 (Dell)</option>
+                            <option value="S36-PANASONIC">36 — Panasonic (V3 &amp; Nvidia)</option>
+                            <option value="S37-MGXGALV">37 — MGX Galv Weld</option>
+                            <option value="S38-GOOGLESMALL">38 — Google Small Part Galve Weld</option>
+                            <option value="S39-MSTOPSBOTTOMS">39 — Microsoft Tops and Bottoms</option>
+                            <option value="S40-R22WELD">40 — R22 Weld Robot</option>
+                            <option value="S41-SMALLPARTSWELD">41 — Small Parts Welding</option>
+                            <option value="S42-160TXACT">42 — 160T Xact</option>
+                            <option value="S43-100TPROCAM">43 — 100T Procam</option>
+                            <option value="S44-PH1EDPRSN">44 — PH1 ED PRSN</option>
+                            <option value="S45-TRAINING">45 — Training Bay</option>
+                            <option value="S46-PH3EDPRSN">46 — PH3 ED PRSN</option>
+                            <option value="S47-250T">47 — 250T</option>
+                            <option value="S48-ROBOTFOLD200T">48 — Robot Folding Cell 200T</option>
+                            <option value="S49-BYSTRONIC200T">49 — Bystronic 200T</option>
+                            <option value="S50-BYSTRONIC200T3">50 — Bystronic 200T Machine 3</option>
+                            <option value="S51-BYSTRONIC200T4">51 — Bystronic 200T 4 Robot</option>
+                            <option value="S52-TRUBENDF32">52 — Trubend F32</option>
+                            <option value="S53-TRUBENDF33">53 — Trubend F33</option>
+                            <option value="S54-TRUBENDF34">54 — Trubend F34</option>
+                            <option value="S55-TRUBENDF35">55 — Trubend F35</option>
+                            <option value="S56-GRINDMASTER">56 — Grind Master PH1</option>
+                            <option value="S57-PH1GRIND">57 — PH1 Grind</option>
+                            <option value="S58-AUTOTXSTUD">58 — Automatic TX Stud Weld Cell</option>
+                            <option value="S59-RELSRL16">59 — Rels RL16 Stud Welder</option>
+                            <option value="S60-ELGRIND">60 — EL Grind</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="area-err" id="areaErr">Please select an area.</div>
+                <button class="welcome-btn primary" onclick="startForm()">Start hourly check &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="view" id="view-success">
+        <div class="success-wrap">
+            <div class="success-card">
+                <div class="success-icon">&#10003;</div>
+                <div class="success-title">Shift submitted!</div>
+                <div class="success-sub">Saved successfully.</div>
+                <div class="success-ref" id="successRef">Ref #—</div>
+                <button class="welcome-btn primary" onclick="showView('welcome');resetForm()">Back to home</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="view" id="view-form">
+        <div class="page">
+            <div class="session-bar">
+                <div class="sf"><label>Date</label><input type="text" id="s-date" readonly></div>
+                <div class="sf"><label>Shift</label><input type="text" id="s-shift" readonly></div>
+                <div class="sf"><label>Team leader</label><input type="text" id="s-tl" readonly></div>
+                <div class="sf"><label>Area</label><input type="text" id="s-area" readonly style="font-weight:700;color:var(--red)"></div>
+                <div class="sf" style="margin-left:auto">
+                    <label>Hours in shift</label>
+                    <select id="s-hrs" onchange="setHours(+this.value)">
+                        <option value="8">8 hrs</option>
+                        <option value="7">7</option>
+                        <option value="6">6</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:6px">scroll right for all hours &rarr;</div>
+            <div class="grid-wrap">
+                <table id="tbl"><thead><tr id="hdr"><th class="qcol">Question</th></tr></thead><tbody id="tbody"></tbody></table>
+            </div>
+            <div class="summary-grid">
+                <h3>Shift summary &amp; handover</h3>
+                <div class="sfield full"><label>Escalations / outstanding issues</label><textarea id="g-esc" placeholder="What, why and to whom…"></textarea></div>
+                <div class="sfield"><label>Key risks for next shift</label><textarea id="g-risk" placeholder="Watch out for…"></textarea></div>
+                <div class="sfield"><label>Immediate priorities for incoming team</label><textarea id="g-pri" placeholder="Immediate actions…"></textarea></div>
+            </div>
+            <div class="submit-bar">
+                <button class="sbtn primary" id="subBtn" onclick="doSubmit()">Submit &amp; save shift</button>
+                <button class="sbtn" onclick="saveDraft()">Save draft</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TODAY -->
+    <div class="view" id="view-today">
+        <div class="wrap">
+            <div class="page-head">
+                <div><div class="page-title">Today's shifts</div><div class="page-sub" id="todayDate"></div></div>
+            </div>
+            <div id="todayContent"><div class="empty">Loading…</div></div>
+        </div>
+    </div>
+
+    <!-- HANDOVER -->
+    <div class="view" id="view-handover">
+        <div class="wrap">
+            <div class="page-head">
+                <div><div class="page-title">Shift handover</div><div class="page-sub">Select your area to see the latest handover</div></div>
+            </div>
+            <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px">
+                <div class="fl">
+                    <label>Your area</label>
+                    <select id="handoverAreaSelect" onchange="loadHandover()" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--white);cursor:pointer">
+                        <option value="">Select your area…</option>
+                        <optgroup label="Assembly">
+                            <option>1 — HP</option>
+                            <option>2 — OZEKI</option>
+                            <option>3 — META</option>
+                            <option>4 — SELL</option>
+                            <option>5 — MICROSOFT</option>
+                            <option>6 — DELL GAINS / RAINWATER</option>
+                            <option>7 — MOR</option>
+                            <option>8 — SPECIALS</option>
+                            <option>9 — TX</option>
+                            <option>10 — E40001</option>
+                            <option>11 — FLAT PARTS</option>
+                            <option>12 — ACCESSORIES</option>
+                        </optgroup>
+                        <optgroup label="Paint">
+                            <option>13 — Black Line</option>
+                            <option>14 — White Line</option>
+                            <option>15 — Back Booth</option>
+                            <option>16 — Re-Work</option>
+                        </optgroup>
+                        <optgroup label="Sheet Metal">
+                            <option>17 — Trumpf Laser</option>
+                            <option>18 — T500</option>
+                            <option>19 — T5000</option>
+                            <option>20 — T5000 - S10</option>
+                            <option>21 — T5000 - S11</option>
+                            <option>22 — T5000 - S13</option>
+                            <option>23 — T5000 - S14</option>
+                            <option>24 — T7000</option>
+                            <option>25 — Heilbronn</option>
+                            <option>26 — Salvi 1</option>
+                            <option>27 — Salvi 3</option>
+                            <option>28 — Horizontal Roll Form</option>
+                            <option>29 — Vertical Roll Form</option>
+                            <option>30 — Mainframe 1</option>
+                            <option>31 — Mainframe 2</option>
+                            <option>32 — Microsoft</option>
+                            <option>33 — HP Weld</option>
+                            <option>34 — German Jig 1 (SPC)</option>
+                            <option>35 — German Jig 1 (Dell)</option>
+                            <option>36 — Panasonic (V3 &amp; Nvidia)</option>
+                            <option>37 — MGX Galv Weld</option>
+                            <option>38 — Google Small Part Galve Weld</option>
+                            <option>39 — Microsoft Tops and Bottoms</option>
+                            <option>40 — R22 Weld Robot</option>
+                            <option>41 — Small Parts Welding</option>
+                            <option>42 — 160T Xact</option>
+                            <option>43 — 100T Procam</option>
+                            <option>44 — PH1 ED PRSN</option>
+                            <option>45 — Training Bay</option>
+                            <option>46 — PH3 ED PRSN</option>
+                            <option>47 — 250T</option>
+                            <option>48 — Robot Folding Cell 200T</option>
+                            <option>49 — Bystronic 200T</option>
+                            <option>50 — Bystronic 200T Machine 3</option>
+                            <option>51 — Bystronic 200T 4 Robot</option>
+                            <option>52 — Trubend F32</option>
+                            <option>53 — Trubend F33</option>
+                            <option>54 — Trubend F34</option>
+                            <option>55 — Trubend F35</option>
+                            <option>56 — Grind Master PH1</option>
+                            <option>57 — PH1 Grind</option>
+                            <option>58 — Automatic TX Stud Weld Cell</option>
+                            <option>59 — Rels RL16 Stud Welder</option>
+                            <option>60 — EL Grind</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+            <div id="handoverContent"><div class="empty">Select your area above to load the latest handover.</div></div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="view" id="view-dashboard">
+        <div class="dwrap">
+            <div class="page-head"><div class="page-title">Operations summary</div></div>
+
+            <!-- FILTERS -->
+            <div class="card" style="margin-bottom:14px">
+                <div style="padding:14px 18px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+                    <div class="sf"><label>From</label><input type="date" id="df-from" onchange="loadDash()"></div>
+                    <div class="sf"><label>To</label><input type="date" id="df-to" onchange="loadDash()"></div>
+                    <div class="sf">
+                        <label>Shift</label>
+                        <select id="df-shift" onchange="loadDash()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--white)">
+                            <option value="">All shifts</option>
+                            <option>Day</option>
+                            <option>Afternoon</option>
+                            <option>Night</option>
+                        </select>
+                    </div>
+                    <div class="sf">
+                        <label>Area</label>
+                        <select id="df-area" onchange="loadDash()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--white);max-width:220px">
+                            <option value="">All areas</option>
+                            <optgroup label="Assembly">
+                                <option>1 — HP</option>
+                                <option>2 — OZEKI</option>
+                                <option>3 — META</option>
+                                <option>4 — SELL</option>
+                                <option>5 — MICROSOFT</option>
+                                <option>6 — DELL GAINS / RAINWATER</option>
+                                <option>7 — MOR</option>
+                                <option>8 — SPECIALS</option>
+                                <option>9 — TX</option>
+                                <option>10 — E40001</option>
+                                <option>11 — FLAT PARTS</option>
+                                <option>12 — ACCESSORIES</option>
+                            </optgroup>
+                            <optgroup label="Paint">
+                                <option>13 — Black Line</option>
+                                <option>14 — White Line</option>
+                                <option>15 — Back Booth</option>
+                                <option>16 — Re-Work</option>
+                            </optgroup>
+                            <optgroup label="Sheet Metal">
+                                <option>17 — Trumpf Laser</option>
+                                <option>18 — T500</option>
+                                <option>19 — T5000</option>
+                                <option>20 — T5000 - S10</option>
+                                <option>21 — T5000 - S11</option>
+                                <option>22 — T5000 - S13</option>
+                                <option>23 — T5000 - S14</option>
+                                <option>24 — T7000</option>
+                                <option>25 — Heilbronn</option>
+                                <option>26 — Salvi 1</option>
+                                <option>27 — Salvi 3</option>
+                                <option>28 — Horizontal Roll Form</option>
+                                <option>29 — Vertical Roll Form</option>
+                                <option>30 — Mainframe 1</option>
+                                <option>31 — Mainframe 2</option>
+                                <option>32 — Microsoft</option>
+                                <option>33 — HP Weld</option>
+                                <option>34 — German Jig 1 (SPC)</option>
+                                <option>35 — German Jig 1 (Dell)</option>
+                                <option>36 — Panasonic (V3 &amp; Nvidia)</option>
+                                <option>37 — MGX Galv Weld</option>
+                                <option>38 — Google Small Part Galve Weld</option>
+                                <option>39 — Microsoft Tops and Bottoms</option>
+                                <option>40 — R22 Weld Robot</option>
+                                <option>41 — Small Parts Welding</option>
+                                <option>42 — 160T Xact</option>
+                                <option>43 — 100T Procam</option>
+                                <option>44 — PH1 ED PRSN</option>
+                                <option>45 — Training Bay</option>
+                                <option>46 — PH3 ED PRSN</option>
+                                <option>47 — 250T</option>
+                                <option>48 — Robot Folding Cell 200T</option>
+                                <option>49 — Bystronic 200T</option>
+                                <option>50 — Bystronic 200T Machine 3</option>
+                                <option>51 — Bystronic 200T 4 Robot</option>
+                                <option>52 — Trubend F32</option>
+                                <option>53 — Trubend F33</option>
+                                <option>54 — Trubend F34</option>
+                                <option>55 — Trubend F35</option>
+                                <option>56 — Grind Master PH1</option>
+                                <option>57 — PH1 Grind</option>
+                                <option>58 — Automatic TX Stud Weld Cell</option>
+                                <option>59 — Rels RL16 Stud Welder</option>
+                                <option>60 — EL Grind</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="sf"><label>Team leader</label><input type="text" id="df-tl" placeholder="Search name…" oninput="loadDash()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;min-width:160px"></div>
+                    <div class="sf">
+                        <label>RAG status</label>
+                        <select id="df-rag" onchange="loadDash()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;background:var(--white)">
+                            <option value="">Any</option>
+                            <option value="Green">Green</option>
+                            <option value="Amber">Amber</option>
+                            <option value="Red">Red</option>
+                        </select>
+                    </div>
+                    <button class="sbtn" onclick="clearDashFilters()" style="padding:7px 14px;font-size:12px">Clear</button>
+                    <a href="/api/submissions/export/csv" class="sbtn primary" style="font-size:12px;padding:7px 14px;text-decoration:none;margin-left:auto">&#8595; CSV</a>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="kpi-row">
+                <div class="kpi"><div class="kpi-label">Total shifts</div><div class="kpi-val" id="kpiShifts">—</div><div class="kpi-sub">Filtered</div></div>
+                <div class="kpi"><div class="kpi-label">This week</div><div class="kpi-val" id="kpiWeek">—</div><div class="kpi-sub">Shifts</div></div>
+                <div class="kpi"><div class="kpi-label">Today</div><div class="kpi-val green" id="kpiToday">—</div><div class="kpi-sub">Shifts</div></div>
+                <div class="kpi"><div class="kpi-label">With escalations</div><div class="kpi-val amber" id="kpiEscl">—</div><div class="kpi-sub">Filtered</div></div>
+            </div>
+
+            <!-- CHARTS ROW -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-head"><span class="card-title">Safety RAG</span></div>
+                    <div style="padding:16px"><canvas id="chartSafety" height="180"></canvas></div>
+                </div>
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-head"><span class="card-title">Quality RAG</span></div>
+                    <div style="padding:16px"><canvas id="chartQuality" height="180"></canvas></div>
+                </div>
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-head"><span class="card-title">Performance RAG</span></div>
+                    <div style="padding:16px"><canvas id="chartPerf" height="180"></canvas></div>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-head"><span class="card-title">Shifts per day (last 14 days)</span></div>
+                    <div style="padding:16px"><canvas id="chartBar" height="160"></canvas></div>
+                </div>
+                <div class="card" style="margin-bottom:0">
+                    <div class="card-head"><span class="card-title">Escalations trend (last 14 days)</span></div>
+                    <div style="padding:16px"><canvas id="chartTrend" height="160"></canvas></div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="card">
+                <div class="card-head"><span class="card-title">Shifts</span><span class="card-sub" id="dashCount"></span></div>
+                <table class="dash-table">
+                    <thead><tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr></thead>
+                    <tbody id="dashBody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="view" id="view-history">
+        <div class="dwrap">
+            <div class="page-head"><div class="page-title">All shifts</div></div>
+            <div class="card">
+                <div class="filters"><input type="date" id="hf-from" onchange="loadHistory()"><input type="date" id="hf-to" onchange="loadHistory()"></div>
+                <table class="dash-table">
+                    <thead><tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr></thead>
+                    <tbody id="histBody"><tr><td colspan="9" class="empty">Loading…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+    <script>
+        const ROWS = [
+            { t: 'sec', label: 'Health & Safety', cls: 'safety' },
+            { t: 'yn', key: 'haz', label: 'Any hazards observed?' },
+            { t: 'yn', key: 'uns', label: 'Any unsafe behaviours observed?' },
+            { t: 'yn', key: 'pos', label: 'Any positive behaviours praised?' },
+            { t: 'note', key: 'snote', label: 'Description' },
+            { t: 'sec', label: 'Quality', cls: 'quality' },
+            { t: 'yn', key: 'qchk', label: 'All quality checks completed?' },
+            { t: 'yn', key: 'dev', label: 'Any deviations escalated?' },
+            { t: 'yn', key: 'nc', label: 'Any non-compliance addressed?' },
+            { t: 'note', key: 'qnote', label: 'Description' },
+            { t: 'sec', label: 'Performance', cls: 'perf' },
+            { t: 'yn', key: 'tgt', label: 'Hourly target achieved?' },
+            { t: 'yn', key: 'maint', label: 'Any maintenance issues reported?' },
+            { t: 'yn', key: 'mat', label: 'All materials available for next hour?' },
+            { t: 'yn', key: 'tools', label: 'All tools available?' },
+            { t: 'yn', key: 'escl', label: 'Any escalations needed?' },
+            { t: 'yn', key: 'pconf', label: 'All parts confirmed?' },
+            { t: 'yn', key: 'pid', label: "All parts ID'd properly?" },
+            { t: 'yn', key: 'ncp', label: "All NC parts ID'd & stored correctly?" },
+            { t: 'yn', key: 'sixs', label: '6S activities completed?' },
+            { t: 'yn', key: 'tpm', label: 'TPM activities completed?' },
+            { t: 'note', key: 'pnote', label: 'Actions taken' },
+            { t: 'sec', label: 'Morale Check', cls: 'morale' },
+            { t: 'yn', key: 'wb', label: 'Operator wellbeing confirmed?' },
+            { t: 'yn', key: 'sup', label: 'Does operator require support?' },
+            { t: 'note', key: 'mnote', label: 'Detail support required' },
+            { t: 'sec', label: 'Final Shift Status', cls: 'final' },
+            { t: 'yn', key: 'acc', label: 'Any accidents reported this shift?' },
+            { t: 'status', key: 'ss', label: 'Overall safety status' },
+            { t: 'status', key: 'qs', label: 'Overall quality status' },
+            { t: 'status', key: 'ps', label: 'Overall performance status' },
+        ];
+
+        let H = 8;
+        const D = {};
+        let selectedArea = null;
+        let editingId = null;
+
+        function showView(v) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + v).classList.add('active');
+            document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+            const nb = document.getElementById('nav' + v.charAt(0).toUpperCase() + v.slice(1));
+            if (nb) nb.classList.add('active');
+            if (v === 'dashboard') loadDash();
+            if (v === 'history') loadHistory();
+            if (v === 'today') loadToday();
+            if (v === 'handover') loadHandover();
+            if (v === 'form') renderGrid();
+            window.scrollTo(0, 0);
+        }
+
+        function buildAreaGrid() { /* replaced by dropdown */ }
+
+        async function startForm() {
+            const shift = document.getElementById('w-shift').value;
+            const date = document.getElementById('w-date').value;
+            const tl = document.getElementById('w-tl').value.trim();
+            if (!date) { showToast('Please select a date.'); return; }
+            if (!shift) { showToast('Please select a shift.'); return; }
+            if (!tl) { showToast('Please enter your name.'); return; }
+            const areaVal = document.getElementById('w-area').value;
+            const areaText = document.getElementById('w-area').options[document.getElementById('w-area').selectedIndex].text;
+            if (!areaVal) { document.getElementById('areaErr').style.display = 'block'; return; }
+            selectedArea = areaVal;
+
+            try {
+                const check = await fetch(`/api/submissions/find?date=${date}&shift=${encodeURIComponent(shift)}&area=${encodeURIComponent(areaText)}`);
+                if (check.ok) {
+                    const existing = await check.json();
+                    if (existing && existing.id) {
+                        showToast('Existing shift found — loading your data.');
+                        await loadEditForm(existing.id);
+                        return;
+                    }
+                }
+            } catch { }
+
+            editingId = null;
+            document.getElementById('s-date').value = date;
+            document.getElementById('s-shift').value = shift;
+            document.getElementById('s-tl').value = tl;
+            document.getElementById('s-area').value = areaText;
+            const btn = document.getElementById('subBtn');
+            btn.textContent = 'Submit & save shift';
+            btn.onclick = doSubmit;
+            showView('form');
+        }
+
+        function setHours(n) { H = n; renderGrid(); }
+
+        function renderGrid() {
+            const _area = selectedArea || 'default';
+            if (!D[_area]) { D[_area] = {}; for (let h = 1; h <= 8; h++) D[_area][h] = {}; }
+            const hdr = document.getElementById('hdr');
+            hdr.innerHTML = '<th class="qcol">Question</th>';
+            for (let h = 1; h <= H; h++) {
+                const th = document.createElement('th');
+                th.className = 'hcol';
+                th.innerHTML = 'Hr <span class="hnum">' + h + '</span>';
+                hdr.appendChild(th);
+            }
+            const tb = document.getElementById('tbody');
+            tb.innerHTML = '';
+            ROWS.forEach(row => {
+                const tr = document.createElement('tr');
+                if (row.t === 'sec') {
+                    tr.className = 'sec-row ' + row.cls;
+                    const a = document.createElement('td'); a.className = 'acc'; tr.appendChild(a);
+                    const l = document.createElement('td'); l.colSpan = H + 1; l.textContent = row.label; tr.appendChild(l);
+                    tb.appendChild(tr); return;
+                }
+                if (row.t === 'note') {
+                    tr.className = 'nr';
+                    const l = document.createElement('td'); l.className = 'ql'; l.textContent = row.label; tr.appendChild(l);
+                    for (let h = 1; h <= H; h++) {
+                        const td = document.createElement('td'); td.className = 'nc';
+                        const ta = document.createElement('textarea');
+                        ta.placeholder = 'Notes…'; ta.value = (D[_area] && D[_area][h] && D[_area][h][row.key]) || '';
+                        ta.dataset.h = h; ta.dataset.k = row.key; ta.dataset.a = _area;
+                        ta.oninput = e => { const a = e.target.dataset.a, h = e.target.dataset.h, k = e.target.dataset.k; if (!D[a]) D[a] = {}; if (!D[a][h]) D[a][h] = {}; D[a][h][k] = e.target.value };
+                        td.appendChild(ta); tr.appendChild(td);
+                    }
+                    tb.appendChild(tr); return;
+                }
+                if (row.t === 'status') {
+                    tr.className = 'dr';
+                    const l = document.createElement('td'); l.className = 'ql'; l.textContent = row.label; tr.appendChild(l);
+                    for (let h = 1; h <= H; h++) {
+                        const td = document.createElement('td'); td.className = 'cell';
+                        const s = document.createElement('select'); s.className = 'ssel';
+                        s.innerHTML = '<option value="">—</option><option value="Green">Green</option><option value="Amber">Amber</option><option value="Red">Red</option>';
+                        s.value = (D[_area] && D[_area][h] && D[_area][h][row.key]) || ''; colorS(s);
+                        s.dataset.h = h; s.dataset.k = row.key; s.dataset.a = _area;
+                        s.onchange = e => { const a = e.target.dataset.a, h = e.target.dataset.h, k = e.target.dataset.k; if (!D[a]) D[a] = {}; if (!D[a][h]) D[a][h] = {}; D[a][h][k] = e.target.value; colorS(e.target) };
+                        td.appendChild(s); tr.appendChild(td);
+                    }
+                    tb.appendChild(tr); return;
+                }
+                tr.className = 'dr';
+                const l = document.createElement('td'); l.className = 'ql'; l.textContent = row.label; tr.appendChild(l);
+                for (let h = 1; h <= H; h++) {
+                    const td = document.createElement('td'); td.className = 'cell';
+                    const w = document.createElement('div'); w.className = 'yn';
+                    const yb = document.createElement('button'); yb.textContent = 'Y';
+                    const nb = document.createElement('button'); nb.textContent = 'N';
+                    const cur = (D[_area] && D[_area][h] && D[_area][h][row.key]) || null;
+                    if (cur === 'yes') yb.className = 'y'; if (cur === 'no') nb.className = 'n';
+                    (() => { const ca = _area, ch = h, ck = row.key; yb.onclick = () => { if (!D[ca]) D[ca] = {}; if (!D[ca][ch]) D[ca][ch] = {}; D[ca][ch][ck] = 'yes'; yb.className = 'y'; nb.className = '' }; })();
+                    (() => { const ca = _area, ch = h, ck = row.key; nb.onclick = () => { if (!D[ca]) D[ca] = {}; if (!D[ca][ch]) D[ca][ch] = {}; D[ca][ch][ck] = 'no'; nb.className = 'n'; yb.className = '' }; })();
+                    w.appendChild(yb); w.appendChild(nb); td.appendChild(w); tr.appendChild(td);
+                }
+                tb.appendChild(tr);
+            });
+        }
+
+        function colorS(s) {
+            s.className = 'ssel';
+            if (s.value === 'Green') s.classList.add('g');
+            else if (s.value === 'Amber') s.classList.add('a');
+            else if (s.value === 'Red') s.classList.add('r');
+        }
+
+        function yn(v) { return v === 'yes' ? true : v === 'no' ? false : null; }
+
+        function getPayload() {
+            const hours = [];
+            const _a = selectedArea || 'default';
+            for (let h = 1; h <= H; h++) {
+                const d = (D[_a] && D[_a][h]) || {};
+                hours.push({
+                    hour: h,
+                    haz: yn(d.haz), uns: yn(d.uns), pos: yn(d.pos), snote: d.snote || null,
+                    qchk: yn(d.qchk), dev: yn(d.dev), nc: yn(d.nc), qnote: d.qnote || null,
+                    tgt: yn(d.tgt), maint: yn(d.maint), mat: yn(d.mat), tools: yn(d.tools),
+                    escl: yn(d.escl), pconf: yn(d.pconf), pid: yn(d.pid), ncp: yn(d.ncp),
+                    sixs: yn(d.sixs), tpm: yn(d.tpm), pnote: d.pnote || null,
+                    wb: yn(d.wb), sup: yn(d.sup), mnote: d.mnote || null,
+                    acc: yn(d.acc), ss: d.ss || null, qs: d.qs || null, ps: d.ps || null,
+                });
+            }
+            return {
+                shiftDate: document.getElementById('s-date').value,
+                shift: document.getElementById('s-shift').value,
+                teamLeader: document.getElementById('s-tl').value,
+                area: document.getElementById('s-area').value.trim() || null,
+                hours,
+                escalations: document.getElementById('g-esc').value || null,
+                keyRisks: document.getElementById('g-risk').value || null,
+                priorities: document.getElementById('g-pri').value || null,
+            };
+        }
+
+        async function doSubmit() {
+            const p = getPayload();
+            if (!p.shiftDate || !p.shift) { showToast('Please fill in date and shift.'); return; }
+            const btn = document.getElementById('subBtn');
+            btn.disabled = true; btn.textContent = 'Submitting…';
+            try {
+                const res = await fetch('/api/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
+                if (!res.ok) throw new Error('Server error ' + res.status);
+                const d = await res.json();
+                document.getElementById('successRef').textContent = 'Submission ref #' + d.id;
+                showView('success');
+            } catch (e) { showToast('Could not save: ' + e.message); }
+            finally { btn.disabled = false; btn.textContent = 'Submit & save shift'; }
+        }
+
+        async function doUpdate(id) {
+            const p = getPayload();
+            const btn = document.getElementById('subBtn');
+            btn.disabled = true; btn.textContent = 'Saving…';
+            try {
+                const res = await fetch('/api/submissions/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
+                if (!res.ok) throw new Error('Server error ' + res.status);
+                showToast('Changes saved and logged!');
+                btn.textContent = 'Submit & save shift';
+                btn.onclick = doSubmit;
+                editingId = null;
+                showView('today');
+            } catch (e) { showToast('Could not save: ' + e.message); }
+            finally { btn.disabled = false; }
+        }
+
+        function resetForm() {
+            selectedArea = null; editingId = null;
+            document.getElementById('w-area').value = '';
+            document.getElementById('w-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('w-shift').value = '';
+            ['g-esc', 'g-risk', 'g-pri'].forEach(id => document.getElementById(id).value = '');
+            H = 8; document.getElementById('s-hrs').value = '8';
+            const btn = document.getElementById('subBtn');
+            btn.textContent = 'Submit & save shift'; btn.onclick = doSubmit;
+        }
+
+        function saveDraft() {
+            try { localStorage.setItem('tlsw_draft', JSON.stringify(getPayload())); showToast('Draft saved.'); }
+            catch { showToast('Could not save draft.'); }
+        }
+
+        // TODAY
+        async function loadToday() {
+            document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+            const c = document.getElementById('todayContent');
+            c.innerHTML = '<div class="empty">Loading…</div>';
+            try {
+                const res = await fetch('/api/submissions/today');
+                const items = await res.json();
+                if (!items.length) { c.innerHTML = '<div class="empty">No shifts recorded today yet.</div>'; return; }
+                c.innerHTML = items.map(s => `
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="card-title">${s.shift} shift — Area ${s.area || '?'}</span>
+                            <button class="edit-btn" onclick="loadEditForm(${s.id})">Edit this shift</button>
+                        </div>
+                        <div class="meta-row">
+                            <div class="meta-item"><div class="meta-label">Team leader</div><div class="meta-val">${s.teamLeaderDisplay}</div></div>
+                            <div class="meta-item"><div class="meta-label">Hours completed</div><div class="meta-val">${s.hoursCompleted}</div></div>
+                            <div class="meta-item"><div class="meta-label">Submitted</div><div class="meta-val">${new Date(s.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div></div>
+                            ${s.lastEditedBy ? `<div class="meta-item"><div class="meta-label">Last edited by</div><div class="meta-val">${s.lastEditedBy} at ${new Date(s.lastEditedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div></div>` : ''}
+                        </div>
+                        <div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border)">
+                            <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;font-weight:600">Safety</div>
+                                <span class="rv ${rc(s.overallSafetyStatus)}">${s.overallSafetyStatus || '—'}</span>
+                            </div>
+                            <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;font-weight:600">Quality</div>
+                                <span class="rv ${rc(s.overallQualityStatus)}">${s.overallQualityStatus || '—'}</span>
+                            </div>
+                            <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;font-weight:600">Performance</div>
+                                <span class="rv ${rc(s.overallPerfStatus)}">${s.overallPerfStatus || '—'}</span>
+                            </div>
+                        </div>
+                        ${s.escalations ? `<div style="padding:10px 18px;font-size:12px;color:var(--red-text);background:var(--red-bg)">&#9888; ${s.escalations}</div>` : ''}
+                    </div>`).join('');
+            } catch (e) { c.innerHTML = '<div class="empty">Could not load today\'s shifts.</div>'; }
+        }
+
+        async function loadEditForm(id) {
+            try {
+                const res = await fetch('/api/submissions/' + id);
+                const s = await res.json();
+                const _area = s.area || 'default';
+                selectedArea = _area;
+                if (!D[_area]) D[_area] = {};
+                H = s.hours ? s.hours.length : 8;
+                (s.hours || []).forEach(h => {
+                    const n = h.hourNumber;
+                    const b = v => v === true ? 'yes' : v === false ? 'no' : null;
+                    D[_area][n] = {
+                        haz: b(h.hazardsObserved), uns: b(h.unsafeBehaviours), pos: b(h.positiveBehaviours), snote: h.safetyNotes || '',
+                        qchk: b(h.qualityChecksCompleted), dev: b(h.deviationsEscalated), nc: b(h.nonComplianceAddressed), qnote: h.qualityNotes || '',
+                        tgt: b(h.hourlyTargetAchieved), maint: b(h.maintenanceIssues), mat: b(h.materialsAvailable), tools: b(h.toolsAvailable),
+                        escl: b(h.escalationsNeeded), pconf: b(h.partsConfirmed), pid: b(h.partsIdCorrect), ncp: b(h.ncPartsStoredCorrectly),
+                        sixs: b(h.sixSCompleted), tpm: b(h.tpmCompleted), pnote: h.performanceNotes || '',
+                        wb: b(h.wellbeingConfirmed), sup: b(h.supportRequired), mnote: h.moraleNotes || '',
+                        acc: b(h.accidentsReported), ss: h.overallSafetyStatus || '', qs: h.overallQualityStatus || '', ps: h.overallPerfStatus || '',
+                    };
+                });
+                document.getElementById('s-date').value = s.shiftDate;
+                document.getElementById('s-shift').value = s.shift;
+                document.getElementById('s-tl').value = s.teamLeaderDisplay;
+                document.getElementById('s-area').value = s.area || '';
+                document.getElementById('s-hrs').value = H;
+                document.getElementById('g-esc').value = s.escalations || '';
+                document.getElementById('g-risk').value = s.keyRisks || '';
+                document.getElementById('g-pri').value = s.priorities || '';
+                editingId = id;
+                const btn = document.getElementById('subBtn');
+                btn.textContent = 'Save changes';
+                btn.onclick = () => doUpdate(id);
+                showView('form');
+                showToast('Editing shift — changes will be logged.');
+            } catch (e) { showToast('Could not load shift for editing.'); }
+        }
+
+        // HANDOVER
+        async function loadHandover() {
+            const area = document.getElementById('handoverAreaSelect').value;
+            const c = document.getElementById('handoverContent');
+            if (!area) { c.innerHTML = '<div class="empty">Select your area above to load the latest handover.</div>'; return; }
+            c.innerHTML = '<div class="empty">Loading…</div>';
+            try {
+                const res = await fetch('/api/submissions?pageSize=200');
+                const d = await res.json();
+                const areaShifts = (d.items || []).filter(s => s.area === area);
+                if (!areaShifts.length) { c.innerHTML = '<div class="empty">No shifts found for this area yet.</div>'; return; }
+                // Most recent shift for this area
+                const latest = areaShifts[0];
+                await renderHandover(latest.id, areaShifts);
+            } catch { c.innerHTML = '<div class="empty">Could not load handover.</div>'; }
+        }
+
+        async function renderHandover(id, areaShifts) {
+            if (!id) return;
+            const c = document.getElementById('handoverContent');
+            try {
+                const res = await fetch('/api/submissions/' + id);
+                const s = await res.json();
+                const hrs = s.hours || [];
+                const last = hrs.length ? hrs[hrs.length - 1] : {};
+                const ss = last.overallSafetyStatus || null;
+                const qs = last.overallQualityStatus || null;
+                const ps = last.overallPerfStatus || null;
+
+                const ragBadge = (label, val) => `
+                        <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">${label}</div>
+                            <span class="rv ${rc(val)}" style="font-size:15px;padding:6px 20px">${val || '—'}</span>
+                        </div>`;
+
+                const noteBlock = (label, val) => `
+                        <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">${label}</div>
+                            <div style="font-size:14px;line-height:1.7;${val ? 'color:var(--ink)' : 'color:var(--muted);font-style:italic'}">${val || 'None recorded'}</div>
+                        </div>`;
+
+                const auditHtml = (s.auditLogs || []).length
+                    ? (s.auditLogs || []).slice(0, 5).map(a => `
+                            <div class="audit-item">
+                                <span class="audit-who">${a.changedBy}</span>
+                                <span class="audit-field">changed ${a.fieldName}: ${a.oldValue || '—'} &rarr; ${a.newValue || '—'}</span>
+                                <span class="audit-time">${new Date(a.changedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>`).join('')
+                    : '<div style="padding:12px 0;font-size:12px;color:var(--muted)">No edits recorded.</div>';
+
+                // Previous shifts pills
+                const prevShifts = (areaShifts || []).slice(1, 6);
+                const prevHtml = prevShifts.length ? `
+                        <div style="margin-bottom:14px">
+                            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Previous shifts</div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                ${prevShifts.map(p => `<button onclick="renderHandover(${p.id})" style="padding:6px 14px;border:1px solid var(--border);border-radius:99px;font-size:12px;cursor:pointer;background:var(--white);font-family:inherit;color:var(--muted)">${p.shiftDate} — ${p.shift}</button>`).join('')}
+                            </div>
+                        </div>` : '';
+
+                c.innerHTML = `
+                        ${prevHtml}
+                        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+                            <div style="padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+                                <div>
+                                    <div style="font-size:15px;font-weight:700">${s.shift} shift — ${s.shiftDate}</div>
+                                    <div style="font-size:12px;color:var(--muted);margin-top:2px">TL: ${s.teamLeaderDisplay} &nbsp;&middot;&nbsp; ${s.hoursCompleted} hrs completed</div>
+                                </div>
+                                <a href="/api/submissions/${s.id}/pdf" target="_blank" class="sbtn primary" style="font-size:12px;text-decoration:none;padding:8px 16px">&#8595; PDF</a>
+                            </div>
+                            <div style="padding:20px">
+                                <div style="display:flex;gap:10px;margin-bottom:20px">
+                                    ${ragBadge('Safety', ss)}
+                                    ${ragBadge('Quality', qs)}
+                                    ${ragBadge('Performance', ps)}
+                                </div>
+                                ${noteBlock('Escalations / outstanding issues', s.escalations)}
+                                ${noteBlock('Key risks for next shift', s.keyRisks)}
+                                ${noteBlock('Immediate priorities for incoming team', s.priorities)}
+                                ${(s.auditLogs || []).length ? `<div style="padding:16px 0 0">
+                                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Audit log</div>
+                                    ${auditHtml}
+                                </div>` : ''}
+                            </div>
+                        </div>`;
+            } catch { c.innerHTML = '<div class="empty">Could not load handover.</div>'; }
+        }
