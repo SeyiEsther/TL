@@ -4,7 +4,6 @@
     ViewData["Title"] = "Hourly Check";
     var H = Model.Hours;
     HourInput hd(int i) => i < Model.H.Count ? Model.H[i] : new HourInput();
-    string sc(string? v) => v == "Green" ? "g" : v == "Amber" ? "a" : v == "Red" ? "r" : "";
 }
 
 <div class="page">

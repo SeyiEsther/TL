@@ -39,6 +39,9 @@
     @if (Model.Latest != null)
     {
         var s = Model.Latest;
+        var safetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault();
+        var qualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault();
+        var perfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault();
 
         @if (Model.Previous.Any())
         {
@@ -65,14 +68,57 @@
                 <a href="/api/submissions/@s.Id/pdf" target="_blank" class="sbtn primary" style="font-size:12px;padding:8px 16px">&#8595; PDF</a>
             </div>
             <div style="padding:20px">
+
                 <div style="display:flex;gap:10px;margin-bottom:20px">
-                    @RagBadge("Safety", s.SafetyStatus)
-                    @RagBadge("Quality", s.QualityStatus)
-                    @RagBadge("Performance", s.PerfStatus)
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Safety</div>
+                        <span class="rv @HandoverModel.Rc(safetyStatus)" style="font-size:15px;padding:6px 20px">@(safetyStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Quality</div>
+                        <span class="rv @HandoverModel.Rc(qualityStatus)" style="font-size:15px;padding:6px 20px">@(qualityStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Performance</div>
+                        <span class="rv @HandoverModel.Rc(perfStatus)" style="font-size:15px;padding:6px 20px">@(perfStatus ?? "—")</span>
+                    </div>
                 </div>
-                @NoteBlock("Escalations / outstanding issues", s.Escalations)
-                @NoteBlock("Key risks for next shift", s.KeyRisks)
-                @NoteBlock("Immediate priorities for incoming team", s.Priorities)
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Escalations / outstanding issues</div>
+                    @if (string.IsNullOrEmpty(s.Escalations))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Escalations</div>
+                    }
+                </div>
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Key risks for next shift</div>
+                    @if (string.IsNullOrEmpty(s.KeyRisks))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.KeyRisks</div>
+                    }
+                </div>
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Immediate priorities for incoming team</div>
+                    @if (string.IsNullOrEmpty(s.Priorities))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Priorities</div>
+                    }
+                </div>
 
                 @if (s.AuditLogs.Any())
                 {
@@ -92,24 +138,3 @@
         </div>
     }
 </div>
-
-@functions {
-    IHtmlContent RagBadge(string label, string? val)
-    {
-        var cls = val switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
-        return new HtmlString($@"<div style=""flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px"">
-            <div style=""font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px"">{label}</div>
-            <span class=""rv {cls}"" style=""font-size:15px;padding:6px 20px"">{val ?? "—"}</span>
-        </div>");
-    }
-
-    IHtmlContent NoteBlock(string label, string? val)
-    {
-        var style = string.IsNullOrEmpty(val) ? "color:var(--muted);font-style:italic" : "color:var(--ink)";
-        var text = string.IsNullOrEmpty(val) ? "None recorded" : System.Net.WebUtility.HtmlEncode(val);
-        return new HtmlString($@"<div style=""padding:16px 0;border-bottom:1px solid var(--border)"">
-            <div style=""font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px"">{label}</div>
-            <div style=""font-size:14px;line-height:1.7;{style}"">{text}</div>
-        </div>");
-    }
-}
