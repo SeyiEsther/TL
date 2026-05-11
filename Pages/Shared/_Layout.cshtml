@@ -1,0 +1,43 @@
+@inject TL.Services.UserService UserService
+@{
+    var user = UserService.GetCurrentUser();
+    var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Rittal — TL Standard Work</title>
+    <link rel="stylesheet" href="~/css/site.css">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="stripes">
+        <div class="st" style="background:#CC1F2C;width:22px"></div>
+        <div class="st" style="background:#9B1E8E;width:17px"></div>
+        <div class="st" style="background:#0066B2;width:12px"></div>
+        <div class="st" style="background:#00A651;width:9px"></div>
+    </div>
+    <div>
+        <div class="brand">RITTAL</div>
+        <div class="subbrand">Team Leader Standard Work</div>
+    </div>
+    <div class="topbar-right">
+        @if (!string.IsNullOrEmpty(user.DisplayName))
+        {
+            <span class="user-chip">@user.DisplayName</span>
+        }
+        <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
+        <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
+        <a class="tbtn @(pg == "/Handover" ? "active" : "")" asp-page="/Handover">Handover</a>
+        <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
+        <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
+    </div>
+</div>
+
+@RenderBody()
+
+</body>
+</html>

@@ -1,0 +1,140 @@
+@page
+@model HandoverModel
+@{ ViewData["Title"] = "Handover"; }
+
+<div class="wrap">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Shift handover</div>
+            <div class="page-sub">Select your area to see the latest handover</div>
+        </div>
+    </div>
+
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px">
+        <form method="get">
+            <div class="fl">
+                <label>Your area</label>
+                <select name="area" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--white)">
+                    <option value="">Select your area…</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var a in grp)
+                            {
+                                <option value="@a.Label" selected="@(Model.SelectedArea == a.Label)">@a.Label</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+            <button type="submit" class="sbtn" style="margin-top:10px">View handover</button>
+        </form>
+    </div>
+
+    @if (Model.Latest == null && !string.IsNullOrEmpty(Model.SelectedArea))
+    {
+        <div class="card"><div class="empty">No shifts found for this area yet.</div></div>
+    }
+
+    @if (Model.Latest != null)
+    {
+        var s = Model.Latest;
+        var safetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault();
+        var qualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault();
+        var perfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault();
+
+        @if (Model.Previous.Any())
+        {
+            <div style="margin-bottom:14px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Previous shifts</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    @foreach (var p in Model.Previous)
+                    {
+                        <a asp-page="/Handover" asp-route-area="@Model.SelectedArea" asp-route-id="@p.Id"
+                           style="padding:6px 14px;border:1px solid var(--border);border-radius:99px;font-size:12px;text-decoration:none;background:var(--white);color:var(--muted)">
+                            @p.ShiftDate — @p.Shift
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+            <div style="padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+                <div>
+                    <div style="font-size:15px;font-weight:700">@s.Shift shift — @s.ShiftDate.ToString("dd/MM/yyyy")</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px">TL: @s.TeamLeaderDisplay &nbsp;&middot;&nbsp; @s.HoursCompleted hrs completed</div>
+                </div>
+                <a href="/api/submissions/@s.Id/pdf" target="_blank" class="sbtn primary" style="font-size:12px;padding:8px 16px">&#8595; PDF</a>
+            </div>
+            <div style="padding:20px">
+
+                <div style="display:flex;gap:10px;margin-bottom:20px">
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Safety</div>
+                        <span class="rv @HandoverModel.Rc(safetyStatus)" style="font-size:15px;padding:6px 20px">@(safetyStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Quality</div>
+                        <span class="rv @HandoverModel.Rc(qualityStatus)" style="font-size:15px;padding:6px 20px">@(qualityStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Performance</div>
+                        <span class="rv @HandoverModel.Rc(perfStatus)" style="font-size:15px;padding:6px 20px">@(perfStatus ?? "—")</span>
+                    </div>
+                </div>
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Escalations / outstanding issues</div>
+                    @if (string.IsNullOrEmpty(s.Escalations))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Escalations</div>
+                    }
+                </div>
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Key risks for next shift</div>
+                    @if (string.IsNullOrEmpty(s.KeyRisks))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.KeyRisks</div>
+                    }
+                </div>
+
+                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Immediate priorities for incoming team</div>
+                    @if (string.IsNullOrEmpty(s.Priorities))
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                    }
+                    else
+                    {
+                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Priorities</div>
+                    }
+                </div>
+
+                @if (s.AuditLogs.Any())
+                {
+                    <div style="padding:16px 0 0">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Audit log</div>
+                        @foreach (var a in s.AuditLogs.Take(5))
+                        {
+                            <div class="audit-item">
+                                <span class="audit-who">@a.ChangedBy</span>
+                                <span class="audit-field">changed @a.FieldName: @(a.OldValue ?? "—") &rarr; @(a.NewValue ?? "—")</span>
+                                <span class="audit-time">@a.ChangedAt.ToLocalTime().ToString("dd MMM HH:mm")</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>

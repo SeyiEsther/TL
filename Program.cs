@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Services;
 
@@ -12,12 +12,12 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapControllers();
+app.MapRazorPages();
 
 app.Run();

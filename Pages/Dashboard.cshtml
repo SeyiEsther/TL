@@ -1,0 +1,84 @@
+@page
+@model DashboardModel
+@{ ViewData["Title"] = "Dashboard"; }
+
+<div class="dwrap">
+    <div class="page-head"><div class="page-title">Operations summary</div></div>
+
+    <div class="card" style="margin-bottom:14px">
+        <form method="get" class="filters">
+            <div class="sf"><label>From</label><input type="date" name="from" value="@Model.From"></div>
+            <div class="sf"><label>To</label><input type="date" name="to" value="@Model.To"></div>
+            <div class="sf">
+                <label>Shift</label>
+                <select name="shift">
+                    <option value="">All shifts</option>
+                    <option value="Day" selected="@(Model.ShiftFilter == "Day")">Day</option>
+                    <option value="Afternoon" selected="@(Model.ShiftFilter == "Afternoon")">Afternoon</option>
+                    <option value="Night" selected="@(Model.ShiftFilter == "Night")">Night</option>
+                </select>
+            </div>
+            <div class="sf">
+                <label>Area</label>
+                <select name="area" style="max-width:200px">
+                    <option value="">All areas</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var a in grp)
+                            {
+                                <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+            <div class="sf"><label>Team leader</label><input type="text" name="tl" value="@Model.TlFilter" placeholder="Search name…" style="min-width:160px"></div>
+            <button type="submit" class="sbtn sm">Filter</button>
+            <a asp-page="/Dashboard" class="sbtn sm">Clear</a>
+            <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn primary sm" style="margin-left:auto">&#8595; CSV</a>
+        </form>
+    </div>
+
+    <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Total shifts</div><div class="kpi-val">@Model.Shifts.Count</div><div class="kpi-sub">Filtered</div></div>
+        <div class="kpi"><div class="kpi-label">This week</div><div class="kpi-val">@Model.ThisWeek</div><div class="kpi-sub">Shifts</div></div>
+        <div class="kpi"><div class="kpi-label">Today</div><div class="kpi-val green">@Model.Today</div><div class="kpi-sub">Shifts</div></div>
+        <div class="kpi"><div class="kpi-label">With escalations</div><div class="kpi-val amber">@Model.WithEscalations</div><div class="kpi-sub">Filtered</div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Shifts</span>
+            <span class="card-sub">@Model.Shifts.Count shifts</span>
+        </div>
+        @if (!Model.Shifts.Any())
+        {
+            <div class="empty">No shifts match the current filters.</div>
+        }
+        else
+        {
+            <table class="dash-table">
+                <thead>
+                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Shifts)
+                    {
+                        <tr>
+                            <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
+                            <td>@s.Shift</td>
+                            <td>@(s.Area ?? "—")</td>
+                            <td>@s.TeamLeaderDisplay</td>
+                            <td><span class="rag @DashboardModel.Rc(s.OverallSafetyStatus)">@(s.OverallSafetyStatus ?? "—")</span></td>
+                            <td><span class="rag @DashboardModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
+                            <td><span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
+                            <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                            <td><a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
