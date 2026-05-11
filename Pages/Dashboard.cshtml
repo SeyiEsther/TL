@@ -3,7 +3,14 @@
 @{ ViewData["Title"] = "Dashboard"; }
 
 <div class="dwrap">
-    <div class="page-head"><div class="page-title">Operations summary</div></div>
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Operations Dashboard</div>
+            <div class="page-sub">@Model.Shifts.Count shifts &bull; Real-time overview</div>
+        </div>
+        <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn primary sm">&#8595; Export CSV</a>
+    </div>
 
     <div class="card" style="margin-bottom:14px">
         <form method="get" class="filters">
@@ -36,16 +43,158 @@
             <div class="sf"><label>Team leader</label><input type="text" name="tl" value="@Model.TlFilter" placeholder="Search name…" style="min-width:160px"></div>
             <button type="submit" class="sbtn sm">Filter</button>
             <a asp-page="/Dashboard" class="sbtn sm">Clear</a>
-            <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn primary sm" style="margin-left:auto">&#8595; CSV</a>
         </form>
     </div>
 
-    <div class="kpi-row">
-        <div class="kpi"><div class="kpi-label">Total shifts</div><div class="kpi-val">@Model.Shifts.Count</div><div class="kpi-sub">Filtered</div></div>
-        <div class="kpi"><div class="kpi-label">This week</div><div class="kpi-val">@Model.ThisWeek</div><div class="kpi-sub">Shifts</div></div>
-        <div class="kpi"><div class="kpi-label">Today</div><div class="kpi-val green">@Model.Today</div><div class="kpi-sub">Shifts</div></div>
-        <div class="kpi"><div class="kpi-label">With escalations</div><div class="kpi-val amber">@Model.WithEscalations</div><div class="kpi-sub">Filtered</div></div>
+    <div class="kpi-row" style="margin-bottom:14px">
+        <div class="kpi kpi-blue">
+            <div class="kpi-icon-wrap kpi-icon-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </div>
+            <div class="kpi-label">Total Shifts</div>
+            <div class="kpi-val">@Model.Shifts.Count</div>
+            <div class="kpi-sub">Filtered results</div>
+        </div>
+        <div class="kpi kpi-indigo">
+            <div class="kpi-icon-wrap kpi-icon-indigo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <div class="kpi-label">This Week</div>
+            <div class="kpi-val">@Model.ThisWeek</div>
+            <div class="kpi-sub">Last 7 days</div>
+        </div>
+        <div class="kpi kpi-green">
+            <div class="kpi-icon-wrap kpi-icon-green">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div class="kpi-label">Today</div>
+            <div class="kpi-val" style="color:#16a34a">@Model.Today</div>
+            <div class="kpi-sub">Active shifts</div>
+        </div>
+        <div class="kpi kpi-amber">
+            <div class="kpi-icon-wrap kpi-icon-amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="kpi-label">Escalations</div>
+            <div class="kpi-val" style="color:#b45309">@Model.WithEscalations</div>
+            <div class="kpi-sub">With escalations</div>
+        </div>
     </div>
+
+    <div class="chart-grid-4" style="margin-bottom:14px">
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Safety Status</span>
+                <span class="rag g" style="font-size:10px">@Model.SafetyGreen G</span>
+            </div>
+            <div style="position:relative;max-width:160px;margin:0 auto">
+                <canvas id="safetyChart"></canvas>
+                <div class="donut-center">
+                    <div class="donut-pct @(Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed > 0 ? DashboardModel.Rc(Model.SafetyGreen >= Model.SafetyAmber && Model.SafetyGreen >= Model.SafetyRed ? "Green" : Model.SafetyAmber >= Model.SafetyRed ? "Amber" : "Red") : "u")">
+                        @(Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed > 0 ? $"{Model.SafetyGreen * 100 / (Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed)}%" : "—")
+                    </div>
+                    <div style="font-size:9px;color:var(--muted)">green</div>
+                </div>
+            </div>
+            <div class="rag-legend">
+                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.SafetyGreen</span>
+                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.SafetyAmber</span>
+                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.SafetyRed</span>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Quality Status</span>
+                <span class="rag g" style="font-size:10px">@Model.QualityGreen G</span>
+            </div>
+            <div style="position:relative;max-width:160px;margin:0 auto">
+                <canvas id="qualityChart"></canvas>
+                <div class="donut-center">
+                    <div class="donut-pct @(Model.QualityGreen + Model.QualityAmber + Model.QualityRed > 0 ? DashboardModel.Rc(Model.QualityGreen >= Model.QualityAmber && Model.QualityGreen >= Model.QualityRed ? "Green" : Model.QualityAmber >= Model.QualityRed ? "Amber" : "Red") : "u")">
+                        @(Model.QualityGreen + Model.QualityAmber + Model.QualityRed > 0 ? $"{Model.QualityGreen * 100 / (Model.QualityGreen + Model.QualityAmber + Model.QualityRed)}%" : "—")
+                    </div>
+                    <div style="font-size:9px;color:var(--muted)">green</div>
+                </div>
+            </div>
+            <div class="rag-legend">
+                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.QualityGreen</span>
+                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.QualityAmber</span>
+                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.QualityRed</span>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Performance Status</span>
+                <span class="rag g" style="font-size:10px">@Model.PerfGreen G</span>
+            </div>
+            <div style="position:relative;max-width:160px;margin:0 auto">
+                <canvas id="perfChart"></canvas>
+                <div class="donut-center">
+                    <div class="donut-pct @(Model.PerfGreen + Model.PerfAmber + Model.PerfRed > 0 ? DashboardModel.Rc(Model.PerfGreen >= Model.PerfAmber && Model.PerfGreen >= Model.PerfRed ? "Green" : Model.PerfAmber >= Model.PerfRed ? "Amber" : "Red") : "u")">
+                        @(Model.PerfGreen + Model.PerfAmber + Model.PerfRed > 0 ? $"{Model.PerfGreen * 100 / (Model.PerfGreen + Model.PerfAmber + Model.PerfRed)}%" : "—")
+                    </div>
+                    <div style="font-size:9px;color:var(--muted)">green</div>
+                </div>
+            </div>
+            <div class="rag-legend">
+                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.PerfGreen</span>
+                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.PerfAmber</span>
+                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.PerfRed</span>
+            </div>
+        </div>
+
+        <div class="chart-card gauge-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Health Score</span>
+            </div>
+            <canvas id="gaugeChart" style="max-width:220px;display:block;margin:0 auto"></canvas>
+            <div style="text-align:center;margin-top:6px">
+                <div class="gauge-score-val">@Model.HealthScore<span style="font-size:14px;font-weight:400;color:var(--muted)">%</span></div>
+                <div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px">Health Index</div>
+            </div>
+            <div class="gauge-bands" style="margin-top:8px">
+                <span style="color:#CC1F2C;font-size:10px;font-weight:600">Poor</span>
+                <span style="font-size:10px;color:var(--muted)">▸ ▸ ▸</span>
+                <span style="color:#16a34a;font-size:10px;font-weight:600">Excellent</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-grid-act" style="margin-bottom:14px">
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">14-Day Activity</span>
+                <span style="font-size:10px;color:var(--muted)">Shifts per day</span>
+            </div>
+            <canvas id="activityChart" style="max-height:200px"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Shift Type</span>
+            </div>
+            <div style="position:relative;max-width:180px;margin:0 auto">
+                <canvas id="shiftTypeChart"></canvas>
+            </div>
+            <div class="shift-type-legend">
+                <div class="shift-type-item"><span class="rag-dot" style="background:#3b82f6"></span>Day <strong>@Model.DayShifts</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#f59e0b"></span>Afternoon <strong>@Model.AfternoonShifts</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#6366f1"></span>Night <strong>@Model.NightShifts</strong></div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.AreaLabels.Length > 0)
+    {
+        <div class="chart-card" style="margin-bottom:14px">
+            <div class="chart-card-head">
+                <span class="chart-title">Top Areas by Shifts</span>
+                <span style="font-size:10px;color:var(--muted)">Top @Model.AreaLabels.Length</span>
+            </div>
+            <canvas id="areasChart" style="max-height:240px"></canvas>
+        </div>
+    }
 
     <div class="card">
         <div class="card-head">
@@ -82,3 +231,175 @@
         }
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const C = {
+        green: '#16a34a', amber: '#f59e0b', red: '#CC1F2C',
+        blue: '#3b82f6', indigo: '#6366f1', gray: '#e9ebee', ink: '#0f1117',
+    };
+
+    Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+    Chart.defaults.font.size = 11;
+
+    function ragDonut(id, g, a, r) {
+        const total = g + a + r;
+        return new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: {
+                labels: ['Green', 'Amber', 'Red'],
+                datasets: [{
+                    data: total > 0 ? [g, a, r] : [1, 0, 0],
+                    backgroundColor: total > 0 ? [C.green, C.amber, C.red] : [C.gray],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.raw}${total > 0 ? ' (' + Math.round(ctx.raw / total * 100) + '%)' : ''}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    ragDonut('safetyChart', @Model.SafetyGreen, @Model.SafetyAmber, @Model.SafetyRed);
+    ragDonut('qualityChart', @Model.QualityGreen, @Model.QualityAmber, @Model.QualityRed);
+    ragDonut('perfChart', @Model.PerfGreen, @Model.PerfAmber, @Model.PerfRed);
+
+    const score = @Model.HealthScore;
+    const gaugeColor = score >= 67 ? C.green : score >= 34 ? C.amber : C.red;
+
+    const needlePlugin = {
+        id: 'needle',
+        afterDatasetDraw(chart) {
+            const { ctx } = chart;
+            const meta = chart.getDatasetMeta(0);
+            if (!meta.data.length) return;
+            const arc = meta.data[0];
+            const cx = arc.x, cy = arc.y;
+            const innerR = arc.innerRadius;
+            const outerR = arc.outerRadius;
+            const angleRad = Math.PI + (score / 100 * Math.PI);
+            const len = (innerR + outerR) / 2 * 0.92;
+
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.15)';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + len * Math.cos(angleRad), cy + len * Math.sin(angleRad));
+            ctx.strokeStyle = C.ink;
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+            ctx.fillStyle = C.ink;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.restore();
+        }
+    };
+
+    new Chart(document.getElementById('gaugeChart'), {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: score > 0 ? [score, 100 - score] : [1, 99],
+                backgroundColor: score > 0 ? [gaugeColor, C.gray] : [C.gray, C.gray],
+                borderWidth: 0,
+            }]
+        },
+        options: {
+            circumference: 180,
+            rotation: 180,
+            aspectRatio: 2,
+            cutout: '62%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        },
+        plugins: [needlePlugin]
+    });
+
+    new Chart(document.getElementById('activityChart'), {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(Model.J(Model.ActivityLabels)),
+            datasets: [{
+                label: 'Shifts',
+                data: @Html.Raw(Model.J(Model.ActivityData)),
+                backgroundColor: ctx => {
+                    const v = ctx.raw;
+                    return v === 0 ? C.gray : C.red;
+                },
+                borderRadius: 5,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} shift${ctx.raw !== 1 ? 's' : ''}` } } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+                y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: '#f0f0f0' } }
+            }
+        }
+    });
+
+    const shiftTotal = @Model.DayShifts + @Model.AfternoonShifts + @Model.NightShifts;
+    new Chart(document.getElementById('shiftTypeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Day', 'Afternoon', 'Night'],
+            datasets: [{
+                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.AfternoonShifts, @Model.NightShifts] : [1, 1, 1],
+                backgroundColor: shiftTotal > 0 ? [C.blue, C.amber, C.indigo] : [C.gray, C.gray, C.gray],
+                borderWidth: 3,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } } }
+        }
+    });
+
+    @if (Model.AreaLabels.Length > 0)
+    {
+        <text>
+    new Chart(document.getElementById('areasChart'), {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(Model.J(Model.AreaLabels)),
+            datasets: [{
+                label: 'Shifts',
+                data: @Html.Raw(Model.J(Model.AreaData)),
+                backgroundColor: @Html.Raw(Model.J(Model.AreaData.Select((_, i) => i % 2 == 0 ? "#CC1F2C" : "#e05060").ToArray())),
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} shift${ctx.raw !== 1 ? 's' : ''}` } } },
+            scales: {
+                x: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: '#f0f0f0' } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+        </text>
+    }
+})();
+</script>
