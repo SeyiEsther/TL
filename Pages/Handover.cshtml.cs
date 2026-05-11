@@ -43,7 +43,6 @@ public class HandoverModel : PageModel
 
         if (Latest != null)
         {
-            var lastHour = Latest.Hours.LastOrDefault();
             Latest.Hours = Latest.Hours.ToList();
 
             Previous = areaShifts
@@ -52,4 +51,6 @@ public class HandoverModel : PageModel
                 .ToList();
         }
     }
+
+    public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
 }
