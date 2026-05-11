@@ -1,0 +1,62 @@
+@page
+@model TodayModel
+@{ ViewData["Title"] = "Today"; }
+
+<div class="wrap">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Today's shifts</div>
+            <div class="page-sub">@DateTime.Today.ToString("dddd d MMMM yyyy")</div>
+        </div>
+    </div>
+
+    @if (!Model.Shifts.Any())
+    {
+        <div class="card"><div class="empty">No shifts recorded today yet.</div></div>
+    }
+    else
+    {
+        foreach (var s in Model.Shifts)
+        {
+            <div class="card">
+                <div class="card-head">
+                    <span class="card-title">@s.Shift shift — Area @(s.Area ?? "?")</span>
+                    <a class="edit-btn" asp-page="/Form" asp-route-id="@s.Id">Edit this shift</a>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-item"><div class="meta-label">Team leader</div><div class="meta-val">@s.TeamLeaderDisplay</div></div>
+                    <div class="meta-item"><div class="meta-label">Hours completed</div><div class="meta-val">@s.HoursCompleted</div></div>
+                    <div class="meta-item"><div class="meta-label">Submitted</div><div class="meta-val">@s.SubmittedAt.ToLocalTime().ToString("HH:mm")</div></div>
+                    @if (s.LastEditedBy != null)
+                    {
+                        <div class="meta-item">
+                            <div class="meta-label">Last edited by</div>
+                            <div class="meta-val">@s.LastEditedBy at @s.LastEditedAt?.ToLocalTime().ToString("HH:mm")</div>
+                        </div>
+                    }
+                </div>
+                <div style="display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border)">
+                    <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                        <div class="meta-label" style="margin-bottom:4px">Safety</div>
+                        <span class="rv @TodayModel.Rc(s.SafetyStatus)">@(s.SafetyStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                        <div class="meta-label" style="margin-bottom:4px">Quality</div>
+                        <span class="rv @TodayModel.Rc(s.QualityStatus)">@(s.QualityStatus ?? "—")</span>
+                    </div>
+                    <div style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">
+                        <div class="meta-label" style="margin-bottom:4px">Performance</div>
+                        <span class="rv @TodayModel.Rc(s.PerfStatus)">@(s.PerfStatus ?? "—")</span>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(s.Escalations))
+                {
+                    <div class="escl-banner">&#9888; @s.Escalations</div>
+                }
+                <div style="padding:10px 18px">
+                    <a href="/api/submissions/@s.Id/pdf" class="dl-link">&#8595; Download PDF</a>
+                </div>
+            </div>
+        }
+    }
+</div>

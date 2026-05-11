@@ -1,0 +1,60 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="welcome-wrap">
+    <div class="welcome-card">
+        <div class="welcome-name">Welcome@(Model.UserName != null ? ", " + Model.UserName : "")</div>
+        <div class="welcome-time">@DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="sf-row">
+                <div class="fl">
+                    <label>Date</label>
+                    <input type="date" name="ShiftDate" value="@Model.ShiftDate" required>
+                </div>
+                <div class="fl">
+                    <label>Shift</label>
+                    <select name="Shift" required>
+                        <option value="">Select shift…</option>
+                        <option value="Day" selected="@(Model.Shift == "Day")">Day</option>
+                        <option value="Afternoon" selected="@(Model.Shift == "Afternoon")">Afternoon</option>
+                        <option value="Night" selected="@(Model.Shift == "Night")">Night</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="fl" style="margin-bottom:14px">
+                <label>Team leader</label>
+                <input type="text" name="TeamLeader" value="@Model.TeamLeader" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="fl" style="margin-bottom:6px">
+                <label>Area <span style="color:var(--red)">*</span></label>
+                <select name="Area" required>
+                    <option value="">Select area…</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var area in grp)
+                            {
+                                <option value="@area.Label" selected="@(Model.Area == area.Label)">@area.Label</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="err">@Model.Error</div>
+            }
+
+            <button type="submit" class="welcome-btn primary">Start hourly check &rarr;</button>
+        </form>
+    </div>
+</div>

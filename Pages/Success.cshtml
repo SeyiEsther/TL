@@ -1,0 +1,14 @@
+@page
+@model SuccessModel
+@{ ViewData["Title"] = "Submitted"; }
+
+<div class="success-wrap">
+    <div class="success-card">
+        <div class="success-icon">&#10003;</div>
+        <div class="success-title">Shift submitted!</div>
+        <div class="success-sub">Saved successfully.</div>
+        <div class="success-ref">Submission ref #@Model.SubmissionId</div>
+        <a asp-page="/Index" class="welcome-btn primary">Back to home</a>
+        <a href="/api/submissions/@Model.SubmissionId/pdf" class="welcome-btn secondary">&#8595; Download PDF</a>
+    </div>
+</div>
