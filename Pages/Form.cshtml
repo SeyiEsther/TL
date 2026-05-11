@@ -1,0 +1,205 @@
+@page
+@model FormModel
+@{
+    ViewData["Title"] = "Hourly Check";
+    var H = Model.Hours;
+    HourInput hd(int i) => i < Model.H.Count ? Model.H[i] : new HourInput();
+    string sc(string? v) => v == "Green" ? "g" : v == "Amber" ? "a" : v == "Red" ? "r" : "";
+}
+
+<div class="page">
+
+    <!-- Session info bar -->
+    <div class="session-bar">
+        <div class="sf"><label>Date</label><input type="text" value="@Model.ShiftDate" readonly></div>
+        <div class="sf"><label>Shift</label><input type="text" value="@Model.Shift" readonly></div>
+        <div class="sf"><label>Team leader</label><input type="text" value="@Model.TeamLeader" readonly></div>
+        <div class="sf"><label>Area</label><input type="text" value="@Model.Area" readonly style="font-weight:700;color:var(--red)"></div>
+
+        <!-- Hours selector — pure GET form, no JS -->
+        <div class="sf" style="margin-left:auto">
+            <label>Hours in shift</label>
+            <form method="get" style="display:flex;gap:6px;align-items:center">
+                <input type="hidden" name="date" value="@Model.ShiftDate">
+                <input type="hidden" name="shift" value="@Model.Shift">
+                <input type="hidden" name="area" value="@Model.Area">
+                <input type="hidden" name="tl" value="@Model.TeamLeader">
+                @if (Model.EditingId.HasValue)
+                {
+                    <input type="hidden" name="id" value="@Model.EditingId">
+                }
+                <select name="hours">
+                    @for (int h = 8; h >= 1; h--)
+                    {
+                        <option value="@h" selected="@(Model.Hours == h)">@h hrs</option>
+                    }
+                </select>
+                <button type="submit" class="sbtn sm">Set</button>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.EditingId.HasValue)
+    {
+        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b45309">
+            Editing existing shift — all changes are audit-logged.
+        </div>
+    }
+
+    <div class="hint">scroll right for all hours &rarr;</div>
+
+    <!-- Main data entry form -->
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
+        <input type="hidden" name="Shift" value="@Model.Shift">
+        <input type="hidden" name="TeamLeader" value="@Model.TeamLeader">
+        <input type="hidden" name="Area" value="@Model.Area">
+        <input type="hidden" name="HoursCount" value="@H">
+        @if (Model.EditingId.HasValue)
+        {
+            <input type="hidden" name="EditingId" value="@Model.EditingId">
+        }
+
+        <div class="grid-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="qcol">Question</th>
+                        @for (int h = 0; h < H; h++)
+                        {
+                            <th class="hcol">Hr <span class="hnum">@(h + 1)</span></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <!-- HEALTH & SAFETY -->
+                    <tr class="sec-row safety"><td class="acc"></td><td colspan="@H">Health &amp; Safety</td></tr>
+                    @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz); }
+                    @{ await RenderYN("Any unsafe behaviours observed?", "Uns", h => hd(h).Uns); }
+                    @{ await RenderYN("Any positive behaviours praised?", "Pos", h => hd(h).Pos); }
+                    @{ await RenderNote("Description", "Snote", h => hd(h).Snote); }
+
+                    <!-- QUALITY -->
+                    <tr class="sec-row quality"><td class="acc"></td><td colspan="@H">Quality</td></tr>
+                    @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk); }
+                    @{ await RenderYN("Any deviations escalated?", "Dev", h => hd(h).Dev); }
+                    @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc); }
+                    @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
+
+                    <!-- PERFORMANCE -->
+                    <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>
+                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt); }
+                    @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint); }
+                    @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat); }
+                    @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools); }
+                    @{ await RenderYN("Any escalations needed?", "Escl", h => hd(h).Escl); }
+                    @{ await RenderYN("All parts confirmed?", "Pconf", h => hd(h).Pconf); }
+                    @{ await RenderYN("All parts ID'd properly?", "Pid", h => hd(h).Pid); }
+                    @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp); }
+                    @{ await RenderYN("6S activities completed?", "Sixs", h => hd(h).Sixs); }
+                    @{ await RenderYN("TPM activities completed?", "Tpm", h => hd(h).Tpm); }
+                    @{ await RenderNote("Actions taken", "Pnote", h => hd(h).Pnote); }
+
+                    <!-- MORALE -->
+                    <tr class="sec-row morale"><td class="acc"></td><td colspan="@H">Morale Check</td></tr>
+                    @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb); }
+                    @{ await RenderYN("Does operator require support?", "Sup", h => hd(h).Sup); }
+                    @{ await RenderNote("Detail support required", "Mnote", h => hd(h).Mnote); }
+
+                    <!-- FINAL STATUS -->
+                    <tr class="sec-row final"><td class="acc"></td><td colspan="@H">Final Shift Status</td></tr>
+                    @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc); }
+                    @{ await RenderStatus("Overall safety status", "Ss", h => hd(h).Ss); }
+                    @{ await RenderStatus("Overall quality status", "Qs", h => hd(h).Qs); }
+                    @{ await RenderStatus("Overall performance status", "Ps", h => hd(h).Ps); }
+
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Shift summary -->
+        <div class="summary-grid">
+            <h3>Shift summary &amp; handover</h3>
+            <div class="sfield full">
+                <label>Escalations / outstanding issues</label>
+                <textarea name="Escalations" placeholder="What, why and to whom…">@Model.Escalations</textarea>
+            </div>
+            <div class="sfield">
+                <label>Key risks for next shift</label>
+                <textarea name="KeyRisks" placeholder="Watch out for…">@Model.KeyRisks</textarea>
+            </div>
+            <div class="sfield">
+                <label>Immediate priorities for incoming team</label>
+                <textarea name="Priorities" placeholder="Immediate actions…">@Model.Priorities</textarea>
+            </div>
+        </div>
+
+        <div class="submit-bar">
+            <button type="submit" class="sbtn primary">
+                @(Model.EditingId.HasValue ? "Save changes" : "Submit & save shift")
+            </button>
+            <a asp-page="/Index" class="sbtn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@functions {
+    async Task RenderYN(string label, string field, Func<int, bool?> val)
+    {
+        <tr class="dr">
+            <td class="ql">@Html.Raw(label)</td>
+            @for (int h = 0; h < Model.Hours; h++)
+            {
+                var v = val(h);
+                var yId = $"h{h}_{field}_y";
+                var nId = $"h{h}_{field}_n";
+                var name = $"H[{h}].{field}";
+                <td class="cell">
+                    <div class="yn-group">
+                        <input type="radio" class="yn-y" name="@name" id="@yId" value="True" checked="@(v == true)">
+                        <label for="@yId">Y</label>
+                        <input type="radio" class="yn-n" name="@name" id="@nId" value="False" checked="@(v == false)">
+                        <label for="@nId">N</label>
+                    </div>
+                </td>
+            }
+        </tr>
+    }
+
+    async Task RenderNote(string label, string field, Func<int, string?> val)
+    {
+        <tr class="nr">
+            <td class="ql">@label</td>
+            @for (int h = 0; h < Model.Hours; h++)
+            {
+                var name = $"H[{h}].{field}";
+                <td class="nc">
+                    <textarea name="@name" placeholder="Notes…">@val(h)</textarea>
+                </td>
+            }
+        </tr>
+    }
+
+    async Task RenderStatus(string label, string field, Func<int, string?> val)
+    {
+        <tr class="dr">
+            <td class="ql">@label</td>
+            @for (int h = 0; h < Model.Hours; h++)
+            {
+                var v = val(h) ?? "";
+                var cls = v == "Green" ? "g" : v == "Amber" ? "a" : v == "Red" ? "r" : "";
+                var name = $"H[{h}].{field}";
+                <td class="cell">
+                    <select name="@name" class="ssel @cls">
+                        <option value="" selected="@(v == "")">—</option>
+                        <option value="Green" selected="@(v == "Green")">Green</option>
+                        <option value="Amber" selected="@(v == "Amber")">Amber</option>
+                        <option value="Red" selected="@(v == "Red")">Red</option>
+                    </select>
+                </td>
+            }
+        </tr>
+    }
+}
