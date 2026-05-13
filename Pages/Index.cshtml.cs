@@ -29,7 +29,6 @@ public class IndexModel : PageModel
     {
         var user = _users.GetCurrentUser();
         UserName = user.DisplayName;
-        TeamLeader = user.DisplayName;
     }
 
     public async Task<IActionResult> OnPostAsync(string shiftDate, string shift, string teamLeader, string area)

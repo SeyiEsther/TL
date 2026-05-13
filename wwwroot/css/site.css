@@ -90,8 +90,8 @@ thead th.hcol { width: 82px; }
 .yn-group input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .yn-group label { flex: 1; text-align: center; font-size: 11px; font-weight: 700; padding: 6px 0; cursor: pointer; color: var(--muted); border-right: 1px solid var(--border); line-height: 1; user-select: none; }
 .yn-group label:last-child { border-right: none; }
-.yn-y:checked + label { background: var(--red-bg); color: var(--red-text); }
-.yn-n:checked + label { background: var(--green-bg); color: var(--green); }
+.yn-y:checked + label { background: #e5e7eb; color: #374151; }
+.yn-n:checked + label { background: #e5e7eb; color: #374151; }
 
 /* STATUS SELECT */
 .ssel { width: calc(100% - 8px); border: 1px solid var(--border); border-radius: 5px; font-size: 10px; font-weight: 700; font-family: inherit; padding: 5px 3px; background: var(--white); color: var(--ink); cursor: pointer; margin: 0 4px; }
@@ -143,12 +143,37 @@ thead th.hcol { width: 82px; }
 
 /* DASHBOARD / HISTORY */
 .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
-.kpi { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; margin-bottom: 6px; }
-.kpi-val { font-size: 26px; font-weight: 500; line-height: 1; }
-.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.kpi { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+.kpi-icon-wrap { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.kpi-icon-blue { background: #eff6ff; color: #3b82f6; }
+.kpi-icon-indigo { background: #eef2ff; color: #6366f1; }
+.kpi-icon-green { background: var(--green-bg); color: var(--green); }
+.kpi-icon-amber { background: #fef3c7; color: #b45309; }
+.kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.kpi-val { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.kpi-sub { font-size: 11px; color: var(--muted); }
 .kpi-val.green { color: #16a34a; }
 .kpi-val.amber { color: #b45309; }
+
+/* CHART CARDS */
+.chart-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.chart-grid-act { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; }
+.chart-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+.chart-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.chart-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
+.donut-pct { font-size: 18px; font-weight: 700; line-height: 1; }
+.donut-pct.g { color: var(--green); }
+.donut-pct.a { color: #b45309; }
+.donut-pct.r { color: var(--red); }
+.donut-pct.u { color: var(--muted); }
+.rag-legend { display: flex; justify-content: center; gap: 10px; margin-top: 10px; align-items: center; font-size: 11px; color: var(--muted); }
+.rag-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.gauge-score-val { font-size: 26px; font-weight: 700; line-height: 1; color: var(--ink); }
+.gauge-bands { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.shift-type-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.shift-type-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.shift-type-item strong { color: var(--ink); margin-left: auto; }
 .dash-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .dash-table th { text-align: left; padding: 8px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface); }
 .dash-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
