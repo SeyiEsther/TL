@@ -157,9 +157,9 @@
                 var name = $"H[{h}].{field}";
                 <td class="cell">
                     <div class="yn-group">
-                        <input type="radio" class="yn-y" name="@name" id="@yId" value="True" checked="@(v == true)">
+                        <input type="radio" class="yn-y" name="@name" id="@yId" value="True" checked="@(v == true ? "checked" : null)">
                         <label for="@yId">Y</label>
-                        <input type="radio" class="yn-n" name="@name" id="@nId" value="False" checked="@(v == false)">
+                        <input type="radio" class="yn-n" name="@name" id="@nId" value="False" checked="@(v == false ? "checked" : null)">
                         <label for="@nId">N</label>
                     </div>
                 </td>
@@ -192,10 +192,10 @@
                 var name = $"H[{h}].{field}";
                 <td class="cell">
                     <select name="@name" class="ssel @cls">
-                        <option value="" selected="@(v == "")">—</option>
-                        <option value="Green" selected="@(v == "Green")">Green</option>
-                        <option value="Amber" selected="@(v == "Amber")">Amber</option>
-                        <option value="Red" selected="@(v == "Red")">Red</option>
+                        <option value="" selected="@(v == "" ? "selected" : null)">—</option>
+                        <option value="Green" selected="@(v == "Green" ? "selected" : null)">Green</option>
+                        <option value="Amber" selected="@(v == "Amber" ? "selected" : null)">Amber</option>
+                        <option value="Red" selected="@(v == "Red" ? "selected" : null)">Red</option>
                     </select>
                 </td>
             }

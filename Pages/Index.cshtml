@@ -21,9 +21,9 @@
                     <label>Shift</label>
                     <select name="Shift" required>
                         <option value="">Select shift…</option>
-                        <option value="Day" selected="@(Model.Shift == "Day")">Day</option>
-                        <option value="Afternoon" selected="@(Model.Shift == "Afternoon")">Afternoon</option>
-                        <option value="Night" selected="@(Model.Shift == "Night")">Night</option>
+                        <option value="Day" selected="@(Model.Shift == "Day" ? "selected" : null)">Day</option>
+                        <option value="Afternoon" selected="@(Model.Shift == "Afternoon" ? "selected" : null)">Afternoon</option>
+                        <option value="Night" selected="@(Model.Shift == "Night" ? "selected" : null)">Night</option>
                     </select>
                 </div>
             </div>
@@ -42,7 +42,7 @@
                         <optgroup label="@grp.Key">
                             @foreach (var area in grp)
                             {
-                                <option value="@area.Label" selected="@(Model.Area == area.Label)">@area.Label</option>
+                                <option value="@area.Label" selected="@(Model.Area == area.Label ? "selected" : null)">@area.Label</option>
                             }
                         </optgroup>
                     }
