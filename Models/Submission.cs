@@ -11,6 +11,15 @@ namespace TL.Models
         public bool IsActive { get; set; } = true;
     }
 
+    public class AdminUser
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";    // Windows username, no domain
+        public string? DisplayName { get; set; }
+        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+        public string? AddedBy { get; set; }
+    }
+
     public class ShiftSubmission
     {
         public int Id { get; set; }

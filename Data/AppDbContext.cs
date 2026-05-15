@@ -9,6 +9,7 @@ namespace TL.Data
         public DbSet<HourlyCheck> HourlyChecks => Set<HourlyCheck>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<MissedTargetReason> MissedTargetReasons => Set<MissedTargetReason>();
+        public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             

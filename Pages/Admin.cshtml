@@ -5,16 +5,81 @@
 <div class="wrap">
     <div class="page-head">
         <div>
-            <div class="page-title">Admin — Missed Target Reasons</div>
-            <div class="page-sub">Manage the dropdown options shown when a TL marks a target as missed</div>
+            <div class="page-title">Admin</div>
+            <div class="page-sub">Manage managers and missed target reasons</div>
         </div>
     </div>
 
-    <!-- Add new reason -->
+    <!-- MANAGERS SECTION -->
     <div class="card" style="margin-bottom:16px">
-        <div class="card-head"><span class="card-title">Add new reason</span></div>
+        <div class="card-head"><span class="card-title">Manager access</span><span class="card-sub">Controls who sees the Admin page</span></div>
+
+        @if (Model.Managers.Any())
+        {
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Display name</th>
+                        <th>Added by</th>
+                        <th style="width:100px;text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model.Managers)
+                    {
+                        var isSelf = string.Equals(m.Username, Model.CurrentUsername, StringComparison.OrdinalIgnoreCase);
+                        <tr>
+                            <td style="font-weight:600">@m.Username</td>
+                            <td>@(m.DisplayName ?? "—")</td>
+                            <td style="color:var(--muted);font-size:12px">@(m.AddedBy ?? "—")</td>
+                            <td style="text-align:right;padding-right:14px">
+                                @if (isSelf)
+                                {
+                                    <span style="font-size:11px;color:var(--muted)">You</span>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="RemoveManager" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@m.Id">
+                                        <button type="submit" class="sbtn sm del-btn"
+                                                onclick="return confirm('Remove manager access for @m.Username?')">
+                                            Remove
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div style="padding:14px 18px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Add manager</div>
+            <form method="post" asp-page-handler="AddManager" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                @Html.AntiForgeryToken()
+                <div class="fl" style="min-width:160px">
+                    <label>Windows username</label>
+                    <input type="text" name="NewManagerUsername" placeholder="e.g. jsmith" maxlength="100" required
+                           style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit">
+                </div>
+                <div class="fl" style="min-width:180px">
+                    <label>Display name <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+                    <input type="text" name="NewManagerDisplayName" placeholder="e.g. Jane Smith" maxlength="200"
+                           style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit">
+                </div>
+                <button type="submit" class="sbtn primary">Add manager</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MISSED TARGET REASONS SECTION -->
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><span class="card-title">Add missed target reason</span></div>
         <div style="padding:16px 18px">
-            <form method="post" asp-page-handler="Add" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <form method="post" asp-page-handler="AddReason" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
                 @Html.AntiForgeryToken()
                 <div class="fl" style="flex:1;min-width:200px">
                     <label>Reason text</label>
@@ -26,9 +91,8 @@
         </div>
     </div>
 
-    <!-- Existing reasons -->
     <div class="card">
-        <div class="card-head"><span class="card-title">Current reasons (@Model.Reasons.Count(@r => r.IsActive) active)</span></div>
+        <div class="card-head"><span class="card-title">Current reasons (@Model.Reasons.Count(r => r.IsActive) active)</span></div>
         @if (!Model.Reasons.Any())
         {
             <div class="empty" style="padding:20px 18px">No reasons configured yet.</div>
@@ -63,18 +127,18 @@
                             <td style="text-align:right;padding-right:14px">
                                 @if (r.IsActive)
                                 {
-                                    <form method="post" asp-page-handler="Delete" style="display:inline">
+                                    <form method="post" asp-page-handler="DeleteReason" style="display:inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id">
                                         <button type="submit" class="sbtn sm del-btn"
-                                                onclick="return confirm('Remove this reason? If it is already used in existing records it will be deactivated instead of deleted.')">
+                                                onclick="return confirm('Remove this reason?')">
                                             Remove
                                         </button>
                                     </form>
                                 }
                                 else
                                 {
-                                    <form method="post" asp-page-handler="Restore" style="display:inline">
+                                    <form method="post" asp-page-handler="RestoreReason" style="display:inline">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="id" value="@r.Id">
                                         <button type="submit" class="sbtn sm">Restore</button>

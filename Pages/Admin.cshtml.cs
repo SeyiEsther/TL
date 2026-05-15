@@ -19,24 +19,34 @@ public class AdminModel : PageModel
     }
 
     public List<MissedTargetReason> Reasons { get; set; } = new();
+    public List<AdminUser> Managers { get; set; } = new();
+    public string CurrentUsername { get; set; } = "";
 
     [BindProperty] public string NewReasonText { get; set; } = "";
+    [BindProperty] public string NewManagerUsername { get; set; } = "";
+    [BindProperty] public string NewManagerDisplayName { get; set; } = "";
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (!_users.GetCurrentUser().IsManager) return RedirectToPage("/Index");
+        var user = _users.GetCurrentUser();
+        if (!user.IsManager) return RedirectToPage("/Index");
+        CurrentUsername = user.Username;
 
         Reasons = await _db.MissedTargetReasons
-            .OrderBy(r => r.SortOrder)
-            .ThenBy(r => r.ReasonText)
+            .OrderBy(r => r.SortOrder).ThenBy(r => r.ReasonText)
+            .ToListAsync();
+
+        Managers = await _db.AdminUsers
+            .OrderBy(u => u.Username)
             .ToListAsync();
 
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAddAsync()
+    public async Task<IActionResult> OnPostAddReasonAsync()
     {
-        if (!_users.GetCurrentUser().IsManager) return RedirectToPage("/Index");
+        var user = _users.GetCurrentUser();
+        if (!user.IsManager) return RedirectToPage("/Index");
 
         if (!string.IsNullOrWhiteSpace(NewReasonText))
         {
@@ -53,14 +63,13 @@ public class AdminModel : PageModel
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    public async Task<IActionResult> OnPostDeleteReasonAsync(int id)
     {
         if (!_users.GetCurrentUser().IsManager) return RedirectToPage("/Index");
 
         var reason = await _db.MissedTargetReasons.FindAsync(id);
         if (reason != null)
         {
-            // Check if used in any existing records — deactivate rather than hard delete
             var inUse = await _db.HourlyChecks.AnyAsync(h => h.MissedTargetReasonId == id);
             if (inUse)
                 reason.IsActive = false;
@@ -73,7 +82,7 @@ public class AdminModel : PageModel
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostRestoreAsync(int id)
+    public async Task<IActionResult> OnPostRestoreReasonAsync(int id)
     {
         if (!_users.GetCurrentUser().IsManager) return RedirectToPage("/Index");
 
@@ -81,6 +90,47 @@ public class AdminModel : PageModel
         if (reason != null)
         {
             reason.IsActive = true;
+            await _db.SaveChangesAsync();
+        }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostAddManagerAsync()
+    {
+        var currentUser = _users.GetCurrentUser();
+        if (!currentUser.IsManager) return RedirectToPage("/Index");
+
+        var uname = NewManagerUsername.Trim().ToLower();
+        if (!string.IsNullOrWhiteSpace(uname))
+        {
+            var exists = await _db.AdminUsers.AnyAsync(u => u.Username == uname);
+            if (!exists)
+            {
+                _db.AdminUsers.Add(new AdminUser
+                {
+                    Username = uname,
+                    DisplayName = string.IsNullOrWhiteSpace(NewManagerDisplayName) ? null : NewManagerDisplayName.Trim(),
+                    AddedAt = DateTime.UtcNow,
+                    AddedBy = currentUser.Username
+                });
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostRemoveManagerAsync(int id)
+    {
+        var currentUser = _users.GetCurrentUser();
+        if (!currentUser.IsManager) return RedirectToPage("/Index");
+
+        var manager = await _db.AdminUsers.FindAsync(id);
+        // Prevent removing yourself
+        if (manager != null && !string.Equals(manager.Username, currentUser.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            _db.AdminUsers.Remove(manager);
             await _db.SaveChangesAsync();
         }
 

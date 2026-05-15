@@ -1,24 +1,19 @@
 using System.DirectoryServices.AccountManagement;
+using TL.Data;
 using TL.Models;
 
 namespace TL.Services
 {
     public class UserService
     {
-        // Usernames (without domain) permitted to access the Admin page
-        private static readonly HashSet<string> AdminUsernames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "kgwynjones",   // K Gwyn Jones
-            "ljaworski",    // L Jaworski
-            "oogunbayo",    // O Ogunbayo
-        };
-
         private readonly IHttpContextAccessor _http;
+        private readonly AppDbContext _db;
         private readonly ILogger<UserService> _log;
 
-        public UserService(IHttpContextAccessor http, ILogger<UserService> log)
+        public UserService(IHttpContextAccessor http, AppDbContext db, ILogger<UserService> log)
         {
             _http = http;
+            _db = db;
             _log = log;
         }
 
@@ -46,11 +41,14 @@ namespace TL.Services
                 _log.LogWarning("Could not get display name from AD for {User}: {Msg}", username, ex.Message);
             }
 
+            var isManager = _db.AdminUsers
+                .Any(u => u.Username == username);
+
             return new AppUser
             {
                 Username = username,
                 DisplayName = displayName,
-                IsManager = AdminUsernames.Contains(username)
+                IsManager = isManager
             };
         }
     }
