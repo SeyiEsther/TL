@@ -5,11 +5,12 @@ namespace TL.Services
 {
     public class UserService
     {
-        private static readonly HashSet<string> AdminUsernames = new(StringComparer.OrdinalIgnoreCase)
+        // Checked against both short username and full email UPN
+        private static readonly HashSet<string> AdminIdentities = new(StringComparer.OrdinalIgnoreCase)
         {
-            "kgwynjones",
-            "ljaworski",
-            "oogunbayo",
+            "kgwynjones", "kgwynjones@rittal-csm.co.uk",
+            "ljaworski",  "ljaworski@rittal-csm.co.uk",
+            "oogunbayo",  "oogunbayo@rittal-csm.co.uk",
         };
 
         private readonly IHttpContextAccessor _http;
@@ -44,11 +45,14 @@ namespace TL.Services
                 _log.LogWarning("Could not get display name from AD for {User}: {Msg}", username, ex.Message);
             }
 
+            // Match on raw identity (email/UPN), stripped username, or DOMAIN\user suffix
+            var isManager = AdminIdentities.Contains(rawName) || AdminIdentities.Contains(username);
+
             return new AppUser
             {
                 Username = username,
                 DisplayName = displayName,
-                IsManager = AdminUsernames.Contains(username)
+                IsManager = isManager
             };
         }
     }
