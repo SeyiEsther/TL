@@ -5,6 +5,14 @@ namespace TL.Services
 {
     public class UserService
     {
+        // Usernames (without domain) permitted to access the Admin page
+        private static readonly HashSet<string> AdminUsernames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "kgwynjones",   // K Gwyn Jones
+            "ljaworski",    // L Jaworski
+            "oogunbayo",    // O Ogunbayo
+        };
+
         private readonly IHttpContextAccessor _http;
         private readonly ILogger<UserService> _log;
 
@@ -16,7 +24,14 @@ namespace TL.Services
 
         public AppUser GetCurrentUser()
         {
-            var username = Environment.UserName;
+            // Prefer the authenticated HTTP identity; fall back to OS user
+            var rawName = _http.HttpContext?.User?.Identity?.Name ?? Environment.UserName;
+
+            // Strip domain prefix (DOMAIN\user or user@domain)
+            var username = rawName.Contains('\\')
+                ? rawName.Split('\\').Last()
+                : rawName.Split('@').First();
+
             var displayName = username;
 
             try
@@ -35,7 +50,7 @@ namespace TL.Services
             {
                 Username = username,
                 DisplayName = displayName,
-                IsManager = true
+                IsManager = AdminUsernames.Contains(username)
             };
         }
     }
