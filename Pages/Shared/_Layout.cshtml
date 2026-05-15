@@ -31,11 +31,11 @@
         }
         <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
         <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
-        <a class="tbtn @(pg == "/Handover" ? "active" : "")" asp-page="/Handover">Handover</a>
         <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
         <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
         @if (user.IsManager)
         {
+            <a class="tbtn @(pg == "/Live" ? "active" : "")" asp-page="/Live">Live</a>
             <a class="tbtn @(pg == "/Admin" ? "active" : "")" asp-page="/Admin">Admin</a>
         }
     </div>

@@ -1,0 +1,168 @@
+@page
+@model LiveModel
+@{ ViewData["Title"] = "Live Dashboard"; }
+
+<div class="dwrap">
+    <!-- Header -->
+    <div class="page-head">
+        <div>
+            <div class="page-title">Live Shift Dashboard</div>
+            <div class="page-sub">
+                @Model.Today.ToString("dddd d MMMM yyyy") &mdash; @Model.CurrentShift shift &mdash; @Model.ReportingCount area@(Model.ReportingCount == 1 ? "" : "s") reporting
+            </div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:right">
+            Last updated: <span id="last-updated">—</span><br>
+            Refreshing in <span id="refresh-in">60s</span>
+        </div>
+    </div>
+
+    <!-- Pending acknowledgement banner -->
+    @if (Model.PendingCount > 0)
+    {
+        <div class="card" style="border-left:4px solid #f59e0b;background:#fffbeb;margin-bottom:14px">
+            <div style="padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="font-size:18px">&#9888;</span>
+                <div>
+                    <div style="font-size:13px;font-weight:700;color:#b45309">@Model.PendingCount handover@(Model.PendingCount == 1 ? "" : "s") awaiting incoming TL sign-off</div>
+                    <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+                        @foreach (var pendingArea in Model.PendingAcknowledgement)
+                        {
+                            <a asp-page="/Handover" asp-route-area="@pendingArea"
+                               style="font-size:11px;font-weight:600;color:#b45309;text-decoration:underline">@pendingArea</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Grid -->
+    <div class="card">
+        <div class="live-grid-wrap">
+            <table class="live-grid">
+                <thead>
+                    <tr>
+                        <th class="area-col">Area</th>
+                        @for (int h = 1; h <= 8; h++)
+                        {
+                            <th>Hr @h</th>
+                        }
+                        <th>Summary</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var area in AreaList.All)
+                    {
+                        var areaLabel = area.Label;
+                        if (Model.ByArea.TryGetValue(areaLabel, out var sub))
+                        {
+                            var yCount = sub.Hours.Count(h => h.HourlyTargetAchieved == true);
+                            var totalLogged = sub.HoursCompleted;
+                            var hasPending = Model.PendingAcknowledgement.Contains(areaLabel);
+                            <tr>
+                                <td class="area-col">
+                                    @areaLabel
+                                    @if (hasPending)
+                                    {
+                                        <a asp-page="/Handover" asp-route-area="@areaLabel" class="live-pending-flag" title="Handover pending">&#9888;</a>
+                                    }
+                                </td>
+                                @for (int hr = 1; hr <= 8; hr++)
+                                {
+                                    var hourEntry = sub.Hours.FirstOrDefault(h => h.HourNumber == hr);
+                                    if (hourEntry == null)
+                                    {
+                                        <td></td>
+                                    }
+                                    else if (hourEntry.HourlyTargetAchieved == true)
+                                    {
+                                        <td class="live-y">Y</td>
+                                    }
+                                    else if (hourEntry.HourlyTargetAchieved == false)
+                                    {
+                                        @if (hourEntry.MissedTargetReasonId.HasValue)
+                                        {
+                                            var reasonId = hourEntry.MissedTargetReasonId.Value;
+                                            var reasonText = Model.ReasonTexts.GetValueOrDefault(reasonId, "No reason");
+                                            <td class="live-n" data-reason="@reasonText" data-hour="Hr @hr">N</td>
+                                        }
+                                        else
+                                        {
+                                            <td class="live-n">N</td>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                    }
+                                }
+                                <td class="live-summary-cell">@yCount/@totalLogged</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr class="live-ns">
+                                <td class="area-col">@areaLabel</td>
+                                <td colspan="9" style="text-align:left;padding-left:12px">Not started</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="live-total">
+                        <td class="area-col">Totals</td>
+                        @for (int i = 0; i < 8; i++)
+                        {
+                            <td>
+                                <span class="live-y-cnt">@Model.HourYCount[i]&uarr;</span>
+                                <span class="live-n-cnt"> @Model.HourNCount[i]&darr;</span>
+                            </td>
+                        }
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Drill-down modal -->
+<div id="reason-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;z-index:500;padding:16px">
+    <div class="modal-card">
+        <div class="modal-head">&#10007; Missed target — <span id="modal-hour-label"></span></div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <div class="modal-label">Reason</div>
+                <div id="modal-reason-text" style="font-size:14px;color:var(--ink)"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="sbtn" onclick="document.getElementById('reason-modal').style.display='none'">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Countdown auto-refresh
+    let secs = 60;
+    document.getElementById('last-updated').textContent = new Date().toLocaleTimeString('en-GB');
+    function tick() {
+        document.getElementById('refresh-in').textContent = secs + 's';
+        if (--secs < 0) location.reload();
+        else setTimeout(tick, 1000);
+    }
+    setTimeout(tick, 1000);
+
+    // Missed target drill-down modal
+    const modal = document.getElementById('reason-modal');
+    document.querySelectorAll('[data-reason]').forEach(cell => {
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', () => {
+            document.getElementById('modal-reason-text').textContent = cell.dataset.reason;
+            document.getElementById('modal-hour-label').textContent = cell.dataset.hour;
+            modal.style.display = 'flex';
+        });
+    });
+    modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+</script>

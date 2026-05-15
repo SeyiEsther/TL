@@ -1,0 +1,154 @@
+@page
+@model AcknowledgeModel
+@{ ViewData["Title"] = "Acknowledge Handover"; Layout = "_Layout"; }
+
+<div class="ack-wrap">
+    <div class="ack-card">
+        @{
+            var s = Model.PrevShift!;
+            var safetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault();
+            var qualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault();
+            var perfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault();
+
+            string RagClass(string? v) => v switch { "Green" => "rv g", "Amber" => "rv a", "Red" => "rv r", _ => "rv u" };
+        }
+
+        <!-- Header bar -->
+        <div class="ack-header">
+            <div class="ack-header-title">Handover acknowledgment required</div>
+            <div class="ack-header-shift">@s.Shift shift — @s.ShiftDate.ToString("dd/MM/yyyy")</div>
+            <div class="ack-header-area">@s.Area</div>
+        </div>
+
+        <!-- Outgoing TL block -->
+        <div class="ack-section">
+            <div class="ack-section-label">Outgoing team leader</div>
+            <div class="ack-tl-block">
+                <div class="ack-tl-name">@s.TeamLeaderDisplay</div>
+                @if (!string.IsNullOrEmpty(s.OutgoingTLSignature))
+                {
+                    <div class="ack-tl-sig">&#10003; Signed: @s.OutgoingTLSignature</div>
+                }
+                <div class="ack-tl-time">Submitted @s.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- RAG status boxes -->
+        <div class="ack-section">
+            <div class="ack-section-label">Overall status</div>
+            <div class="ack-rag-row">
+                <div class="ack-rag-box">
+                    <div class="ack-rag-label">Safety</div>
+                    <span class="@RagClass(safetyStatus)">@(safetyStatus ?? "—")</span>
+                </div>
+                <div class="ack-rag-box">
+                    <div class="ack-rag-label">Quality</div>
+                    <span class="@RagClass(qualityStatus)">@(qualityStatus ?? "—")</span>
+                </div>
+                <div class="ack-rag-box">
+                    <div class="ack-rag-label">Performance</div>
+                    <span class="@RagClass(perfStatus)">@(perfStatus ?? "—")</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hourly target grid -->
+        <div class="ack-section">
+            <div class="ack-section-label">Hourly targets (Hr 1–8)</div>
+            <div class="ack-target-grid">
+                @for (int hr = 1; hr <= 8; hr++)
+                {
+                    var hour = s.Hours.FirstOrDefault(h => h.HourNumber == hr);
+                    string cellClass;
+                    string valText;
+                    if (hour == null)
+                    {
+                        cellClass = "ack-hr-cell hr-blank";
+                        valText = "—";
+                    }
+                    else if (hour.HourlyTargetAchieved == true)
+                    {
+                        cellClass = "ack-hr-cell hr-y";
+                        valText = "Y";
+                    }
+                    else if (hour.HourlyTargetAchieved == false)
+                    {
+                        cellClass = "ack-hr-cell hr-n";
+                        valText = "N";
+                    }
+                    else
+                    {
+                        cellClass = "ack-hr-cell hr-blank";
+                        valText = "—";
+                    }
+                    <div class="@cellClass">
+                        <div class="hr-label">Hr @hr</div>
+                        <div class="hr-val">@valText</div>
+                        @if (hour != null && hour.HourlyTargetAchieved == false && hour.MissedTargetReasonId.HasValue)
+                        {
+                            var reasonText = Model.ReasonTexts.GetValueOrDefault(hour.MissedTargetReasonId.Value, "");
+                            if (!string.IsNullOrEmpty(reasonText))
+                            {
+                                <div class="ack-hr-reason">@reasonText</div>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Notes section -->
+        @if (!string.IsNullOrEmpty(s.Escalations) || !string.IsNullOrEmpty(s.KeyRisks) || !string.IsNullOrEmpty(s.Priorities))
+        {
+            <div class="ack-section">
+                <div class="ack-section-label">Handover notes</div>
+                @if (!string.IsNullOrEmpty(s.Escalations))
+                {
+                    <div style="margin-bottom:12px">
+                        <div class="ack-note-label">Escalations</div>
+                        <div class="ack-note-text">@s.Escalations</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(s.KeyRisks))
+                {
+                    <div style="margin-bottom:12px">
+                        <div class="ack-note-label">Key risks</div>
+                        <div class="ack-note-text">@s.KeyRisks</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(s.Priorities))
+                {
+                    <div>
+                        <div class="ack-note-label">Immediate priorities</div>
+                        <div class="ack-note-text">@s.Priorities</div>
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Sign-off card -->
+        <form method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="prevId" value="@s.Id">
+            <input type="hidden" name="date" value="@Model.Date">
+            <input type="hidden" name="shift" value="@Model.Shift">
+            <input type="hidden" name="area" value="@Model.Area">
+            <input type="hidden" name="tl" value="@Model.Tl">
+            <div class="ack-sign-card">
+                <div class="ack-sign-title">Type your full name to accept this handover</div>
+                <input type="text" id="incoming-name" name="IncomingName" class="ack-sign-input"
+                       placeholder="Your full name…" autocomplete="off" maxlength="100">
+                <div class="ack-sign-legal">By signing, you confirm you have read and accepted this handover report.</div>
+                <button type="submit" id="accept-btn" class="ack-sign-btn" disabled>
+                    Accept handover &amp; start shift &rarr;
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById('incoming-name');
+    const btn = document.getElementById('accept-btn');
+    input.addEventListener('input', () => btn.disabled = !input.value.trim());
+</script>

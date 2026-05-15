@@ -55,6 +55,20 @@ public class IndexModel : PageModel
                 return RedirectToPage("/Form", new { id = existing.Id, tl = teamLeader });
         }
 
+        // Check if previous shift for this area needs handover acknowledgment
+        var prevShift = await _db.ShiftSubmissions
+            .Where(s => s.Area == area)
+            .OrderByDescending(s => s.ShiftDate)
+            .ThenByDescending(s => s.SubmittedAt)
+            .FirstOrDefaultAsync();
+
+        if (prevShift != null
+            && !string.IsNullOrEmpty(prevShift.OutgoingTLSignature)
+            && string.IsNullOrEmpty(prevShift.IncomingTLSignature))
+        {
+            return RedirectToPage("/Acknowledge", new { prevId = prevShift.Id, date = shiftDate, shift, area, tl = teamLeader });
+        }
+
         return RedirectToPage("/Form", new
         {
             date = shiftDate,

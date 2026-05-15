@@ -85,15 +85,7 @@
                             }
                             else
                             {
-                                <div class="sig-sign-form">
-                                    <form method="post" asp-page-handler="Sign" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@s.Id">
-                                        <input type="text" name="IncomingSignature" placeholder="Type your name to sign…"
-                                               class="sig-input" required maxlength="100">
-                                        <button type="submit" class="sbtn primary sm">Accept &amp; sign</button>
-                                    </form>
-                                </div>
+                                <div class="sig-pending">Pending — incoming TL signs via the handover acknowledgment flow</div>
                             }
                         </div>
                     </div>

@@ -27,7 +27,7 @@
         {
             <table class="dash-table">
                 <thead>
-                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
+                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th>Handover</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var s in Model.Shifts)
@@ -41,6 +41,7 @@
                             <td><span class="rag @HistoryModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
                             <td><span class="rag @HistoryModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
                             <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                            <td><a asp-page="/Handover" asp-route-area="@s.Area" class="dl-link">Handover</a></td>
                             <td>
                                 <a asp-page="/Form" asp-route-id="@s.Id" class="dl-link">Edit</a>
                                 &nbsp;
