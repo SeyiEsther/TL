@@ -16,13 +16,6 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
-// Apply pending migrations automatically on startup
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
-
 app.UseStaticFiles();
 app.MapControllers();
 app.MapRazorPages();
