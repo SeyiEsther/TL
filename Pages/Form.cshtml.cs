@@ -18,7 +18,6 @@ public class FormModel : PageModel
         _users = users;
     }
 
-    // Display properties (from query string or loaded submission)
     public string ShiftDate { get; set; } = "";
     public string Shift { get; set; } = "";
     public string TeamLeader { get; set; } = "";
@@ -26,17 +25,31 @@ public class FormModel : PageModel
     public int Hours { get; set; } = 8;
     public int? EditingId { get; set; }
 
-    // Form bound data
     [BindProperty] public List<HourInput> H { get; set; } = new();
     [BindProperty] public string? Escalations { get; set; }
     [BindProperty] public string? KeyRisks { get; set; }
     [BindProperty] public string? Priorities { get; set; }
+    [BindProperty] public string? OutgoingTLSignature { get; set; }
+
+    public List<MissedTargetReason> TargetReasons { get; set; } = new();
+
+    // Previous shift notes (for carry-forward display)
+    public string? PrevEscalations { get; set; }
+    public string? PrevKeyRisks { get; set; }
+    public string? PrevPriorities { get; set; }
+    public string? PrevTLName { get; set; }
+    public string? PrevShiftLabel { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? shift, string? area, string? tl,
         int? id, int hours = 8)
     {
         Hours = Math.Clamp(hours, 1, 8);
+
+        TargetReasons = await _db.MissedTargetReasons
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.SortOrder)
+            .ToListAsync();
 
         if (id.HasValue)
         {
@@ -56,6 +69,7 @@ public class FormModel : PageModel
             Escalations = sub.Escalations;
             KeyRisks = sub.KeyRisks;
             Priorities = sub.Priorities;
+            OutgoingTLSignature = sub.OutgoingTLSignature;
 
             H = sub.Hours.OrderBy(h => h.HourNumber).Select(h => new HourInput
             {
@@ -64,6 +78,7 @@ public class FormModel : PageModel
                 Tgt = h.HourlyTargetAchieved, Maint = h.MaintenanceIssues, Mat = h.MaterialsAvailable, Tools = h.ToolsAvailable,
                 Escl = h.EscalationsNeeded, Pconf = h.PartsConfirmed, Pid = h.PartsIdCorrect, Ncp = h.NCPartsStoredCorrectly,
                 Sixs = h.SixSCompleted, Tpm = h.TPMCompleted, Pnote = h.PerformanceNotes,
+                TgtReason = h.MissedTargetReasonId, TgtNote = h.MissedTargetNote,
                 Wb = h.WellbeingConfirmed, Sup = h.SupportRequired, Mnote = h.MoraleNotes,
                 Acc = h.AccidentsReported, Ss = h.OverallSafetyStatus, Qs = h.OverallQualityStatus, Ps = h.OverallPerfStatus,
             }).ToList();
@@ -74,9 +89,27 @@ public class FormModel : PageModel
             Shift = shift ?? "";
             TeamLeader = tl ?? "";
             Area = area ?? "";
+
+            // Carry forward notes from the most recent previous submission for this area
+            if (!string.IsNullOrEmpty(area))
+            {
+                var prev = await _db.ShiftSubmissions
+                    .Where(s => s.Area == area)
+                    .OrderByDescending(s => s.ShiftDate)
+                    .ThenByDescending(s => s.SubmittedAt)
+                    .FirstOrDefaultAsync();
+
+                if (prev != null)
+                {
+                    PrevEscalations = prev.Escalations;
+                    PrevKeyRisks = prev.KeyRisks;
+                    PrevPriorities = prev.Priorities;
+                    PrevTLName = prev.TeamLeaderDisplay;
+                    PrevShiftLabel = $"{prev.Shift} shift — {prev.ShiftDate:d MMM}";
+                }
+            }
         }
 
-        // Pad H to required length
         while (H.Count < Hours) H.Add(new HourInput());
 
         return Page();
@@ -93,7 +126,6 @@ public class FormModel : PageModel
         Hours = Math.Clamp(hoursCount, 1, 8);
         EditingId = editingId;
 
-        // Trim H to the declared hours
         while (H.Count < Hours) H.Add(new HourInput());
         var hours = H.Take(Hours).ToList();
 
@@ -119,10 +151,12 @@ public class FormModel : PageModel
             Track("Escalations", sub.Escalations, Escalations);
             Track("KeyRisks", sub.KeyRisks, KeyRisks);
             Track("Priorities", sub.Priorities, Priorities);
+            Track("OutgoingTLSignature", sub.OutgoingTLSignature, OutgoingTLSignature);
 
             sub.Escalations = Escalations;
             sub.KeyRisks = KeyRisks;
             sub.Priorities = Priorities;
+            sub.OutgoingTLSignature = OutgoingTLSignature;
             sub.HoursCompleted = (byte)hours.Count;
             sub.LastEditedBy = editorName;
             sub.LastEditedAt = DateTime.UtcNow;
@@ -141,6 +175,7 @@ public class FormModel : PageModel
                     void TrackHour(string f, string? o, string? n) { if (o != n) logs.Add(new AuditLog { SubmissionId = sub.Id, ChangedBy = editorName, FieldName = $"Hr{i + 1}.{f}", OldValue = o, NewValue = n }); }
                     TrackHour("Hazards", existing.HazardsObserved?.ToString(), inp.Haz?.ToString());
                     TrackHour("Target", existing.HourlyTargetAchieved?.ToString(), inp.Tgt?.ToString());
+                    TrackHour("MissedReason", existing.MissedTargetReasonId?.ToString(), inp.TgtReason?.ToString());
                     TrackHour("SafetyStatus", existing.OverallSafetyStatus, inp.Ss);
                     TrackHour("QualityStatus", existing.OverallQualityStatus, inp.Qs);
                     TrackHour("PerfStatus", existing.OverallPerfStatus, inp.Ps);
@@ -150,6 +185,8 @@ public class FormModel : PageModel
                     existing.HourlyTargetAchieved = inp.Tgt; existing.MaintenanceIssues = inp.Maint; existing.MaterialsAvailable = inp.Mat; existing.ToolsAvailable = inp.Tools;
                     existing.EscalationsNeeded = inp.Escl; existing.PartsConfirmed = inp.Pconf; existing.PartsIdCorrect = inp.Pid; existing.NCPartsStoredCorrectly = inp.Ncp;
                     existing.SixSCompleted = inp.Sixs; existing.TPMCompleted = inp.Tpm; existing.PerformanceNotes = inp.Pnote;
+                    existing.MissedTargetReasonId = inp.Tgt == false ? inp.TgtReason : null;
+                    existing.MissedTargetNote = inp.Tgt == false ? inp.TgtNote : null;
                     existing.WellbeingConfirmed = inp.Wb; existing.SupportRequired = inp.Sup; existing.MoraleNotes = inp.Mnote;
                     existing.AccidentsReported = inp.Acc; existing.OverallSafetyStatus = inp.Ss; existing.OverallQualityStatus = inp.Qs; existing.OverallPerfStatus = inp.Ps;
                 }
@@ -175,6 +212,7 @@ public class FormModel : PageModel
                 Escalations = Escalations,
                 KeyRisks = KeyRisks,
                 Priorities = Priorities,
+                OutgoingTLSignature = OutgoingTLSignature,
                 Hours = hours.Select((inp, i) => MapHour(inp, i + 1)).ToList()
             };
 
@@ -192,6 +230,8 @@ public class FormModel : PageModel
         HourlyTargetAchieved = h.Tgt, MaintenanceIssues = h.Maint, MaterialsAvailable = h.Mat, ToolsAvailable = h.Tools,
         EscalationsNeeded = h.Escl, PartsConfirmed = h.Pconf, PartsIdCorrect = h.Pid, NCPartsStoredCorrectly = h.Ncp,
         SixSCompleted = h.Sixs, TPMCompleted = h.Tpm, PerformanceNotes = h.Pnote,
+        MissedTargetReasonId = h.Tgt == false ? h.TgtReason : null,
+        MissedTargetNote = h.Tgt == false ? h.TgtNote : null,
         WellbeingConfirmed = h.Wb, SupportRequired = h.Sup, MoraleNotes = h.Mnote,
         AccidentsReported = h.Acc, OverallSafetyStatus = h.Ss, OverallQualityStatus = h.Qs, OverallPerfStatus = h.Ps,
     };

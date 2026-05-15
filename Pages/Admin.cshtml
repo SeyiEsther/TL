@@ -1,0 +1,90 @@
+@page
+@model AdminModel
+@{ ViewData["Title"] = "Admin"; }
+
+<div class="wrap">
+    <div class="page-head">
+        <div>
+            <div class="page-title">Admin — Missed Target Reasons</div>
+            <div class="page-sub">Manage the dropdown options shown when a TL marks a target as missed</div>
+        </div>
+    </div>
+
+    <!-- Add new reason -->
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-head"><span class="card-title">Add new reason</span></div>
+        <div style="padding:16px 18px">
+            <form method="post" asp-page-handler="Add" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                @Html.AntiForgeryToken()
+                <div class="fl" style="flex:1;min-width:200px">
+                    <label>Reason text</label>
+                    <input type="text" name="NewReasonText" placeholder="e.g. Waiting for parts" maxlength="200" required
+                           style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit">
+                </div>
+                <button type="submit" class="sbtn primary">Add reason</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing reasons -->
+    <div class="card">
+        <div class="card-head"><span class="card-title">Current reasons (@Model.Reasons.Count(@r => r.IsActive) active)</span></div>
+        @if (!Model.Reasons.Any())
+        {
+            <div class="empty" style="padding:20px 18px">No reasons configured yet.</div>
+        }
+        else
+        {
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Reason</th>
+                        <th style="width:80px;text-align:center">Order</th>
+                        <th style="width:80px;text-align:center">Status</th>
+                        <th style="width:120px;text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Reasons)
+                    {
+                        <tr class="@(!r.IsActive ? "admin-row-inactive" : "")">
+                            <td>@r.ReasonText</td>
+                            <td style="text-align:center;color:var(--muted);font-size:12px">@r.SortOrder</td>
+                            <td style="text-align:center">
+                                @if (r.IsActive)
+                                {
+                                    <span class="rv g">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="rv u">Inactive</span>
+                                }
+                            </td>
+                            <td style="text-align:right;padding-right:14px">
+                                @if (r.IsActive)
+                                {
+                                    <form method="post" asp-page-handler="Delete" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.Id">
+                                        <button type="submit" class="sbtn sm del-btn"
+                                                onclick="return confirm('Remove this reason? If it is already used in existing records it will be deactivated instead of deleted.')">
+                                            Remove
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="Restore" style="display:inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@r.Id">
+                                        <button type="submit" class="sbtn sm">Restore</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>

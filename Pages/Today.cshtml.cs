@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
@@ -10,6 +11,8 @@ public class TodayModel : PageModel
     public TodayModel(AppDbContext db) => _db = db;
 
     public List<TodayShift> Shifts { get; set; } = new();
+
+    [BindProperty] public string? IncomingSignature { get; set; }
 
     public async Task OnGetAsync()
     {
@@ -31,10 +34,23 @@ public class TodayModel : PageModel
             LastEditedBy = s.LastEditedBy,
             LastEditedAt = s.LastEditedAt,
             Escalations = s.Escalations,
+            OutgoingTLSignature = s.OutgoingTLSignature,
+            IncomingTLSignature = s.IncomingTLSignature,
             SafetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault(),
             QualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault(),
             PerfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault(),
         }).ToList();
+    }
+
+    public async Task<IActionResult> OnPostSignAsync(int id)
+    {
+        var sub = await _db.ShiftSubmissions.FindAsync(id);
+        if (sub != null && !string.IsNullOrWhiteSpace(IncomingSignature))
+        {
+            sub.IncomingTLSignature = IncomingSignature.Trim();
+            await _db.SaveChangesAsync();
+        }
+        return RedirectToPage();
     }
 
     public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
@@ -50,6 +66,8 @@ public class TodayModel : PageModel
         public string? LastEditedBy { get; set; }
         public DateTime? LastEditedAt { get; set; }
         public string? Escalations { get; set; }
+        public string? OutgoingTLSignature { get; set; }
+        public string? IncomingTLSignature { get; set; }
         public string? SafetyStatus { get; set; }
         public string? QualityStatus { get; set; }
         public string? PerfStatus { get; set; }

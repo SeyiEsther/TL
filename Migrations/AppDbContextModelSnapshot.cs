@@ -57,6 +57,31 @@ namespace TL.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("TL.Models.MissedTargetReason", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("IsActive")
+                        .HasDefaultValue(true)
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ReasonText")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MissedTargetReasons");
+                });
+
             modelBuilder.Entity("TL.Models.HourlyCheck", b =>
                 {
                     b.Property<int>("Id")
@@ -88,6 +113,12 @@ namespace TL.Migrations
 
                     b.Property<bool?>("MaterialsAvailable")
                         .HasColumnType("bit");
+
+                    b.Property<string>("MissedTargetNote")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("MissedTargetReasonId")
+                        .HasColumnType("int");
 
                     b.Property<string>("MoraleNotes")
                         .HasColumnType("nvarchar(max)");

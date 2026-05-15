@@ -49,10 +49,56 @@
                         <span class="rv @TodayModel.Rc(s.PerfStatus)">@(s.PerfStatus ?? "—")</span>
                     </div>
                 </div>
+
                 @if (!string.IsNullOrEmpty(s.Escalations))
                 {
                     <div class="escl-banner">&#9888; @s.Escalations</div>
                 }
+
+                <!-- Signature section -->
+                <div class="sig-section">
+                    <div class="sig-row">
+                        <div class="sig-col">
+                            <div class="sig-col-label">Outgoing TL</div>
+                            @if (!string.IsNullOrEmpty(s.OutgoingTLSignature))
+                            {
+                                <div class="sig-confirmed">
+                                    <span class="sig-tick">&#10003;</span>
+                                    <span class="sig-name">@s.OutgoingTLSignature</span>
+                                    <span class="sig-time">signed off</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="sig-pending">Not yet signed — edit shift to add signature</div>
+                            }
+                        </div>
+                        <div class="sig-col">
+                            <div class="sig-col-label">Incoming TL</div>
+                            @if (!string.IsNullOrEmpty(s.IncomingTLSignature))
+                            {
+                                <div class="sig-confirmed">
+                                    <span class="sig-tick">&#10003;</span>
+                                    <span class="sig-name">@s.IncomingTLSignature</span>
+                                    <span class="sig-time">accepted handover</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="sig-sign-form">
+                                    <form method="post" asp-page-handler="Sign" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id">
+                                        <input type="text" name="IncomingSignature" placeholder="Type your name to sign…"
+                                               class="sig-input" required maxlength="100">
+                                        <button type="submit" class="sbtn primary sm">Accept &amp; sign</button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
                 <div style="padding:10px 18px">
                     <a href="/api/submissions/@s.Id/pdf" class="dl-link">&#8595; Download PDF</a>
                 </div>

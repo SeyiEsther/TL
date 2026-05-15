@@ -21,6 +21,8 @@ public class HourInput
     public bool? Sixs { get; set; }
     public bool? Tpm { get; set; }
     public string? Pnote { get; set; }
+    public int? TgtReason { get; set; }
+    public string? TgtNote { get; set; }
     public bool? Wb { get; set; }
     public bool? Sup { get; set; }
     public string? Mnote { get; set; }

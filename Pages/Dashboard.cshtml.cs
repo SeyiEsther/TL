@@ -39,6 +39,14 @@ public class DashboardModel : PageModel
     public int[] ActivityData { get; set; } = [];
     public string[] AreaLabels { get; set; } = [];
     public int[] AreaData { get; set; } = [];
+    public int TotalMissedHours { get; set; }
+    public List<MissedTargetStatItem> MissedTargetStats { get; set; } = new();
+
+    public class MissedTargetStatItem
+    {
+        public string Reason { get; set; } = "";
+        public int Count { get; set; }
+    }
 
     public async Task OnGetAsync(string? from, string? to, string? shift, string? area, string? tl)
     {
@@ -113,6 +121,34 @@ public class DashboardModel : PageModel
             .ToList();
         AreaLabels = areaGroups.Select(g => g.Key).ToArray();
         AreaData = areaGroups.Select(g => g.Count()).ToArray();
+
+        // Missed target stats — subquery on same filtered submission set
+        var filteredIds = q.Select(s => s.Id);
+        var missedGroups = await _db.HourlyChecks
+            .Where(h => filteredIds.Contains(h.ShiftSubmissionId) && h.HourlyTargetAchieved == false)
+            .GroupBy(h => h.MissedTargetReasonId)
+            .Select(g => new { ReasonId = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        TotalMissedHours = missedGroups.Sum(g => g.Count);
+
+        if (missedGroups.Any(g => g.ReasonId != null))
+        {
+            var reasons = await _db.MissedTargetReasons.ToDictionaryAsync(r => r.Id, r => r.ReasonText);
+            MissedTargetStats = missedGroups
+                .Where(g => g.ReasonId != null)
+                .Select(g => new MissedTargetStatItem
+                {
+                    Reason = reasons.GetValueOrDefault(g.ReasonId!.Value, "Unknown"),
+                    Count = g.Count
+                })
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            var unrecorded = missedGroups.FirstOrDefault(g => g.ReasonId == null);
+            if (unrecorded != null)
+                MissedTargetStats.Add(new MissedTargetStatItem { Reason = "No reason recorded", Count = unrecorded.Count });
+        }
 
         var csvParams = new List<string>();
         if (!string.IsNullOrEmpty(from)) csvParams.Add("from=" + from);

@@ -3,6 +3,14 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TL.Models
 {
+    public class MissedTargetReason
+    {
+        public int Id { get; set; }
+        public string ReasonText { get; set; } = "";
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
     public class ShiftSubmission
     {
         public int Id { get; set; }
@@ -48,6 +56,8 @@ namespace TL.Models
         public bool? SixSCompleted { get; set; }
         public bool? TPMCompleted { get; set; }
         public string? PerformanceNotes { get; set; }
+        public int? MissedTargetReasonId { get; set; }
+        public string? MissedTargetNote { get; set; }
         public bool? WellbeingConfirmed { get; set; }
         public bool? SupportRequired { get; set; }
         public string? MoraleNotes { get; set; }

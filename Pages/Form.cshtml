@@ -15,7 +15,6 @@
         <div class="sf"><label>Team leader</label><input type="text" value="@Model.TeamLeader" readonly></div>
         <div class="sf"><label>Area</label><input type="text" value="@Model.Area" readonly style="font-weight:700;color:var(--red)"></div>
 
-        <!-- Hours selector — pure GET form, no JS -->
         <div class="sf" style="margin-left:auto">
             <label>Hours in shift</label>
             <form method="get" style="display:flex;gap:6px;align-items:center">
@@ -45,9 +44,50 @@
         </div>
     }
 
+    <!-- Previous shift carry-forward notes -->
+    @if (!Model.EditingId.HasValue && !string.IsNullOrEmpty(Model.PrevShiftLabel))
+    {
+        <div class="prev-notes-panel">
+            <div class="prev-notes-head" onclick="this.parentElement.classList.toggle('open')">
+                <span class="prev-notes-icon">&#9432;</span>
+                <span>Previous shift notes carried forward — <strong>@Model.PrevShiftLabel</strong> (@Model.PrevTLName)</span>
+                <span class="prev-notes-toggle">&#9660;</span>
+            </div>
+            <div class="prev-notes-body">
+                @if (!string.IsNullOrEmpty(Model.PrevEscalations))
+                {
+                    <div class="prev-notes-section"><div class="prev-notes-label">Escalations / outstanding issues</div><div class="prev-notes-text">@Model.PrevEscalations</div></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PrevKeyRisks))
+                {
+                    <div class="prev-notes-section"><div class="prev-notes-label">Key risks</div><div class="prev-notes-text">@Model.PrevKeyRisks</div></div>
+                }
+                @if (!string.IsNullOrEmpty(Model.PrevPriorities))
+                {
+                    <div class="prev-notes-section"><div class="prev-notes-label">Priorities</div><div class="prev-notes-text">@Model.PrevPriorities</div></div>
+                }
+                @if (string.IsNullOrEmpty(Model.PrevEscalations) && string.IsNullOrEmpty(Model.PrevKeyRisks) && string.IsNullOrEmpty(Model.PrevPriorities))
+                {
+                    <div style="color:var(--muted);font-size:12px;padding:4px 0">No notes recorded in the previous shift.</div>
+                }
+            </div>
+        </div>
+    }
+
     <div class="hint">scroll right for all hours &rarr;</div>
 
-    <!-- Main data entry form -->
+    <!-- Live issues summary -->
+    <div class="issues-summary" id="issues-summary">
+        <div class="issues-title">Live issues tracker</div>
+        <div class="issues-grid">
+            <div class="issue-item issue-target"><span class="issue-count" id="cnt-target-missed">0</span><span class="issue-label">target missed</span></div>
+            <div class="issue-item issue-hazard"><span class="issue-count" id="cnt-hazards">0</span><span class="issue-label">hazards observed</span></div>
+            <div class="issue-item issue-maint"><span class="issue-count" id="cnt-maintenance">0</span><span class="issue-label">maintenance issues</span></div>
+            <div class="issue-item issue-escl"><span class="issue-count" id="cnt-escalations">0</span><span class="issue-label">escalations raised</span></div>
+            <div class="issue-item issue-support"><span class="issue-count" id="cnt-support">0</span><span class="issue-label">support required</span></div>
+        </div>
+    </div>
+
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
@@ -58,6 +98,13 @@
         @if (Model.EditingId.HasValue)
         {
             <input type="hidden" name="EditingId" value="@Model.EditingId">
+        }
+
+        <!-- Hidden inputs for missed target reason per hour -->
+        @for (int h = 0; h < H; h++)
+        {
+            <input type="hidden" name="H[@h].TgtReason" id="h@(h)_tgt_reason" value="@(hd(h).TgtReason?.ToString() ?? "")">
+            <input type="hidden" name="H[@h].TgtNote" id="h@(h)_tgt_note" value="@(hd(h).TgtNote ?? "")">
         }
 
         <div class="grid-wrap">
@@ -89,7 +136,7 @@
 
                     <!-- PERFORMANCE -->
                     <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>
-                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt); }
+                    @{ await RenderYNTarget("Hourly target achieved?", h => hd(h).Tgt, h => hd(h).TgtReason); }
                     @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint); }
                     @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat); }
                     @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools); }
@@ -133,6 +180,19 @@
                 <label>Immediate priorities for incoming team</label>
                 <textarea name="Priorities" placeholder="Immediate actions…">@Model.Priorities</textarea>
             </div>
+
+            <!-- Outgoing TL digital signature -->
+            <div class="sfield full sig-field">
+                <label>Outgoing TL digital sign-off</label>
+                <input type="text" name="OutgoingTLSignature" id="outgoing-sig"
+                       placeholder="Type your full name to sign off this handover…"
+                       value="@Model.OutgoingTLSignature" autocomplete="name">
+                <div class="sig-hint">By signing, you confirm this handover report is accurate and complete.</div>
+                @if (!string.IsNullOrEmpty(Model.OutgoingTLSignature))
+                {
+                    <div class="sig-badge">&#10003; Signed: @Model.OutgoingTLSignature</div>
+                }
+            </div>
         </div>
 
         <div class="submit-bar">
@@ -143,6 +203,165 @@
         </div>
     </form>
 </div>
+
+<!-- Missed target modal -->
+<div id="missed-target-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="modal-card">
+        <div class="modal-head">
+            <span style="color:var(--red);font-size:18px;margin-right:8px">&#9888;</span>
+            Target Missed — Hour <span id="modal-hour-display"></span>
+        </div>
+        <div class="modal-body">
+            <div class="modal-field">
+                <label class="modal-label">Reason for missed target <span style="color:var(--red)">*</span></label>
+                <select id="modal-reason-select" class="modal-select">
+                    <option value="">Select a reason…</option>
+                    @foreach (var r in Model.TargetReasons)
+                    {
+                        <option value="@r.Id">@r.ReasonText</option>
+                    }
+                </select>
+                <div id="modal-reason-error" style="color:var(--red);font-size:11px;display:none;margin-top:4px">Please select a reason before confirming.</div>
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Additional notes <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+                <textarea id="modal-note-text" class="modal-textarea" placeholder="Describe what happened, any actions taken…" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="sbtn primary" onclick="confirmMissedTarget()">Confirm</button>
+            <button type="button" class="sbtn" onclick="cancelMissedTarget()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentModalHour = null;
+    const prevTgtValue = {};
+
+    // Record initial radio states on load
+    document.querySelectorAll('[id^="h"][id$="_Tgt_y"]').forEach(r => {
+        const m = r.id.match(/^h(\d+)_Tgt_y$/);
+        if (m) prevTgtValue[m[1]] = r.checked ? 'True' : prevTgtValue[m[1]];
+    });
+    document.querySelectorAll('[id^="h"][id$="_Tgt_n"]').forEach(r => {
+        const m = r.id.match(/^h(\d+)_Tgt_n$/);
+        if (m) {
+            if (r.checked) prevTgtValue[m[1]] = 'False';
+            else if (!prevTgtValue[m[1]]) prevTgtValue[m[1]] = null;
+        }
+    });
+
+    // Attach modal trigger to all "No" Tgt radios
+    document.querySelectorAll('[id^="h"][id$="_Tgt_n"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                const m = this.id.match(/^h(\d+)_Tgt_n$/);
+                if (m) {
+                    currentModalHour = m[1];
+                    openMissedTargetModal(currentModalHour);
+                }
+            }
+        });
+    });
+
+    // Track when "Yes" is selected so we can revert correctly
+    document.querySelectorAll('[id^="h"][id$="_Tgt_y"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.checked) {
+                const m = this.id.match(/^h(\d+)_Tgt_y$/);
+                if (m) prevTgtValue[m[1]] = 'True';
+            }
+        });
+    });
+
+    function openMissedTargetModal(hourIdx) {
+        document.getElementById('modal-hour-display').textContent = parseInt(hourIdx) + 1;
+        const reasonInput = document.getElementById('h' + hourIdx + '_tgt_reason');
+        const noteInput = document.getElementById('h' + hourIdx + '_tgt_note');
+        const sel = document.getElementById('modal-reason-select');
+        sel.value = reasonInput ? reasonInput.value : '';
+        sel.style.borderColor = '';
+        document.getElementById('modal-reason-error').style.display = 'none';
+        document.getElementById('modal-note-text').value = noteInput ? noteInput.value : '';
+        document.getElementById('missed-target-modal').style.display = 'flex';
+    }
+
+    function confirmMissedTarget() {
+        const sel = document.getElementById('modal-reason-select');
+        if (!sel.value) {
+            sel.style.borderColor = 'var(--red)';
+            document.getElementById('modal-reason-error').style.display = 'block';
+            return;
+        }
+        document.getElementById('h' + currentModalHour + '_tgt_reason').value = sel.value;
+        document.getElementById('h' + currentModalHour + '_tgt_note').value = document.getElementById('modal-note-text').value;
+        prevTgtValue[currentModalHour] = 'False';
+        closeModal();
+    }
+
+    function cancelMissedTarget() {
+        if (currentModalHour !== null) {
+            const prev = prevTgtValue[currentModalHour];
+            if (prev === 'True') {
+                const y = document.getElementById('h' + currentModalHour + '_Tgt_y');
+                if (y) y.checked = true;
+            } else if (prev === null || prev === undefined) {
+                const y = document.getElementById('h' + currentModalHour + '_Tgt_y');
+                const n = document.getElementById('h' + currentModalHour + '_Tgt_n');
+                if (y) y.checked = false;
+                if (n) n.checked = false;
+            }
+            // If prev was 'False' the N stays checked — user changed their mind, modal closes without saving
+            if (prev === 'False') {
+                // keep checked but don't re-save; existing hidden inputs still hold old value
+            }
+        }
+        closeModal();
+    }
+
+    function closeModal() {
+        document.getElementById('missed-target-modal').style.display = 'none';
+        currentModalHour = null;
+    }
+
+    // Close modal on overlay click
+    document.getElementById('missed-target-modal').addEventListener('click', function (e) {
+        if (e.target === this) cancelMissedTarget();
+    });
+
+    // Cumulative issues tracker
+    function countYes(field) { return document.querySelectorAll('[id$="_' + field + '_y"]:checked').length; }
+    function countNo(field) { return document.querySelectorAll('[id$="_' + field + '_n"]:checked').length; }
+
+    function updateIssueSummary() {
+        const tm = countNo('Tgt');
+        const hz = countYes('Haz');
+        const mn = countYes('Maint');
+        const es = countYes('Escl');
+        const sp = countYes('Sup');
+
+        document.getElementById('cnt-target-missed').textContent = tm;
+        document.getElementById('cnt-hazards').textContent = hz;
+        document.getElementById('cnt-maintenance').textContent = mn;
+        document.getElementById('cnt-escalations').textContent = es;
+        document.getElementById('cnt-support').textContent = sp;
+
+        const summary = document.getElementById('issues-summary');
+        summary.classList.toggle('has-issues', (tm + hz + mn + es + sp) > 0);
+
+        // Highlight non-zero counts
+        ['cnt-target-missed', 'cnt-hazards', 'cnt-maintenance', 'cnt-escalations', 'cnt-support'].forEach(id => {
+            const el = document.getElementById(id);
+            el.classList.toggle('count-active', parseInt(el.textContent) > 0);
+        });
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target.type === 'radio') updateIssueSummary();
+    });
+    updateIssueSummary();
+</script>
 
 @functions {
     async Task RenderYN(string label, string field, Func<int, bool?> val)
@@ -162,6 +381,32 @@
                         <input type="radio" class="yn-n" name="@name" id="@nId" value="False" checked="@(v == false ? "checked" : null)">
                         <label for="@nId">N</label>
                     </div>
+                </td>
+            }
+        </tr>
+    }
+
+    async Task RenderYNTarget(string label, Func<int, bool?> val, Func<int, int?> reasonVal)
+    {
+        <tr class="dr tgt-row">
+            <td class="ql">@Html.Raw(label)</td>
+            @for (int h = 0; h < Model.Hours; h++)
+            {
+                var v = val(h);
+                var hasReason = reasonVal(h).HasValue;
+                var yId = $"h{h}_Tgt_y";
+                var nId = $"h{h}_Tgt_n";
+                <td class="cell">
+                    <div class="yn-group">
+                        <input type="radio" class="yn-y" name="H[@h].Tgt" id="@yId" value="True" checked="@(v == true ? "checked" : null)">
+                        <label for="@yId">Y</label>
+                        <input type="radio" class="yn-n" name="H[@h].Tgt" id="@nId" value="False" checked="@(v == false ? "checked" : null)">
+                        <label for="@nId">N</label>
+                    </div>
+                    @if (v == false && hasReason)
+                    {
+                        <div class="tgt-reason-badge" title="Reason captured">&#10003;</div>
+                    }
                 </td>
             }
         </tr>
