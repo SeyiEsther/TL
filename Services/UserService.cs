@@ -1,28 +1,31 @@
 using System.DirectoryServices.AccountManagement;
-using TL.Data;
 using TL.Models;
 
 namespace TL.Services
 {
     public class UserService
     {
+        private static readonly HashSet<string> AdminUsernames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "kgwynjones",
+            "ljaworski",
+            "oogunbayo",
+        };
+
         private readonly IHttpContextAccessor _http;
-        private readonly AppDbContext _db;
         private readonly ILogger<UserService> _log;
 
-        public UserService(IHttpContextAccessor http, AppDbContext db, ILogger<UserService> log)
+        public UserService(IHttpContextAccessor http, ILogger<UserService> log)
         {
             _http = http;
-            _db = db;
             _log = log;
         }
 
         public AppUser GetCurrentUser()
         {
-            // Prefer the authenticated HTTP identity; fall back to OS user
             var rawName = _http.HttpContext?.User?.Identity?.Name ?? Environment.UserName;
 
-            // Strip domain prefix (DOMAIN\user or user@domain)
+            // Strip domain prefix — handles DOMAIN\user and user@domain
             var username = rawName.Contains('\\')
                 ? rawName.Split('\\').Last()
                 : rawName.Split('@').First();
@@ -41,14 +44,11 @@ namespace TL.Services
                 _log.LogWarning("Could not get display name from AD for {User}: {Msg}", username, ex.Message);
             }
 
-            var isManager = _db.AdminUsers
-                .Any(u => u.Username == username);
-
             return new AppUser
             {
                 Username = username,
                 DisplayName = displayName,
-                IsManager = isManager
+                IsManager = AdminUsernames.Contains(username)
             };
         }
     }
