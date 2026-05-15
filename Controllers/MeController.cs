@@ -14,11 +14,15 @@ namespace TL.Controllers
         public IActionResult Get()
         {
             var user = _users.GetCurrentUser();
+            var rawIdentity = HttpContext.User?.Identity?.Name;
+            var envUser = Environment.UserName;
             return Ok(new
             {
                 username = user.Username,
                 displayName = user.DisplayName,
                 isManager = user.IsManager,
+                debug_rawIdentity = rawIdentity,
+                debug_envUserName = envUser,
             });
         }
     }
