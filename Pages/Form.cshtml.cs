@@ -31,6 +31,7 @@ public class FormModel : PageModel
     [BindProperty] public string? Escalations { get; set; }
     [BindProperty] public string? KeyRisks { get; set; }
     [BindProperty] public string? Priorities { get; set; }
+    public string? OutgoingTLSignature { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? shift, string? area, string? tl,
@@ -56,6 +57,7 @@ public class FormModel : PageModel
             Escalations = sub.Escalations;
             KeyRisks = sub.KeyRisks;
             Priorities = sub.Priorities;
+            OutgoingTLSignature = sub.OutgoingTLSignature;
 
             H = sub.Hours.OrderBy(h => h.HourNumber).Select(h => new HourInput
             {
@@ -84,7 +86,7 @@ public class FormModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(
         string shiftDate, string shift, string teamLeader, string area,
-        int hoursCount, int? editingId)
+        int hoursCount, int? editingId, string? outgoingTLSignature)
     {
         ShiftDate = shiftDate;
         Shift = shift;
@@ -92,6 +94,7 @@ public class FormModel : PageModel
         Area = area;
         Hours = Math.Clamp(hoursCount, 1, 8);
         EditingId = editingId;
+        OutgoingTLSignature = outgoingTLSignature;
 
         // Trim H to the declared hours
         while (H.Count < Hours) H.Add(new HourInput());
@@ -119,10 +122,12 @@ public class FormModel : PageModel
             Track("Escalations", sub.Escalations, Escalations);
             Track("KeyRisks", sub.KeyRisks, KeyRisks);
             Track("Priorities", sub.Priorities, Priorities);
+            Track("OutgoingTLSignature", sub.OutgoingTLSignature, outgoingTLSignature);
 
             sub.Escalations = Escalations;
             sub.KeyRisks = KeyRisks;
             sub.Priorities = Priorities;
+            sub.OutgoingTLSignature = outgoingTLSignature;
             sub.HoursCompleted = (byte)hours.Count;
             sub.LastEditedBy = editorName;
             sub.LastEditedAt = DateTime.UtcNow;
@@ -175,6 +180,7 @@ public class FormModel : PageModel
                 Escalations = Escalations,
                 KeyRisks = KeyRisks,
                 Priorities = Priorities,
+                OutgoingTLSignature = outgoingTLSignature,
                 Hours = hours.Select((inp, i) => MapHour(inp, i + 1)).ToList()
             };
 

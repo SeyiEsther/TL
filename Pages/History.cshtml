@@ -3,7 +3,10 @@
 @{ ViewData["Title"] = "History"; }
 
 <div class="dwrap">
-    <div class="page-head"><div class="page-title">Shift history</div></div>
+    <div class="page-head">
+        <div class="page-title">Shift history</div>
+        <a asp-page="/Handover" class="sbtn sm">&#128203; Handover history</a>
+    </div>
 
     <div class="card" style="margin-bottom:14px">
         <form method="get" class="filters">

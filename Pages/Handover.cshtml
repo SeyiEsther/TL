@@ -1,21 +1,23 @@
 @page
 @model HandoverModel
-@{ ViewData["Title"] = "Handover"; }
+@using TL.Models
+@{ ViewData["Title"] = "Handover history"; }
 
-<div class="wrap">
+<div class="dwrap">
     <div class="page-head">
         <div>
-            <div class="page-title">Shift handover</div>
-            <div class="page-sub">Select your area to see the latest handover</div>
+            <div class="page-title">Handover history</div>
+            <div class="page-sub">Completed shift handovers with sign-off status</div>
         </div>
     </div>
 
+    <!-- Area selector -->
     <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px">
         <form method="get">
             <div class="fl">
-                <label>Your area</label>
+                <label>Area</label>
                 <select name="area" style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--white)">
-                    <option value="">Select your area…</option>
+                    <option value="">Select area…</option>
                     @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
                     {
                         <optgroup label="@grp.Key">
@@ -27,114 +29,102 @@
                     }
                 </select>
             </div>
-            <button type="submit" class="sbtn" style="margin-top:10px">View handover</button>
+            <button type="submit" class="sbtn" style="margin-top:10px">View handovers</button>
         </form>
     </div>
 
-    @if (Model.Latest == null && !string.IsNullOrEmpty(Model.SelectedArea))
+    @if (!string.IsNullOrEmpty(Model.SelectedArea) && !Model.Handovers.Any())
     {
-        <div class="card"><div class="empty">No shifts found for this area yet.</div></div>
+        <div class="card"><div class="empty">No signed-off handovers found for this area yet.</div></div>
     }
 
-    @if (Model.Latest != null)
+    @if (Model.Handovers.Any())
     {
-        var s = Model.Latest;
-        var safetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault();
-        var qualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault();
-        var perfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault();
+        var pending = Model.Handovers.Where(h => h.IsPending).ToList();
+        var completed = Model.Handovers.Where(h => !h.IsPending).ToList();
 
-        @if (Model.Previous.Any())
+        @if (pending.Any())
         {
-            <div style="margin-bottom:14px">
-                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Previous shifts</div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    @foreach (var p in Model.Previous)
-                    {
-                        <a asp-page="/Handover" asp-route-area="@Model.SelectedArea" asp-route-id="@p.Id"
-                           style="padding:6px 14px;border:1px solid var(--border);border-radius:99px;font-size:12px;text-decoration:none;background:var(--white);color:var(--muted)">
-                            @p.ShiftDate — @p.Shift
-                        </a>
-                    }
-                </div>
+            <div style="font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+                &#9888; Incoming TL sign-off pending (@pending.Count)
             </div>
+            @foreach (var r in pending)
+            {
+                @RenderHandoverCard(r, true)
+            }
         }
 
-        <div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
-            <div style="padding:16px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        @if (completed.Any())
+        {
+            if (pending.Any())
+            {
+                <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;margin-top:14px">Completed handovers</div>
+            }
+            @foreach (var r in completed)
+            {
+                @RenderHandoverCard(r, false)
+            }
+        }
+    }
+</div>
+
+@functions {
+    string FormatAge(TimeSpan t)
+    {
+        if (t.TotalMinutes < 60) return $"{(int)t.TotalMinutes}m";
+        if (t.TotalHours < 24) return $"{(int)t.TotalHours}h {t.Minutes}m";
+        return $"{(int)t.TotalDays}d {t.Hours}h";
+    }
+}
+
+@{
+    async Task RenderHandoverCard(HandoverModel.HandoverRecord r, bool isPending)
+    {
+        var borderColor = isPending ? "#fcd34d" : "var(--border)";
+        var bgColor = isPending ? "#fffbeb" : "var(--white)";
+        <div style="background:@bgColor;border:@(isPending ? "1.5px" : "1px") solid @borderColor;border-radius:10px;overflow:hidden;margin-bottom:10px">
+            <!-- Header row -->
+            <div style="padding:14px 18px;background:var(--surface);border-bottom:1px solid @borderColor;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
                 <div>
-                    <div style="font-size:15px;font-weight:700">@s.Shift shift — @s.ShiftDate.ToString("dd/MM/yyyy")</div>
-                    <div style="font-size:12px;color:var(--muted);margin-top:2px">Area: @s.Area &nbsp;&middot;&nbsp; TL: @s.TeamLeaderDisplay &nbsp;&middot;&nbsp; @s.HoursCompleted hrs completed</div>
+                    <div style="font-size:14px;font-weight:700">@r.Shift shift &mdash; @r.ShiftDate.ToString("dd/MM/yyyy")</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px">
+                        TL: <strong>@r.TeamLeaderDisplay</strong> &nbsp;&middot;&nbsp; @r.HoursCompleted hrs &nbsp;&middot;&nbsp; submitted @r.SubmittedAt.ToLocalTime().ToString("HH:mm, dd MMM")
+                    </div>
                 </div>
-                <a href="/api/submissions/@s.Id/pdf" target="_blank" class="sbtn primary" style="font-size:12px;padding:8px 16px">&#8595; PDF</a>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <span class="rv @HandoverModel.Rc(r.SafetyStatus)" style="font-size:11px">@(r.SafetyStatus ?? "—")</span>
+                    <span class="rv @HandoverModel.Rc(r.QualityStatus)" style="font-size:11px">@(r.QualityStatus ?? "—")</span>
+                    <span class="rv @HandoverModel.Rc(r.PerfStatus)" style="font-size:11px">@(r.PerfStatus ?? "—")</span>
+                    <a href="/api/submissions/@r.Id/pdf" target="_blank" class="sbtn sm" style="margin-left:4px">&#8595; PDF</a>
+                </div>
             </div>
-            <div style="padding:20px">
 
-                <div style="display:flex;gap:10px;margin-bottom:20px">
-                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
-                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Safety</div>
-                        <span class="rv @HandoverModel.Rc(safetyStatus)" style="font-size:15px;padding:6px 20px">@(safetyStatus ?? "—")</span>
-                    </div>
-                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
-                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Quality</div>
-                        <span class="rv @HandoverModel.Rc(qualityStatus)" style="font-size:15px;padding:6px 20px">@(qualityStatus ?? "—")</span>
-                    </div>
-                    <div style="flex:1;text-align:center;padding:16px 8px;border:1px solid var(--border);border-radius:10px">
-                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Performance</div>
-                        <span class="rv @HandoverModel.Rc(perfStatus)" style="font-size:15px;padding:6px 20px">@(perfStatus ?? "—")</span>
-                    </div>
+            <!-- Signature row -->
+            <div style="padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:0">
+                <!-- Outgoing TL -->
+                <div style="padding-right:16px;border-right:1px solid var(--border)">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#16a34a;margin-bottom:4px">Outgoing TL</div>
+                    <div style="font-size:13px;font-weight:600">@r.OutgoingTLSignature</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:2px">Signed @r.SubmittedAt.ToLocalTime().ToString("HH:mm, dd MMM yyyy")</div>
                 </div>
-
-                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Escalations / outstanding issues</div>
-                    @if (string.IsNullOrEmpty(s.Escalations))
+                <!-- Incoming TL -->
+                <div style="padding-left:16px">
+                    @if (isPending)
                     {
-                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#b45309;margin-bottom:4px">&#9888; Incoming TL sign-off pending</div>
+                        <div style="font-size:11px;color:#b45309">Waiting @FormatAge(r.PendingFor)</div>
                     }
                     else
                     {
-                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Escalations</div>
-                    }
-                </div>
-
-                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Key risks for next shift</div>
-                    @if (string.IsNullOrEmpty(s.KeyRisks))
-                    {
-                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
-                    }
-                    else
-                    {
-                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.KeyRisks</div>
-                    }
-                </div>
-
-                <div style="padding:16px 0;border-bottom:1px solid var(--border)">
-                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Immediate priorities for incoming team</div>
-                    @if (string.IsNullOrEmpty(s.Priorities))
-                    {
-                        <div style="font-size:14px;line-height:1.7;color:var(--muted);font-style:italic">None recorded</div>
-                    }
-                    else
-                    {
-                        <div style="font-size:14px;line-height:1.7;color:var(--ink)">@s.Priorities</div>
-                    }
-                </div>
-
-                @if (s.AuditLogs.Any())
-                {
-                    <div style="padding:16px 0 0">
-                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:8px">Audit log</div>
-                        @foreach (var a in s.AuditLogs.Take(5))
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:#16a34a;margin-bottom:4px">Incoming TL</div>
+                        <div style="font-size:13px;font-weight:600">@r.IncomingTLSignature</div>
+                        if (r.IncomingTLSignedAt.HasValue)
                         {
-                            <div class="audit-item">
-                                <span class="audit-who">@a.ChangedBy</span>
-                                <span class="audit-field">changed @a.FieldName: @(a.OldValue ?? "—") &rarr; @(a.NewValue ?? "—")</span>
-                                <span class="audit-time">@a.ChangedAt.ToLocalTime().ToString("dd MMM HH:mm")</span>
-                            </div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px">Signed @r.IncomingTLSignedAt.Value.ToLocalTime().ToString("HH:mm, dd MMM yyyy")</div>
                         }
-                    </div>
-                }
+                    }
+                </div>
             </div>
         </div>
     }
-</div>
+}

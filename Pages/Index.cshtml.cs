@@ -55,6 +55,29 @@ public class IndexModel : PageModel
                 return RedirectToPage("/Form", new { id = existing.Id, tl = teamLeader });
         }
 
+        // Trigger condition: check if the most recent shift for this area
+        // has an outgoing TL signature but no incoming TL signature yet.
+        // If so, the incoming TL must acknowledge before starting a new shift.
+        var previousShift = await _db.ShiftSubmissions
+            .Where(s => s.Area == area
+                     && !string.IsNullOrEmpty(s.OutgoingTLSignature)
+                     && string.IsNullOrEmpty(s.IncomingTLSignature))
+            .OrderByDescending(s => s.ShiftDate)
+            .ThenByDescending(s => s.SubmittedAt)
+            .FirstOrDefaultAsync();
+
+        if (previousShift != null)
+        {
+            return RedirectToPage("/HandoverAck", new
+            {
+                prevId = previousShift.Id,
+                date = shiftDate,
+                shift,
+                area,
+                tl = teamLeader
+            });
+        }
+
         return RedirectToPage("/Form", new
         {
             date = shiftDate,

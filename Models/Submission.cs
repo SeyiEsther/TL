@@ -18,6 +18,7 @@ namespace TL.Models
         public string? Priorities { get; set; }
         public string? OutgoingTLSignature { get; set; }
         public string? IncomingTLSignature { get; set; }
+        public DateTime? IncomingTLSignedAt { get; set; }
         public string? LastEditedBy { get; set; }
         public DateTime? LastEditedAt { get; set; }
         public List<HourlyCheck> Hours { get; set; } = new();
@@ -85,5 +86,8 @@ namespace TL.Models
         public string? LastEditedBy { get; set; }
         public DateTime? LastEditedAt { get; set; }
         public string? Escalations { get; set; }
+        public string? OutgoingTLSignature { get; set; }
+        public string? IncomingTLSignature { get; set; }
+        public DateTime? IncomingTLSignedAt { get; set; }
     }
 }
