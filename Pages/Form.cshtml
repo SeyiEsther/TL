@@ -152,9 +152,99 @@
                 @(Model.EditingId.HasValue ? "Save changes" : "Submit & save shift")
             </button>
             <a asp-page="/Index" class="sbtn">Cancel</a>
+            <span id="draft-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
         </div>
     </form>
 </div>
+
+<div id="draft-restore-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:9999;font-size:13px;display:flex;align-items:center;gap:12px">
+    <span>A draft from a previous session was found. Restore it?</span>
+    <button onclick="restoreDraft()" style="background:#fff;color:#1e3a5f;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600">Restore</button>
+    <button onclick="dismissDraft()" style="background:transparent;color:#aaa;border:none;cursor:pointer">Discard</button>
+</div>
+
+<script>
+(function () {
+    const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))';
+    const form = document.querySelector('form[method="post"]');
+    const statusEl = document.getElementById('draft-status');
+    const banner = document.getElementById('draft-restore-banner');
+    let savedDraft = null;
+
+    // --- Session keepalive: ping every 10 minutes ---
+    setInterval(() => {
+        fetch('/api/ping', { credentials: 'same-origin' }).catch(() => {});
+    }, 10 * 60 * 1000);
+
+    // --- Auto-save to localStorage every 60 seconds ---
+    function collectFormData() {
+        const data = {};
+        new FormData(form).forEach((v, k) => {
+            if (k === '__RequestVerificationToken') return;
+            data[k] = v;
+        });
+        // capture radio buttons explicitly (unchecked ones won't appear in FormData)
+        form.querySelectorAll('input[type="radio"]').forEach(r => {
+            if (!data.hasOwnProperty(r.name)) data[r.name] = null;
+        });
+        return data;
+    }
+
+    function saveDraft() {
+        try {
+            const data = collectFormData();
+            localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), data }));
+            const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            statusEl.textContent = 'Draft saved at ' + t;
+        } catch (e) {}
+    }
+
+    setInterval(saveDraft, 60 * 1000);
+
+    // clear draft on successful submit
+    form.addEventListener('submit', () => {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    });
+
+    // --- On load: check for saved draft ---
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            const ageMin = (Date.now() - parsed.ts) / 60000;
+            if (ageMin < 720 && parsed.data) { // only offer if < 12 hours old
+                savedDraft = parsed.data;
+                banner.style.display = 'flex';
+            }
+        }
+    } catch (e) {}
+
+    window.restoreDraft = function () {
+        if (!savedDraft) return;
+        Object.entries(savedDraft).forEach(([name, value]) => {
+            if (value === null) return;
+            const els = form.querySelectorAll('[name="' + CSS.escape(name) + '"]');
+            els.forEach(el => {
+                if (el.type === 'radio') {
+                    el.checked = (el.value === value);
+                } else if (el.tagName === 'SELECT') {
+                    el.value = value;
+                } else {
+                    el.value = value;
+                }
+            });
+        });
+        banner.style.display = 'none';
+        statusEl.textContent = 'Draft restored';
+    };
+
+    window.dismissDraft = function () {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        banner.style.display = 'none';
+        savedDraft = null;
+    };
+})();
+</script>
 
 @functions {
     async Task RenderYN(string label, string field, Func<int, bool?> val)
