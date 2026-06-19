@@ -157,92 +157,157 @@
     </form>
 </div>
 
-<div id="draft-restore-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:9999;font-size:13px;display:flex;align-items:center;gap:12px">
+<div id="draft-restore-banner" hidden style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:9999;font-size:13px;align-items:center;gap:12px">
     <span>A draft from a previous session was found. Restore it?</span>
-    <button onclick="restoreDraft()" style="background:#fff;color:#1e3a5f;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600">Restore</button>
-    <button onclick="dismissDraft()" style="background:transparent;color:#aaa;border:none;cursor:pointer">Discard</button>
+    <button type="button" id="draft-restore-btn" style="background:#fff;color:#1e3a5f;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600">Restore</button>
+    <button type="button" id="draft-dismiss-btn" style="background:transparent;color:#aaa;border:none;cursor:pointer">Discard</button>
 </div>
 
 <script>
 (function () {
-    const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))';
+    const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))@(Model.EditingId.HasValue ? "_edit" + Model.EditingId : "")';
+    const KEEPALIVE_MS = 10 * 60 * 1000;
+    const DEBOUNCE_MS = 1500;
+    const BACKUP_SAVE_MS = 2 * 60 * 1000;
+    const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
     const form = document.querySelector('form[method="post"]');
+    if (!form) return;
+
     const statusEl = document.getElementById('draft-status');
     const banner = document.getElementById('draft-restore-banner');
     let savedDraft = null;
+    let lastSavedJson = null;
+    let saveTimer = null;
+    let dirty = false;
+    let keepaliveTimer = null;
 
-    // --- Session keepalive: ping every 10 minutes ---
-    setInterval(() => {
-        fetch('/api/ping', { credentials: 'same-origin' }).catch(() => {});
-    }, 10 * 60 * 1000);
+    function ping() {
+        fetch('/api/ping', { credentials: 'same-origin', cache: 'no-store' }).catch(() => {});
+    }
 
-    // --- Auto-save to localStorage every 60 seconds ---
+    function scheduleKeepalive() {
+        clearInterval(keepaliveTimer);
+        if (document.hidden) return;
+        keepaliveTimer = setInterval(ping, KEEPALIVE_MS);
+    }
+
+    ping();
+    scheduleKeepalive();
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(keepaliveTimer);
+            if (dirty) saveDraft(false);
+        } else {
+            ping();
+            scheduleKeepalive();
+        }
+    });
+
     function collectFormData() {
-        const data = {};
+        const data = Object.create(null);
         new FormData(form).forEach((v, k) => {
             if (k === '__RequestVerificationToken') return;
             data[k] = v;
         });
-        // capture radio buttons explicitly (unchecked ones won't appear in FormData)
         form.querySelectorAll('input[type="radio"]').forEach(r => {
-            if (!data.hasOwnProperty(r.name)) data[r.name] = null;
+            if (!(r.name in data)) data[r.name] = null;
         });
         return data;
     }
 
-    function saveDraft() {
+    function draftPayload() {
+        return JSON.stringify({ ts: Date.now(), data: collectFormData() });
+    }
+
+    function saveDraft(showStatus) {
         try {
-            const data = collectFormData();
-            localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), data }));
-            const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            statusEl.textContent = 'Draft saved at ' + t;
+            const payload = draftPayload();
+            if (payload === lastSavedJson) return;
+            localStorage.setItem(DRAFT_KEY, payload);
+            lastSavedJson = payload;
+            dirty = false;
+            if (showStatus !== false && statusEl) {
+                const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                statusEl.textContent = 'Draft saved at ' + t;
+            }
         } catch (e) {}
     }
 
-    setInterval(saveDraft, 60 * 1000);
+    function scheduleSave() {
+        dirty = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveDraft(true), DEBOUNCE_MS);
+    }
 
-    // clear draft on successful submit
+    form.addEventListener('input', scheduleSave);
+    form.addEventListener('change', scheduleSave);
+    setInterval(() => { if (dirty) saveDraft(true); }, BACKUP_SAVE_MS);
+    window.addEventListener('pagehide', () => { if (dirty) saveDraft(false); });
+
     form.addEventListener('submit', () => {
         try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        lastSavedJson = null;
     });
 
-    // --- On load: check for saved draft ---
+    function draftsDiffer(stored) {
+        const current = collectFormData();
+        const keys = new Set([...Object.keys(stored), ...Object.keys(current)]);
+        for (const key of keys) {
+            if ((stored[key] ?? '') !== (current[key] ?? '')) return true;
+        }
+        return false;
+    }
+
+    function showBanner() {
+        banner.hidden = false;
+        banner.style.display = 'flex';
+    }
+
+    function hideBanner() {
+        banner.hidden = true;
+        banner.style.display = 'none';
+    }
+
     try {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
             const parsed = JSON.parse(raw);
-            const ageMin = (Date.now() - parsed.ts) / 60000;
-            if (ageMin < 720 && parsed.data) { // only offer if < 12 hours old
+            if (Date.now() - parsed.ts < DRAFT_MAX_AGE_MS && parsed.data && draftsDiffer(parsed.data)) {
                 savedDraft = parsed.data;
-                banner.style.display = 'flex';
+                showBanner();
             }
         }
     } catch (e) {}
 
-    window.restoreDraft = function () {
-        if (!savedDraft) return;
-        Object.entries(savedDraft).forEach(([name, value]) => {
-            if (value === null) return;
+    function applyDraft(data) {
+        Object.entries(data).forEach(([name, value]) => {
             const els = form.querySelectorAll('[name="' + CSS.escape(name) + '"]');
             els.forEach(el => {
                 if (el.type === 'radio') {
-                    el.checked = (el.value === value);
-                } else if (el.tagName === 'SELECT') {
-                    el.value = value;
+                    el.checked = value !== null && el.value === value;
                 } else {
-                    el.value = value;
+                    el.value = value ?? '';
                 }
             });
         });
-        banner.style.display = 'none';
-        statusEl.textContent = 'Draft restored';
-    };
+        lastSavedJson = draftPayload();
+        dirty = false;
+    }
 
-    window.dismissDraft = function () {
+    document.getElementById('draft-restore-btn').addEventListener('click', () => {
+        if (!savedDraft) return;
+        applyDraft(savedDraft);
+        hideBanner();
+        if (statusEl) statusEl.textContent = 'Draft restored';
+    });
+
+    document.getElementById('draft-dismiss-btn').addEventListener('click', () => {
         try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
-        banner.style.display = 'none';
+        hideBanner();
         savedDraft = null;
-    };
+        lastSavedJson = draftPayload();
+    });
 })();
 </script>
 
