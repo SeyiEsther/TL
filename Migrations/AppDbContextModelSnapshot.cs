@@ -22,6 +22,60 @@ namespace TL.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("TL.Models.AuditSubmission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionOwner").HasColumnType("nvarchar(max)");
+                    b.Property<DateOnly?>("ActionDueDate").HasColumnType("date");
+                    b.Property<string>("ActionsRaised").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("AccidentsObserved").HasColumnType("bit");
+                    b.Property<string>("Area").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("AuditorName").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("AuditorSignature").HasColumnType("nvarchar(max)");
+                    b.Property<DateOnly>("AuditDate").HasColumnType("date");
+                    b.Property<bool?>("DeviationsEscalated").HasColumnType("bit");
+                    b.Property<bool?>("EscalationsNeeded").HasColumnType("bit");
+                    b.Property<string>("FollowUpRequired").HasColumnType("nvarchar(max)");
+                    b.Property<string>("GoodPracticeObserved").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("HazardsObserved").HasColumnType("bit");
+                    b.Property<bool?>("HourlyTargetAchieved").HasColumnType("bit");
+                    b.Property<string>("LastEditedBy").HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("LastEditedAt").HasColumnType("datetime2");
+                    b.Property<bool?>("MaintenanceIssues").HasColumnType("bit");
+                    b.Property<bool?>("MaterialsAvailable").HasColumnType("bit");
+                    b.Property<string>("MoraleNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("NCPartsStoredCorrectly").HasColumnType("bit");
+                    b.Property<bool?>("NonComplianceAddressed").HasColumnType("bit");
+                    b.Property<string>("OverallPerfStatus").HasColumnType("nvarchar(max)");
+                    b.Property<string>("OverallQualityStatus").HasColumnType("nvarchar(max)");
+                    b.Property<string>("OverallSafetyStatus").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("PartsConfirmed").HasColumnType("bit");
+                    b.Property<bool?>("PartsIdCorrect").HasColumnType("bit");
+                    b.Property<string>("PerformanceNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("PositiveBehavioursPraised").HasColumnType("bit");
+                    b.Property<string>("QualityNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("QualityChecksCompleted").HasColumnType("bit");
+                    b.Property<string>("SafetyNotes").HasColumnType("nvarchar(max)");
+                    b.Property<string>("ShiftObserved").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("SixSCompleted").HasColumnType("bit");
+                    b.Property<string>("SubmittedBy").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("SubmittedAt").HasColumnType("datetime2");
+                    b.Property<bool?>("SupportRequired").HasColumnType("bit");
+                    b.Property<string>("TLOnShift").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("TPMCompleted").HasColumnType("bit");
+                    b.Property<bool?>("ToolsAvailable").HasColumnType("bit");
+                    b.Property<bool?>("UnsafeBehavioursObserved").HasColumnType("bit");
+                    b.Property<bool?>("WellbeingConfirmed").HasColumnType("bit");
+
+                    b.HasKey("Id");
+                    b.ToTable("AuditSubmissions");
+                });
+
             modelBuilder.Entity("TL.Models.AuditLog", b =>
                 {
                     b.Property<int>("Id")

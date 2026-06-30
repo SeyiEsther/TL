@@ -266,11 +266,8 @@
                             <td><span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
                             <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
                             <td>
-                                @if (s.Shift == "Audit")
-                                {
-                                    <a asp-page="/Audit" asp-route-id="@s.Id" class="dl-link">Edit</a>
-                                    <span style="color:var(--border)"> &nbsp;</span>
-                                }
+                                <a asp-page="/Form" asp-route-id="@s.Id" class="dl-link">Edit</a>
+                                &nbsp;
                                 <a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a>
                             </td>
                         </tr>

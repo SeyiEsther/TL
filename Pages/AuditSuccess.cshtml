@@ -1,0 +1,15 @@
+@page
+@model AuditSuccessModel
+@{ ViewData["Title"] = "Audit submitted"; }
+
+<div class="success-wrap">
+    <div class="success-card">
+        <div class="success-icon">&#10003;</div>
+        <div class="success-title">Audit submitted!</div>
+        <div class="success-sub">Saved and recorded successfully.</div>
+        <div class="success-ref">Audit ref #@Model.AuditId</div>
+        <a asp-page="/AuditStart" class="welcome-btn primary">New audit</a>
+        <a asp-page="/AuditHistory" class="welcome-btn secondary">View audit history</a>
+        <a href="/api/audits/@Model.AuditId/pdf" class="welcome-btn secondary">&#8595; Download PDF</a>
+    </div>
+</div>

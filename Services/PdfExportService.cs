@@ -20,6 +20,215 @@ namespace TL.Services
         private static readonly string RedBg = "#fee2e2";
         private static readonly string RedText = "#991b1b";
 
+        public byte[] GenerateAudit(AuditSubmission a)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(36);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("RITTAL").FontSize(20).Bold().FontColor(DarkGray);
+                                c.Item().Text("Senior Management Walkaround Audit").FontSize(11).FontColor(MidGray);
+                            });
+                            row.ConstantItem(6).Background(Red);
+                        });
+                        col.Item().Height(10);
+                    });
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(8);
+
+                        // Audit details
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(LightGray).Padding(6)
+                                .Text("AUDIT DETAILS").FontSize(8).Bold().FontColor(DarkGray);
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); });
+                                t.Cell().Element(LabelCell).Text("Date");
+                                t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
+                                t.Cell().Element(LabelCell).Text("Area");
+                                t.Cell().Element(ValueCell).Text(a.Area);
+                                t.Cell().Element(LabelCell).Text("Auditor");
+                                t.Cell().Element(ValueCell).Text(a.AuditorName);
+                                t.Cell().Element(LabelCell).Text("TL on shift");
+                                t.Cell().Element(ValueCell).Text(a.TLOnShift ?? "—");
+                                t.Cell().Element(LabelCell).Text("Shift observed");
+                                t.Cell().Element(ValueCell).Text(a.ShiftObserved ?? "—");
+                                t.Cell().Element(LabelCell).Text("Submitted");
+                                t.Cell().Element(ValueCell).Text(a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
+                            });
+                        });
+
+                        // H&S
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#14532d").Padding(6)
+                                .Text("HEALTH & SAFETY").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });
+                                BoolRow(t, "Hazards observed", a.HazardsObserved);
+                                BoolRow(t, "Unsafe behaviours observed", a.UnsafeBehavioursObserved);
+                                BoolRow(t, "Positive behaviours praised", a.PositiveBehavioursPraised);
+                            });
+                            if (!string.IsNullOrWhiteSpace(a.SafetyNotes))
+                                inner.Item().PaddingHorizontal(8).PaddingBottom(8)
+                                    .Background(LightGray).Padding(4).Text(a.SafetyNotes).FontSize(8);
+                        });
+
+                        // Quality
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#1e3a5f").Padding(6)
+                                .Text("QUALITY").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });
+                                BoolRow(t, "Quality checks completed", a.QualityChecksCompleted);
+                                BoolRow(t, "Deviations escalated", a.DeviationsEscalated);
+                                BoolRow(t, "Non-compliance addressed", a.NonComplianceAddressed);
+                            });
+                            if (!string.IsNullOrWhiteSpace(a.QualityNotes))
+                                inner.Item().PaddingHorizontal(8).PaddingBottom(8)
+                                    .Background(LightGray).Padding(4).Text(a.QualityNotes).FontSize(8);
+                        });
+
+                        // Performance
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#1e1b4b").Padding(6)
+                                .Text("PERFORMANCE").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });
+                                BoolRow(t, "Hourly target achieved", a.HourlyTargetAchieved);
+                                BoolRow(t, "Maintenance issues", a.MaintenanceIssues);
+                                BoolRow(t, "Materials available", a.MaterialsAvailable);
+                                BoolRow(t, "Tools available", a.ToolsAvailable);
+                                BoolRow(t, "Escalations needed", a.EscalationsNeeded);
+                                BoolRow(t, "Parts confirmed", a.PartsConfirmed);
+                                BoolRow(t, "Parts ID correct", a.PartsIdCorrect);
+                                BoolRow(t, "NC parts stored correctly", a.NCPartsStoredCorrectly);
+                                BoolRow(t, "6S completed", a.SixSCompleted);
+                                BoolRow(t, "TPM completed", a.TPMCompleted);
+                            });
+                            if (!string.IsNullOrWhiteSpace(a.PerformanceNotes))
+                                inner.Item().PaddingHorizontal(8).PaddingBottom(8)
+                                    .Background(LightGray).Padding(4).Text(a.PerformanceNotes).FontSize(8);
+                        });
+
+                        // Morale
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#4a1d1d").Padding(6)
+                                .Text("MORALE & WELLBEING").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });
+                                BoolRow(t, "Wellbeing confirmed", a.WellbeingConfirmed);
+                                BoolRow(t, "Support required", a.SupportRequired);
+                            });
+                            if (!string.IsNullOrWhiteSpace(a.MoraleNotes))
+                                inner.Item().PaddingHorizontal(8).PaddingBottom(8)
+                                    .Background(LightGray).Padding(4).Text(a.MoraleNotes).FontSize(8);
+                        });
+
+                        // Verdict
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(DarkGray).Padding(6)
+                                .Text("AUDIT VERDICT").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });
+                                BoolRow(t, "Accidents / near-misses observed", a.AccidentsObserved);
+                                StatusRow(t, "Overall Safety status", a.OverallSafetyStatus);
+                                StatusRow(t, "Overall Quality status", a.OverallQualityStatus);
+                                StatusRow(t, "Overall Performance status", a.OverallPerfStatus);
+                            });
+                        });
+
+                        // Findings & Actions
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#78350f").Padding(6)
+                                .Text("FINDINGS & ACTIONS").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Column(sc =>
+                            {
+                                void NoteBlock(string label, string? text, string bg)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(text))
+                                    {
+                                        sc.Item().Text(label).FontSize(8).Bold().FontColor(MidGray);
+                                        sc.Item().Background(bg).Padding(4).Text(text).FontSize(8);
+                                        sc.Item().Height(6);
+                                    }
+                                }
+                                NoteBlock("Actions raised", a.ActionsRaised, LightGray);
+                                NoteBlock("Good practice observed", a.GoodPracticeObserved, GreenBg);
+                                NoteBlock("Follow-up required", a.FollowUpRequired, AmberBg);
+                                if (!string.IsNullOrWhiteSpace(a.ActionOwner) || a.ActionDueDate.HasValue)
+                                {
+                                    sc.Item().Table(t =>
+                                    {
+                                        t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); });
+                                        t.Cell().Element(LabelCell).Text("Action owner");
+                                        t.Cell().Element(LabelCell).Text("Due date");
+                                        t.Cell().Element(ValueCell).Text(a.ActionOwner ?? "—");
+                                        t.Cell().Element(ValueCell).Text(a.ActionDueDate?.ToString("dd MMM yyyy") ?? "—");
+                                    });
+                                }
+                            });
+                        });
+
+                        // Sign-off
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(LightGray).Padding(6)
+                                .Text("SIGN-OFF").FontSize(8).Bold().FontColor(DarkGray);
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); });
+                                t.Cell().Element(LabelCell).Text("Auditor signature");
+                                t.Cell().Element(LabelCell).Text("Date");
+                                t.Cell().Element(ValueCell).Text(a.AuditorSignature ?? "—");
+                                t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
+                            });
+                        });
+                    });
+                    page.Footer().Row(row =>
+                    {
+                        row.RelativeItem().Text(t =>
+                            t.Span($"Rittal Senior Management Audit — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor(MidGray).FontSize(8));
+                    });
+                });
+            }).GeneratePdf();
+        }
+
+        static void StatusRow(TableDescriptor t, string label, string? value)
+        {
+            t.Cell().Element(c => c.PaddingVertical(2).PaddingRight(8))
+                .Text(label).FontColor(MidGray).FontSize(8);
+            t.Cell().Element(c =>
+            {
+                var bg = value == "Green" ? GreenBg : value == "Amber" ? AmberBg : value == "Red" ? RedBg : LightGray;
+                var fg = value == "Green" ? GreenText : value == "Amber" ? AmberText : value == "Red" ? RedText : MidGray;
+                c.Background(bg).Padding(2).AlignCenter()
+                    .Text(value ?? "—").FontColor(fg).Bold().FontSize(8);
+            });
+        }
+
         public byte[] GenerateShift(ShiftSubmission s)
         {
             QuestPDF.Settings.License = LicenseType.Community;

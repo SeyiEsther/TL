@@ -8,6 +8,7 @@ namespace TL.Data
         public DbSet<ShiftSubmission> ShiftSubmissions => Set<ShiftSubmission>();
         public DbSet<HourlyCheck> HourlyChecks => Set<HourlyCheck>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<AuditSubmission> AuditSubmissions => Set<AuditSubmission>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
