@@ -1,19 +1,21 @@
 @page
 @model DashboardModel
 @using TL.Models
-@{ ViewData["Title"] = "Dashboard"; }
+@{
+    ViewData["Title"] = "Dashboard";
+    var safetyDom   = Model.SafetyRed   > 0 ? "r" : Model.SafetyAmber   > 0 ? "a" : Model.SafetyGreen   > 0 ? "g" : "u";
+    var safetyLabel = Model.SafetyRed   > 0 ? "Red" : Model.SafetyAmber > 0 ? "Amber" : Model.SafetyGreen > 0 ? "Green" : "—";
+    var qualDom     = Model.QualityRed  > 0 ? "r" : Model.QualityAmber  > 0 ? "a" : Model.QualityGreen  > 0 ? "g" : "u";
+    var qualLabel   = Model.QualityRed  > 0 ? "Red" : Model.QualityAmber> 0 ? "Amber" : Model.QualityGreen> 0 ? "Green" : "—";
+    var perfDom     = Model.PerfRed     > 0 ? "r" : Model.PerfAmber     > 0 ? "a" : Model.PerfGreen     > 0 ? "g" : "u";
+    var perfLabel   = Model.PerfRed     > 0 ? "Red" : Model.PerfAmber   > 0 ? "Amber" : Model.PerfGreen   > 0 ? "Green" : "—";
+    var hColor      = Model.HealthScore >= 67 ? "#16a34a" : Model.HealthScore >= 34 ? "#f59e0b" : "#CC1F2C";
+}
 
 <div class="dwrap">
 
-    <div class="page-head" style="margin-bottom:14px">
-        <div>
-            <div class="page-title" style="font-size:18px;font-weight:700">Operations Dashboard</div>
-            <div class="page-sub">@Model.Shifts.Count shifts in view &bull; Real-time overview</div>
-        </div>
-        <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn primary sm">&#8595; Export CSV</a>
-    </div>
-
-    <div class="card" style="margin-bottom:14px">
+    <!-- ── FILTERS ── -->
+    <div class="card dash-filter-card">
         <form method="get" class="filters">
             <div class="sf"><label>From</label><input type="date" name="from" value="@Model.From"></div>
             <div class="sf"><label>To</label><input type="date" name="to" value="@Model.To"></div>
@@ -21,9 +23,9 @@
                 <label>Shift</label>
                 <select name="shift">
                     <option value="">All shifts</option>
-                    <option value="Day" selected="@(Model.ShiftFilter == "Day")">Day</option>
+                    <option value="Day"       selected="@(Model.ShiftFilter == "Day")">Day</option>
                     <option value="Afternoon" selected="@(Model.ShiftFilter == "Afternoon")">Afternoon</option>
-                    <option value="Night" selected="@(Model.ShiftFilter == "Night")">Night</option>
+                    <option value="Night"     selected="@(Model.ShiftFilter == "Night")">Night</option>
                 </select>
             </div>
             <div class="sf">
@@ -41,35 +43,106 @@
                     }
                 </select>
             </div>
-            <div class="sf"><label>Team leader</label><input type="text" name="tl" value="@Model.TlFilter" placeholder="Search name…" style="min-width:160px"></div>
+            <div class="sf"><label>Team leader</label><input type="text" name="tl" value="@Model.TlFilter" placeholder="Search name…" style="min-width:140px"></div>
             <button type="submit" class="sbtn sm">Filter</button>
             <a asp-page="/Dashboard" class="sbtn sm">Clear</a>
+            <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn sm" style="margin-left:auto">&#8595; CSV</a>
         </form>
     </div>
 
-    <!-- ── THIS WEEK: walkaround priority + completion (always current week) ──-->
-    <div class="week-panels" style="margin-bottom:14px">
+    <!-- ── STAT STRIP ── -->
+    <div class="stat-strip">
+        <div class="stat-item">
+            <div class="stat-val">@Model.Shifts.Count</div>
+            <div class="stat-lbl">Total shifts</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val" style="color:#16a34a">@Model.Today</div>
+            <div class="stat-lbl">Today</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val">@Model.ThisWeek</div>
+            <div class="stat-lbl">This week</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val" style="color:@(Model.WithEscalations > 0 ? "#b45309" : "inherit")">@Model.WithEscalations</div>
+            <div class="stat-lbl">Escalations</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val" style="color:#3b82f6">@Model.DayShifts</div>
+            <div class="stat-lbl">Day</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-val" style="color:#f59e0b">@Model.AfternoonShifts</div>
+            <div class="stat-lbl">Afternoon</div>
+        </div>
+        <div class="stat-item stat-item-last">
+            <div class="stat-val" style="color:#6366f1">@Model.NightShifts</div>
+            <div class="stat-lbl">Night</div>
+        </div>
+    </div>
 
-        <!-- WALKAROUND PRIORITY-->
+    <!-- ── STATUS CLUSTER (replaces 4 chart cards) ── -->
+    <div class="status-cluster">
+        <div class="status-pane">
+            <div class="sp-label">&#128737; Safety</div>
+            <div class="sp-big @safetyDom">@safetyLabel</div>
+            <div class="sp-tally">
+                <span class="sp-g">@Model.SafetyGreen G</span>
+                <span class="sp-a">@Model.SafetyAmber A</span>
+                <span class="sp-r">@Model.SafetyRed R</span>
+            </div>
+        </div>
+        <div class="status-pane">
+            <div class="sp-label">&#9989; Quality</div>
+            <div class="sp-big @qualDom">@qualLabel</div>
+            <div class="sp-tally">
+                <span class="sp-g">@Model.QualityGreen G</span>
+                <span class="sp-a">@Model.QualityAmber A</span>
+                <span class="sp-r">@Model.QualityRed R</span>
+            </div>
+        </div>
+        <div class="status-pane">
+            <div class="sp-label">&#9881; Performance</div>
+            <div class="sp-big @perfDom">@perfLabel</div>
+            <div class="sp-tally">
+                <span class="sp-g">@Model.PerfGreen G</span>
+                <span class="sp-a">@Model.PerfAmber A</span>
+                <span class="sp-r">@Model.PerfRed R</span>
+            </div>
+        </div>
+        <div class="health-pane">
+            <div class="sp-label">Health index</div>
+            <div class="health-num" style="color:@hColor">@Model.HealthScore<small>%</small></div>
+            <div class="health-bar-bg">
+                <div class="health-bar-fill" style="width:@Model.HealthScore%;background:@hColor"></div>
+            </div>
+            <div class="health-bands"><span>Poor</span><span>Excellent</span></div>
+        </div>
+    </div>
+
+    <!-- ── THIS WEEK: walkaround priority + completion ── -->
+    <div class="week-panels">
+
         <div class="card" style="overflow:hidden">
-            <div style="background:var(--ink);padding:12px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
-                <div style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em">&#127919; WALKAROUND PRIORITY</div>
+            <div style="background:var(--ink);padding:11px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                <div style="color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em">&#127919; WALKAROUND PRIORITY</div>
                 <div style="color:#9ca3af;font-size:11px">Mon @Model.WeekStart.ToString("dd MMM") &ndash; Sun @Model.WeekEnd.ToString("dd MMM")</div>
             </div>
             @if (!Model.WorstAreasThisWeek.Any())
             {
-                <div class="empty">No shift data recorded this week.</div>
+                <div class="empty">No shift data this week.</div>
             }
             else
             {
                 <table class="dash-table">
                     <thead>
                         <tr>
-                            <th style="width:32px;text-align:center">#</th>
+                            <th style="width:28px;text-align:center">#</th>
                             <th>Area</th>
-                            <th style="text-align:center;color:#CC1F2C;width:52px">Reds</th>
-                            <th style="text-align:center;color:#b45309;width:52px">Ambs</th>
-                            <th style="min-width:100px">This week</th>
+                            <th style="text-align:center;color:#CC1F2C;width:46px">Reds</th>
+                            <th style="text-align:center;color:#b45309;width:46px">Ambs</th>
+                            <th style="min-width:90px">This week</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -82,22 +155,19 @@
                                 <td style="text-align:center">
                                     @if (isTop)
                                     {
-                                        <span style="display:inline-block;background:#CC1F2C;color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center">1</span>
+                                        <span style="display:inline-block;background:#CC1F2C;color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;line-height:20px;border-radius:50%;text-align:center">1</span>
                                     }
                                     else
                                     {
-                                        <span style="font-size:11px;font-weight:600;color:var(--muted)">@wrank</span>
+                                        <span style="font-size:11px;color:var(--muted)">@wrank</span>
                                     }
                                 </td>
                                 <td>
                                     <a asp-page="/Dashboard" asp-route-area="@a.Area" style="font-weight:600;color:var(--ink);text-decoration:none">@a.Area</a>
-                                    @if (isTop)
-                                    {
-                                        <span style="margin-left:6px;font-size:10px;color:#CC1F2C;font-weight:700">&#9650; GO HERE</span>
-                                    }
+                                    @if (isTop) { <span style="margin-left:5px;font-size:10px;color:#CC1F2C;font-weight:700">&#9650; GO HERE</span> }
                                 </td>
                                 <td style="text-align:center">
-                                    @if (a.Reds > 0) { <span style="font-size:15px;font-weight:700;color:#CC1F2C">@a.Reds</span> }
+                                    @if (a.Reds > 0) { <span style="font-size:14px;font-weight:700;color:#CC1F2C">@a.Reds</span> }
                                     else { <span style="color:var(--muted)">—</span> }
                                 </td>
                                 <td style="text-align:center">
@@ -105,12 +175,12 @@
                                     else { <span style="color:var(--muted)">—</span> }
                                 </td>
                                 <td>
-                                    <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px">
-                                        @if (a.Reds > 0)   { <div style="flex:@a.Reds;background:#CC1F2C"></div> }
+                                    <div style="display:flex;height:7px;border-radius:4px;overflow:hidden;gap:1px">
+                                        @if (a.Reds   > 0) { <div style="flex:@a.Reds;background:#CC1F2C"></div> }
                                         @if (a.Ambers > 0) { <div style="flex:@a.Ambers;background:#f59e0b"></div> }
                                         @if (a.Greens > 0) { <div style="flex:@a.Greens;background:#16a34a"></div> }
                                     </div>
-                                    <div style="font-size:10px;color:var(--muted);margin-top:2px">@a.TotalShifts shift@(a.TotalShifts == 1 ? "" : "s") &bull; @a.RedPct% red</div>
+                                    <div style="font-size:10px;color:var(--muted);margin-top:2px">@a.TotalShifts shift@(a.TotalShifts==1?"":"s") &bull; @a.RedPct% red</div>
                                 </td>
                             </tr>
                         }
@@ -119,14 +189,13 @@
             }
         </div>
 
-        <!-- SHIFT COMPLETION THIS WEEK-->
         <div class="card" style="overflow:hidden">
-            <div style="background:var(--ink);padding:12px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
-                <div style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em">&#9989; SHIFT COMPLETION</div>
+            <div style="background:var(--ink);padding:11px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                <div style="color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em">&#128203; SHIFT COMPLETION</div>
                 <div style="color:#9ca3af;font-size:11px">
-                    Day&nbsp;<strong style="color:#fff">@Model.WeekDayTotal</strong>&nbsp;&bull;&nbsp;
-                    Aft&nbsp;<strong style="color:#fff">@Model.WeekAfternoonTotal</strong>&nbsp;&bull;&nbsp;
-                    Night&nbsp;<strong style="color:#fff">@Model.WeekNightTotal</strong>
+                    <span style="color:#3b82f6;font-weight:600">@Model.WeekDayTotal D</span>&nbsp;
+                    <span style="color:#f59e0b;font-weight:600">@Model.WeekAfternoonTotal A</span>&nbsp;
+                    <span style="color:#6366f1;font-weight:600">@Model.WeekNightTotal N</span>
                 </div>
             </div>
             @if (!Model.WeekCompletion.Any())
@@ -136,177 +205,45 @@
             else
             {
                 <div class="completion-scroll">
-                <table class="dash-table">
-                    <thead>
-                        <tr>
-                            <th style="text-align:left">Team Leader</th>
-                            <th style="text-align:center;width:44px">Day</th>
-                            <th style="text-align:center;width:44px">Aft</th>
-                            <th style="text-align:center;width:48px">Night</th>
-                            <th style="text-align:center;width:52px;font-weight:700">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var row in Model.WeekCompletion)
-                        {
+                    <table class="dash-table">
+                        <thead>
                             <tr>
-                                <td style="font-weight:500">@row.TL</td>
-                                <td style="text-align:center;color:@(row.Day > 0 ? "#3b82f6" : "var(--muted)")">@(row.Day > 0 ? row.Day.ToString() : "—")</td>
-                                <td style="text-align:center;color:@(row.Afternoon > 0 ? "#f59e0b" : "var(--muted)")">@(row.Afternoon > 0 ? row.Afternoon.ToString() : "—")</td>
-                                <td style="text-align:center;color:@(row.Night > 0 ? "#6366f1" : "var(--muted)")">@(row.Night > 0 ? row.Night.ToString() : "—")</td>
-                                <td style="text-align:center;font-weight:700">@row.Total</td>
+                                <th>Team Leader</th>
+                                <th style="text-align:center;width:40px">Day</th>
+                                <th style="text-align:center;width:40px">Aft</th>
+                                <th style="text-align:center;width:44px">Night</th>
+                                <th style="text-align:center;width:48px;font-weight:700">Total</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.WeekCompletion)
+                            {
+                                <tr>
+                                    <td style="font-weight:500">@row.TL</td>
+                                    <td style="text-align:center;color:@(row.Day       > 0 ? "#3b82f6" : "var(--muted)")">@(row.Day       > 0 ? row.Day.ToString()       : "—")</td>
+                                    <td style="text-align:center;color:@(row.Afternoon > 0 ? "#f59e0b" : "var(--muted)")">@(row.Afternoon > 0 ? row.Afternoon.ToString() : "—")</td>
+                                    <td style="text-align:center;color:@(row.Night     > 0 ? "#6366f1" : "var(--muted)")">@(row.Night     > 0 ? row.Night.ToString()     : "—")</td>
+                                    <td style="text-align:center;font-weight:700">@row.Total</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             }
         </div>
 
     </div>
 
-    <!-- ── KPI row ──-->
-    <div class="kpi-row" style="margin-bottom:14px">
-        <div class="kpi kpi-blue">
-            <div class="kpi-icon-wrap kpi-icon-blue">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            </div>
-            <div class="kpi-label">Total Shifts</div>
-            <div class="kpi-val">@Model.Shifts.Count</div>
-            <div class="kpi-sub">Filtered results</div>
+    <!-- ── 14-DAY ACTIVITY (compact full-width) ── -->
+    <div class="card activity-card">
+        <div class="activity-head">
+            <span class="activity-title">14-Day Activity</span>
+            <span style="font-size:10px;color:var(--muted)">Shifts per day</span>
         </div>
-        <div class="kpi kpi-indigo">
-            <div class="kpi-icon-wrap kpi-icon-indigo">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-            </div>
-            <div class="kpi-label">This Week</div>
-            <div class="kpi-val">@Model.ThisWeek</div>
-            <div class="kpi-sub">Last 7 days</div>
-        </div>
-        <div class="kpi kpi-green">
-            <div class="kpi-icon-wrap kpi-icon-green">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <div class="kpi-label">Today</div>
-            <div class="kpi-val" style="color:#16a34a">@Model.Today</div>
-            <div class="kpi-sub">Active shifts</div>
-        </div>
-        <div class="kpi kpi-amber">
-            <div class="kpi-icon-wrap kpi-icon-amber">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            </div>
-            <div class="kpi-label">Escalations</div>
-            <div class="kpi-val" style="color:#b45309">@Model.WithEscalations</div>
-            <div class="kpi-sub">With escalations</div>
-        </div>
+        <canvas id="activityChart" style="max-height:72px;display:block"></canvas>
     </div>
 
-    <!-- ── Charts ──-->
-    <div class="chart-grid-4" style="margin-bottom:14px">
-        <div class="chart-card">
-            <div class="chart-card-head">
-                <span class="chart-title">Safety Status</span>
-                <span class="rag g" style="font-size:10px">@Model.SafetyGreen G</span>
-            </div>
-            <div style="position:relative;max-width:160px;margin:0 auto">
-                <canvas id="safetyChart"></canvas>
-                <div class="donut-center">
-                    <div class="donut-pct @(Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed > 0 ? DashboardModel.Rc(Model.SafetyGreen >= Model.SafetyAmber && Model.SafetyGreen >= Model.SafetyRed ? "Green" : Model.SafetyAmber >= Model.SafetyRed ? "Amber" : "Red") : "u")">
-                        @(Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed > 0 ? $"{Model.SafetyGreen * 100 / (Model.SafetyGreen + Model.SafetyAmber + Model.SafetyRed)}%" : "—")
-                    </div>
-                    <div style="font-size:9px;color:var(--muted)">green</div>
-                </div>
-            </div>
-            <div class="rag-legend">
-                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.SafetyGreen</span>
-                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.SafetyAmber</span>
-                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.SafetyRed</span>
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-card-head">
-                <span class="chart-title">Quality Status</span>
-                <span class="rag g" style="font-size:10px">@Model.QualityGreen G</span>
-            </div>
-            <div style="position:relative;max-width:160px;margin:0 auto">
-                <canvas id="qualityChart"></canvas>
-                <div class="donut-center">
-                    <div class="donut-pct @(Model.QualityGreen + Model.QualityAmber + Model.QualityRed > 0 ? DashboardModel.Rc(Model.QualityGreen >= Model.QualityAmber && Model.QualityGreen >= Model.QualityRed ? "Green" : Model.QualityAmber >= Model.QualityRed ? "Amber" : "Red") : "u")">
-                        @(Model.QualityGreen + Model.QualityAmber + Model.QualityRed > 0 ? $"{Model.QualityGreen * 100 / (Model.QualityGreen + Model.QualityAmber + Model.QualityRed)}%" : "—")
-                    </div>
-                    <div style="font-size:9px;color:var(--muted)">green</div>
-                </div>
-            </div>
-            <div class="rag-legend">
-                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.QualityGreen</span>
-                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.QualityAmber</span>
-                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.QualityRed</span>
-            </div>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-card-head">
-                <span class="chart-title">Performance Status</span>
-                <span class="rag g" style="font-size:10px">@Model.PerfGreen G</span>
-            </div>
-            <div style="position:relative;max-width:160px;margin:0 auto">
-                <canvas id="perfChart"></canvas>
-                <div class="donut-center">
-                    <div class="donut-pct @(Model.PerfGreen + Model.PerfAmber + Model.PerfRed > 0 ? DashboardModel.Rc(Model.PerfGreen >= Model.PerfAmber && Model.PerfGreen >= Model.PerfRed ? "Green" : Model.PerfAmber >= Model.PerfRed ? "Amber" : "Red") : "u")">
-                        @(Model.PerfGreen + Model.PerfAmber + Model.PerfRed > 0 ? $"{Model.PerfGreen * 100 / (Model.PerfGreen + Model.PerfAmber + Model.PerfRed)}%" : "—")
-                    </div>
-                    <div style="font-size:9px;color:var(--muted)">green</div>
-                </div>
-            </div>
-            <div class="rag-legend">
-                <span class="rag-dot" style="background:#16a34a"></span><span>@Model.PerfGreen</span>
-                <span class="rag-dot" style="background:#f59e0b"></span><span>@Model.PerfAmber</span>
-                <span class="rag-dot" style="background:#CC1F2C"></span><span>@Model.PerfRed</span>
-            </div>
-        </div>
-
-        <div class="chart-card gauge-card">
-            <div class="chart-card-head">
-                <span class="chart-title">Health Score</span>
-            </div>
-            <canvas id="gaugeChart" style="max-width:220px;display:block;margin:0 auto"></canvas>
-            <div style="text-align:center;margin-top:6px">
-                <div class="gauge-score-val">@Model.HealthScore<span style="font-size:14px;font-weight:400;color:var(--muted)">%</span></div>
-                <div style="font-size:10px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-top:2px">Health Index</div>
-            </div>
-            <div class="gauge-bands" style="margin-top:8px">
-                <span style="color:#CC1F2C;font-size:10px;font-weight:600">Poor</span>
-                <span style="font-size:10px;color:var(--muted)">▸ ▸ ▸</span>
-                <span style="color:#16a34a;font-size:10px;font-weight:600">Excellent</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="chart-grid-act" style="margin-bottom:14px">
-        <div class="chart-card">
-            <div class="chart-card-head">
-                <span class="chart-title">14-Day Activity</span>
-                <span style="font-size:10px;color:var(--muted)">Shifts per day</span>
-            </div>
-            <canvas id="activityChart" style="max-height:200px"></canvas>
-        </div>
-        <div class="chart-card">
-            <div class="chart-card-head">
-                <span class="chart-title">Shift Type</span>
-            </div>
-            <div style="position:relative;max-width:180px;margin:0 auto">
-                <canvas id="shiftTypeChart"></canvas>
-            </div>
-            <div class="shift-type-legend">
-                <div class="shift-type-item"><span class="rag-dot" style="background:#3b82f6"></span>Day <strong>@Model.DayShifts</strong></div>
-                <div class="shift-type-item"><span class="rag-dot" style="background:#f59e0b"></span>Afternoon <strong>@Model.AfternoonShifts</strong></div>
-                <div class="shift-type-item"><span class="rag-dot" style="background:#6366f1"></span>Night <strong>@Model.NightShifts</strong></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── Shifts table with drill-down flags ──-->
+    <!-- ── SHIFTS TABLE ── -->
     <div class="card">
         <div class="card-head">
             <span class="card-title">Shifts</span>
@@ -375,107 +312,15 @@
             </div>
         }
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-    const C = {
-        green: '#16a34a', amber: '#f59e0b', red: '#CC1F2C',
-        blue: '#3b82f6', indigo: '#6366f1', gray: '#e9ebee', ink: '#0f1117',
-    };
-
+    const C = { green:'#16a34a', amber:'#f59e0b', red:'#CC1F2C', blue:'#3b82f6', gray:'#e9ebee', ink:'#0f1117' };
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-    Chart.defaults.font.size = 11;
-
-    function ragDonut(id, g, a, r) {
-        const total = g + a + r;
-        return new Chart(document.getElementById(id), {
-            type: 'doughnut',
-            data: {
-                labels: ['Green', 'Amber', 'Red'],
-                datasets: [{
-                    data: total > 0 ? [g, a, r] : [1, 0, 0],
-                    backgroundColor: total > 0 ? [C.green, C.amber, C.red] : [C.gray],
-                    borderWidth: 3,
-                    borderColor: '#fff',
-                }]
-            },
-            options: {
-                cutout: '72%',
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => ` ${ctx.label}: ${ctx.raw}${total > 0 ? ' (' + Math.round(ctx.raw / total * 100) + '%)' : ''}`
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    ragDonut('safetyChart', @Model.SafetyGreen, @Model.SafetyAmber, @Model.SafetyRed);
-    ragDonut('qualityChart', @Model.QualityGreen, @Model.QualityAmber, @Model.QualityRed);
-    ragDonut('perfChart', @Model.PerfGreen, @Model.PerfAmber, @Model.PerfRed);
-
-    const score = @Model.HealthScore;
-    const gaugeColor = score >= 67 ? C.green : score >= 34 ? C.amber : C.red;
-
-    const needlePlugin = {
-        id: 'needle',
-        afterDatasetDraw(chart) {
-            const { ctx } = chart;
-            const meta = chart.getDatasetMeta(0);
-            if (!meta.data.length) return;
-            const arc = meta.data[0];
-            const cx = arc.x, cy = arc.y;
-            const innerR = arc.innerRadius;
-            const outerR = arc.outerRadius;
-            const angleRad = Math.PI + (score / 100 * Math.PI);
-            const len = (innerR + outerR) / 2 * 0.92;
-
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.15)';
-            ctx.shadowBlur = 4;
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + len * Math.cos(angleRad), cy + len * Math.sin(angleRad));
-            ctx.strokeStyle = C.ink;
-            ctx.lineWidth = 3.5;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
-            ctx.fillStyle = C.ink;
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-            ctx.restore();
-        }
-    };
-
-    new Chart(document.getElementById('gaugeChart'), {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: score > 0 ? [score, 100 - score] : [1, 99],
-                backgroundColor: score > 0 ? [gaugeColor, C.gray] : [C.gray, C.gray],
-                borderWidth: 0,
-            }]
-        },
-        options: {
-            circumference: 180,
-            rotation: 180,
-            aspectRatio: 2,
-            cutout: '62%',
-            plugins: { legend: { display: false }, tooltip: { enabled: false } }
-        },
-        plugins: [needlePlugin]
-    });
+    Chart.defaults.font.size   = 11;
 
     new Chart(document.getElementById('activityChart'), {
         type: 'bar',
@@ -484,41 +329,20 @@
             datasets: [{
                 label: 'Shifts',
                 data: @Html.Raw(Model.J(Model.ActivityData)),
-                backgroundColor: ctx => {
-                    const v = ctx.raw;
-                    return v === 0 ? C.gray : C.red;
-                },
-                borderRadius: 5,
+                backgroundColor: ctx => ctx.raw === 0 ? C.gray : C.red,
+                borderRadius: 4,
                 borderSkipped: false,
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} shift${ctx.raw !== 1 ? 's' : ''}` } } },
             scales: {
-                x: { grid: { display: false }, ticks: { maxRotation: 45 } },
-                y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: '#f0f0f0' } }
+                x: { grid: { display: false }, ticks: { maxRotation: 0, font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1, font: { size: 10 } }, grid: { color: '#f0f0f0' } }
             }
         }
     });
-
-    const shiftTotal = @Model.DayShifts + @Model.AfternoonShifts + @Model.NightShifts;
-    new Chart(document.getElementById('shiftTypeChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Day', 'Afternoon', 'Night'],
-            datasets: [{
-                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.AfternoonShifts, @Model.NightShifts] : [1, 1, 1],
-                backgroundColor: shiftTotal > 0 ? [C.blue, C.amber, C.indigo] : [C.gray, C.gray, C.gray],
-                borderWidth: 3,
-                borderColor: '#fff',
-            }]
-        },
-        options: {
-            cutout: '65%',
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } } }
-        }
-    });
-
 })();
 </script>
