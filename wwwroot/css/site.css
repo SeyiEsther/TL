@@ -305,6 +305,16 @@ thead th.hcol { width: 82px; }
     .audit-ssel { width: 100%; }
     .audit-wrap { padding: 0 10px 40px; }
 
+/* ── WEEK PANELS (walkaround priority + completion) ── */
+.week-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Flag text below RAG badge in the shifts table */
+.flag-list { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.3; max-width: 130px; }
+
+@media(max-width:900px) {
+    .week-panels { grid-template-columns: 1fr; }
+}
+
 /* ── MOBILE (existing + enhanced) ── */
 @media(max-width:640px) {
     .kpi-row { grid-template-columns: 1fr 1fr; }

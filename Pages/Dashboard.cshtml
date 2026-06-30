@@ -1,5 +1,6 @@
 @page
 @model DashboardModel
+@using TL.Models
 @{ ViewData["Title"] = "Dashboard"; }
 
 <div class="dwrap">
@@ -7,7 +8,7 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title" style="font-size:18px;font-weight:700">Operations Dashboard</div>
-            <div class="page-sub">@Model.Shifts.Count shifts &bull; Real-time overview</div>
+            <div class="page-sub">@Model.Shifts.Count shifts in view &bull; Real-time overview</div>
         </div>
         <a href="/api/submissions/export/csv@(Model.CsvQuery)" class="sbtn primary sm">&#8595; Export CSV</a>
     </div>
@@ -46,6 +47,123 @@
         </form>
     </div>
 
+    <!-- ── THIS WEEK: walkaround priority + completion (always current week) ──-->
+    <div class="week-panels" style="margin-bottom:14px">
+
+        <!-- WALKAROUND PRIORITY-->
+        <div class="card" style="overflow:hidden">
+            <div style="background:var(--ink);padding:12px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                <div style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em">&#127919; WALKAROUND PRIORITY</div>
+                <div style="color:#9ca3af;font-size:11px">Mon @Model.WeekStart.ToString("dd MMM") &ndash; Sun @Model.WeekEnd.ToString("dd MMM")</div>
+            </div>
+            @if (!Model.WorstAreasThisWeek.Any())
+            {
+                <div class="empty">No shift data recorded this week.</div>
+            }
+            else
+            {
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th style="width:32px;text-align:center">#</th>
+                            <th>Area</th>
+                            <th style="text-align:center;color:#CC1F2C;width:52px">Reds</th>
+                            <th style="text-align:center;color:#b45309;width:52px">Ambs</th>
+                            <th style="min-width:100px">This week</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ int wrank = 0; }
+                        @foreach (var a in Model.WorstAreasThisWeek)
+                        {
+                            wrank++;
+                            var isTop = wrank == 1 && a.Reds > 0;
+                            <tr style="@(isTop ? "background:#fff5f5" : "")">
+                                <td style="text-align:center">
+                                    @if (isTop)
+                                    {
+                                        <span style="display:inline-block;background:#CC1F2C;color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;line-height:22px;border-radius:50%;text-align:center">1</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:11px;font-weight:600;color:var(--muted)">@wrank</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a asp-page="/Dashboard" asp-route-area="@a.Area" style="font-weight:600;color:var(--ink);text-decoration:none">@a.Area</a>
+                                    @if (isTop)
+                                    {
+                                        <span style="margin-left:6px;font-size:10px;color:#CC1F2C;font-weight:700">&#9650; GO HERE</span>
+                                    }
+                                </td>
+                                <td style="text-align:center">
+                                    @if (a.Reds > 0) { <span style="font-size:15px;font-weight:700;color:#CC1F2C">@a.Reds</span> }
+                                    else { <span style="color:var(--muted)">—</span> }
+                                </td>
+                                <td style="text-align:center">
+                                    @if (a.Ambers > 0) { <span style="font-size:13px;font-weight:600;color:#b45309">@a.Ambers</span> }
+                                    else { <span style="color:var(--muted)">—</span> }
+                                </td>
+                                <td>
+                                    <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:1px">
+                                        @if (a.Reds > 0)   { <div style="flex:@a.Reds;background:#CC1F2C"></div> }
+                                        @if (a.Ambers > 0) { <div style="flex:@a.Ambers;background:#f59e0b"></div> }
+                                        @if (a.Greens > 0) { <div style="flex:@a.Greens;background:#16a34a"></div> }
+                                    </div>
+                                    <div style="font-size:10px;color:var(--muted);margin-top:2px">@a.TotalShifts shift@(a.TotalShifts == 1 ? "" : "s") &bull; @a.RedPct% red</div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <!-- SHIFT COMPLETION THIS WEEK-->
+        <div class="card" style="overflow:hidden">
+            <div style="background:var(--ink);padding:12px 16px;display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                <div style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em">&#9989; SHIFT COMPLETION</div>
+                <div style="color:#9ca3af;font-size:11px">
+                    Day&nbsp;<strong style="color:#fff">@Model.WeekDayTotal</strong>&nbsp;&bull;&nbsp;
+                    Aft&nbsp;<strong style="color:#fff">@Model.WeekAfternoonTotal</strong>&nbsp;&bull;&nbsp;
+                    Night&nbsp;<strong style="color:#fff">@Model.WeekNightTotal</strong>
+                </div>
+            </div>
+            @if (!Model.WeekCompletion.Any())
+            {
+                <div class="empty">No shifts submitted this week.</div>
+            }
+            else
+            {
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left">Team Leader</th>
+                            <th style="text-align:center;width:44px">Day</th>
+                            <th style="text-align:center;width:44px">Aft</th>
+                            <th style="text-align:center;width:48px">Night</th>
+                            <th style="text-align:center;width:52px;font-weight:700">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.WeekCompletion)
+                        {
+                            <tr>
+                                <td style="font-weight:500">@row.TL</td>
+                                <td style="text-align:center;color:@(row.Day > 0 ? "#3b82f6" : "var(--muted)")">@(row.Day > 0 ? row.Day.ToString() : "—")</td>
+                                <td style="text-align:center;color:@(row.Afternoon > 0 ? "#f59e0b" : "var(--muted)")">@(row.Afternoon > 0 ? row.Afternoon.ToString() : "—")</td>
+                                <td style="text-align:center;color:@(row.Night > 0 ? "#6366f1" : "var(--muted)")">@(row.Night > 0 ? row.Night.ToString() : "—")</td>
+                                <td style="text-align:center;font-weight:700">@row.Total</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+    </div>
+
+    <!-- ── KPI row ──-->
     <div class="kpi-row" style="margin-bottom:14px">
         <div class="kpi kpi-blue">
             <div class="kpi-icon-wrap kpi-icon-blue">
@@ -81,6 +199,7 @@
         </div>
     </div>
 
+    <!-- ── Charts ──-->
     <div class="chart-grid-4" style="margin-bottom:14px">
         <div class="chart-card">
             <div class="chart-card-head">
@@ -185,63 +304,11 @@
         </div>
     </div>
 
-    @if (Model.WorstAreas.Count > 0)
-    {
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head">
-                <div>
-                    <span class="card-title">Worst Performing Areas</span>
-                    <span class="card-sub" style="margin-left:8px">ranked by red RAG ratings &mdash; Friday walkaround priority</span>
-                </div>
-                <span style="font-size:10px;color:var(--muted)">Safety &bull; Quality &bull; Performance combined</span>
-            </div>
-            <table class="dash-table">
-                <thead>
-                    <tr>
-                        <th style="width:32px;text-align:center">#</th>
-                        <th>Area</th>
-                        <th style="text-align:center;color:#CC1F2C">&#x25CF; Reds</th>
-                        <th style="text-align:center;color:#b45309">&#x25CF; Ambers</th>
-                        <th style="text-align:center">Greens</th>
-                        <th style="text-align:center">Shifts</th>
-                        <th style="min-width:120px">RAG breakdown</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @{ int rank = 0; }
-                    @foreach (var a in Model.WorstAreas)
-                    {
-                        rank++;
-                        <tr>
-                            <td style="text-align:center;font-size:11px;font-weight:700;color:var(--muted)">@rank</td>
-                            <td style="font-weight:600">@a.Area</td>
-                            <td style="text-align:center">
-                                <span style="font-size:14px;font-weight:700;color:#CC1F2C">@a.Reds</span>
-                            </td>
-                            <td style="text-align:center">
-                                <span style="font-size:13px;font-weight:600;color:#b45309">@a.Ambers</span>
-                            </td>
-                            <td style="text-align:center;color:#16a34a;font-weight:600">@a.Greens</td>
-                            <td style="text-align:center;color:var(--muted)">@a.TotalShifts</td>
-                            <td>
-                                <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px">
-                                    @if (a.RedPct > 0)   { <div style="flex:@a.RedPct;background:#CC1F2C;min-width:2px"></div> }
-                                    @if (a.AmberPct > 0) { <div style="flex:@a.AmberPct;background:#f59e0b;min-width:2px"></div> }
-                                    @if (a.GreenPct > 0) { <div style="flex:@a.GreenPct;background:#16a34a;min-width:2px"></div> }
-                                </div>
-                                <div style="font-size:10px;color:var(--muted);margin-top:2px">@a.RedPct% red</div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-
+    <!-- ── Shifts table with drill-down flags ──-->
     <div class="card">
         <div class="card-head">
             <span class="card-title">Shifts</span>
-            <span class="card-sub">@Model.Shifts.Count shifts</span>
+            <span class="card-sub">@Model.Shifts.Count record@(Model.Shifts.Count == 1 ? "" : "s")</span>
         </div>
         @if (!Model.Shifts.Any())
         {
@@ -249,31 +316,61 @@
         }
         else
         {
-            <table class="dash-table">
-                <thead>
-                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model.Shifts)
-                    {
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                <table class="dash-table" style="min-width:720px">
+                    <thead>
                         <tr>
-                            <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
-                            <td>@s.Shift</td>
-                            <td>@(s.Area ?? "—")</td>
-                            <td>@s.TeamLeaderDisplay</td>
-                            <td><span class="rag @DashboardModel.Rc(s.OverallSafetyStatus)">@(s.OverallSafetyStatus ?? "—")</span></td>
-                            <td><span class="rag @DashboardModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
-                            <td><span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
-                            <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
-                            <td>
-                                <a asp-page="/Form" asp-route-id="@s.Id" class="dl-link">Edit</a>
-                                &nbsp;
-                                <a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a>
-                            </td>
+                            <th>Date</th>
+                            <th>Shift</th>
+                            <th>Area</th>
+                            <th>Team leader</th>
+                            <th>Safety</th>
+                            <th>Quality</th>
+                            <th>Perf</th>
+                            <th>Submitted</th>
+                            <th></th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.Shifts)
+                        {
+                            <tr>
+                                <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
+                                <td>@s.Shift</td>
+                                <td>@(s.Area ?? "—")</td>
+                                <td>@s.TeamLeaderDisplay</td>
+                                <td>
+                                    <span class="rag @DashboardModel.Rc(s.OverallSafetyStatus)">@(s.OverallSafetyStatus ?? "—")</span>
+                                    @if (s.SafetyFlags.Any() && (s.OverallSafetyStatus == "Amber" || s.OverallSafetyStatus == "Red"))
+                                    {
+                                        <div class="flag-list">@string.Join(" · ", s.SafetyFlags.Take(2))@(s.SafetyFlags.Count > 2 ? $" +{s.SafetyFlags.Count - 2}" : "")</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="rag @DashboardModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span>
+                                    @if (s.QualityFlags.Any() && (s.OverallQualityStatus == "Amber" || s.OverallQualityStatus == "Red"))
+                                    {
+                                        <div class="flag-list">@string.Join(" · ", s.QualityFlags.Take(2))@(s.QualityFlags.Count > 2 ? $" +{s.QualityFlags.Count - 2}" : "")</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span>
+                                    @if (s.PerfFlags.Any() && (s.OverallPerfStatus == "Amber" || s.OverallPerfStatus == "Red"))
+                                    {
+                                        <div class="flag-list">@string.Join(" · ", s.PerfFlags.Take(2))@(s.PerfFlags.Count > 2 ? $" +{s.PerfFlags.Count - 2}" : "")</div>
+                                    }
+                                </td>
+                                <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                <td style="white-space:nowrap">
+                                    <a asp-page="/Form" asp-route-id="@s.Id" class="dl-link">Edit</a>
+                                    &nbsp;
+                                    <a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </div>
 </div>

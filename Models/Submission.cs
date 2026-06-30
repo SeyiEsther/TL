@@ -89,5 +89,8 @@ namespace TL.Models
         public string? OutgoingTLSignature { get; set; }
         public string? IncomingTLSignature { get; set; }
         public DateTime? IncomingTLSignedAt { get; set; }
+        public List<string> SafetyFlags { get; set; } = new();
+        public List<string> QualityFlags { get; set; } = new();
+        public List<string> PerfFlags { get; set; } = new();
     }
 }
