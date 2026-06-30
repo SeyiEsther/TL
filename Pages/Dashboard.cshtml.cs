@@ -39,6 +39,7 @@ public class DashboardModel : PageModel
     public int[] ActivityData { get; set; } = [];
     public string[] AreaLabels { get; set; } = [];
     public int[] AreaData { get; set; } = [];
+    public List<WorstAreaDto> WorstAreas { get; set; } = [];
 
     public async Task OnGetAsync(string? from, string? to, string? shift, string? area, string? tl)
     {
@@ -114,6 +115,30 @@ public class DashboardModel : PageModel
         AreaLabels = areaGroups.Select(g => g.Key).ToArray();
         AreaData = areaGroups.Select(g => g.Count()).ToArray();
 
+        WorstAreas = raw
+            .Where(s => !string.IsNullOrEmpty(s.Area))
+            .GroupBy(s => s.Area!)
+            .Select(g => new WorstAreaDto(
+                Area: g.Key,
+                Reds: g.Sum(s =>
+                    (s.OverallSafetyStatus  == "Red"   ? 1 : 0) +
+                    (s.OverallQualityStatus == "Red"   ? 1 : 0) +
+                    (s.OverallPerfStatus    == "Red"   ? 1 : 0)),
+                Ambers: g.Sum(s =>
+                    (s.OverallSafetyStatus  == "Amber" ? 1 : 0) +
+                    (s.OverallQualityStatus == "Amber" ? 1 : 0) +
+                    (s.OverallPerfStatus    == "Amber" ? 1 : 0)),
+                Greens: g.Sum(s =>
+                    (s.OverallSafetyStatus  == "Green" ? 1 : 0) +
+                    (s.OverallQualityStatus == "Green" ? 1 : 0) +
+                    (s.OverallPerfStatus    == "Green" ? 1 : 0)),
+                TotalShifts: g.Count()
+            ))
+            .OrderByDescending(a => a.Reds)
+            .ThenByDescending(a => a.Ambers)
+            .Take(10)
+            .ToList();
+
         var csvParams = new List<string>();
         if (!string.IsNullOrEmpty(from)) csvParams.Add("from=" + from);
         if (!string.IsNullOrEmpty(to)) csvParams.Add("to=" + to);
@@ -123,4 +148,12 @@ public class DashboardModel : PageModel
     public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
 
     public string J(object o) => System.Text.Json.JsonSerializer.Serialize(o);
+}
+
+public record WorstAreaDto(string Area, int Reds, int Ambers, int Greens, int TotalShifts)
+{
+    public int Total => Reds + Ambers + Greens;
+    public int RedPct  => Total > 0 ? Reds   * 100 / Total : 0;
+    public int AmberPct => Total > 0 ? Ambers * 100 / Total : 0;
+    public int GreenPct => Total > 0 ? Greens * 100 / Total : 0;
 }

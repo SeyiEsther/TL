@@ -185,14 +185,56 @@
         </div>
     </div>
 
-    @if (Model.AreaLabels.Length > 0)
+    @if (Model.WorstAreas.Count > 0)
     {
-        <div class="chart-card" style="margin-bottom:14px">
-            <div class="chart-card-head">
-                <span class="chart-title">Top Areas by Shifts</span>
-                <span style="font-size:10px;color:var(--muted)">Top @Model.AreaLabels.Length</span>
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head">
+                <div>
+                    <span class="card-title">Worst Performing Areas</span>
+                    <span class="card-sub" style="margin-left:8px">ranked by red RAG ratings &mdash; Friday walkaround priority</span>
+                </div>
+                <span style="font-size:10px;color:var(--muted)">Safety &bull; Quality &bull; Performance combined</span>
             </div>
-            <canvas id="areasChart" style="max-height:240px"></canvas>
+            <table class="dash-table">
+                <thead>
+                    <tr>
+                        <th style="width:32px;text-align:center">#</th>
+                        <th>Area</th>
+                        <th style="text-align:center;color:#CC1F2C">&#x25CF; Reds</th>
+                        <th style="text-align:center;color:#b45309">&#x25CF; Ambers</th>
+                        <th style="text-align:center">Greens</th>
+                        <th style="text-align:center">Shifts</th>
+                        <th style="min-width:120px">RAG breakdown</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int rank = 0; }
+                    @foreach (var a in Model.WorstAreas)
+                    {
+                        rank++;
+                        <tr>
+                            <td style="text-align:center;font-size:11px;font-weight:700;color:var(--muted)">@rank</td>
+                            <td style="font-weight:600">@a.Area</td>
+                            <td style="text-align:center">
+                                <span style="font-size:14px;font-weight:700;color:#CC1F2C">@a.Reds</span>
+                            </td>
+                            <td style="text-align:center">
+                                <span style="font-size:13px;font-weight:600;color:#b45309">@a.Ambers</span>
+                            </td>
+                            <td style="text-align:center;color:#16a34a;font-weight:600">@a.Greens</td>
+                            <td style="text-align:center;color:var(--muted)">@a.TotalShifts</td>
+                            <td>
+                                <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px">
+                                    @if (a.RedPct > 0)   { <div style="flex:@a.RedPct;background:#CC1F2C;min-width:2px"></div> }
+                                    @if (a.AmberPct > 0) { <div style="flex:@a.AmberPct;background:#f59e0b;min-width:2px"></div> }
+                                    @if (a.GreenPct > 0) { <div style="flex:@a.GreenPct;background:#16a34a;min-width:2px"></div> }
+                                </div>
+                                <div style="font-size:10px;color:var(--muted);margin-top:2px">@a.RedPct% red</div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     }
 
@@ -375,31 +417,5 @@
         }
     });
 
-    @if (Model.AreaLabels.Length > 0)
-    {
-        <text>
-    new Chart(document.getElementById('areasChart'), {
-        type: 'bar',
-        data: {
-            labels: @Html.Raw(Model.J(Model.AreaLabels)),
-            datasets: [{
-                label: 'Shifts',
-                data: @Html.Raw(Model.J(Model.AreaData)),
-                backgroundColor: @Html.Raw(Model.J(Model.AreaData.Select((_, i) => i % 2 == 0 ? "#CC1F2C" : "#e05060").ToArray())),
-                borderRadius: 4,
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} shift${ctx.raw !== 1 ? 's' : ''}` } } },
-            scales: {
-                x: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: '#f0f0f0' } },
-                y: { grid: { display: false } }
-            }
-        }
-    });
-        </text>
-    }
 })();
 </script>
