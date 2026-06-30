@@ -1,0 +1,177 @@
+@page
+@model AuditModel
+@{ ViewData["Title"] = "Senior Audit";
+   var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
+
+<div class="audit-wrap">
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Senior Management Audit</div>
+            <div class="page-sub">
+                @auditDateDisplay &bull; @Model.Area
+                @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; Auditor: <strong>@Model.AuditorName</strong></span> }
+            </div>
+        </div>
+        @if (Model.EditingId.HasValue)
+        {
+            <span style="font-size:11px;background:#fef3c7;color:#b45309;border:1px solid #fcd34d;border-radius:6px;padding:5px 12px;font-weight:600">Editing</span>
+        }
+    </div>
+
+    @if (Model.EditingId.HasValue)
+    {
+        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b45309">
+            Editing existing audit &mdash; all changes are recorded.
+        </div>
+    }
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="auditDate" value="@Model.AuditDate">
+        <input type="hidden" name="auditorName" value="@Model.AuditorName">
+        <input type="hidden" name="area" value="@Model.Area">
+        @if (Model.EditingId.HasValue) { <input type="hidden" name="editingId" value="@Model.EditingId"> }
+
+        <!-- HEALTH & SAFETY -->
+        <div class="audit-card">
+            <div class="audit-head safety"><div class="audit-acc"></div><span>Health &amp; Safety</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Any hazards observed?", "A.Haz", Model.A.Haz); }
+                @{ await RenderQ("Any unsafe behaviours observed?", "A.Uns", Model.A.Uns); }
+                @{ await RenderQ("Any positive behaviours praised?", "A.Pos", Model.A.Pos); }
+                @{ await RenderNote("Notes &amp; observations", "A.Snote", Model.A.Snote); }
+            </div>
+        </div>
+
+        <!-- QUALITY -->
+        <div class="audit-card">
+            <div class="audit-head quality"><div class="audit-acc"></div><span>Quality</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("All quality checks completed?", "A.Qchk", Model.A.Qchk); }
+                @{ await RenderQ("Any deviations escalated?", "A.Dev", Model.A.Dev); }
+                @{ await RenderQ("Any non-compliance addressed?", "A.Nc", Model.A.Nc); }
+                @{ await RenderNote("Notes &amp; observations", "A.Qnote", Model.A.Qnote); }
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="audit-card">
+            <div class="audit-head perf"><div class="audit-acc"></div><span>Performance</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Hourly target achieved?", "A.Tgt", Model.A.Tgt); }
+                @{ await RenderQ("Any maintenance issues observed?", "A.Maint", Model.A.Maint); }
+                @{ await RenderQ("All materials available?", "A.Mat", Model.A.Mat); }
+                @{ await RenderQ("All tools available?", "A.Tools", Model.A.Tools); }
+                @{ await RenderQ("Any escalations needed?", "A.Escl", Model.A.Escl); }
+                @{ await RenderQ("All parts confirmed?", "A.Pconf", Model.A.Pconf); }
+                @{ await RenderQ("All parts ID'd properly?", "A.Pid", Model.A.Pid); }
+                @{ await RenderQ("All NC parts ID'd &amp; stored correctly?", "A.Ncp", Model.A.Ncp); }
+                @{ await RenderQ("6S activities completed?", "A.Sixs", Model.A.Sixs); }
+                @{ await RenderQ("TPM activities completed?", "A.Tpm", Model.A.Tpm); }
+                @{ await RenderNote("Actions taken / issues found", "A.Pnote", Model.A.Pnote); }
+            </div>
+        </div>
+
+        <!-- MORALE -->
+        <div class="audit-card">
+            <div class="audit-head morale"><div class="audit-acc"></div><span>Morale Check</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Operator wellbeing confirmed?", "A.Wb", Model.A.Wb); }
+                @{ await RenderQ("Does any operator require support?", "A.Sup", Model.A.Sup); }
+                @{ await RenderNote("Detail support required", "A.Mnote", Model.A.Mnote); }
+            </div>
+        </div>
+
+        <!-- FINAL STATUS -->
+        <div class="audit-card">
+            <div class="audit-head final"><div class="audit-acc"></div><span>Audit Verdict</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Any accidents reported during audit?", "A.Acc", Model.A.Acc); }
+                @{ await RenderStatus("Overall safety status", "A.Ss", Model.A.Ss); }
+                @{ await RenderStatus("Overall quality status", "A.Qs", Model.A.Qs); }
+                @{ await RenderStatus("Overall performance status", "A.Ps", Model.A.Ps); }
+            </div>
+        </div>
+
+        <!-- FINDINGS SUMMARY -->
+        <div class="audit-card" style="margin-top:16px">
+            <div class="card-head">
+                <span class="card-title">Audit findings &amp; actions</span>
+            </div>
+            <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+                <div class="sfield full">
+                    <label>Actions raised / concerns identified</label>
+                    <textarea name="Actions" placeholder="What was found and what action is needed…">@Model.Actions</textarea>
+                </div>
+                <div class="sfield full">
+                    <label>Good practice observed</label>
+                    <textarea name="GoodPractice" placeholder="Positive examples noted during the walkaround…">@Model.GoodPractice</textarea>
+                </div>
+                <div class="sfield full">
+                    <label>Follow-up required by</label>
+                    <textarea name="FollowUp" placeholder="Who needs to action what, and by when…">@Model.FollowUp</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- AUDITOR SIGN-OFF -->
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:14px;margin-bottom:14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:14px">Auditor sign-off</div>
+            <div class="sfield">
+                <label>Type your full name to sign off this audit</label>
+                <input type="text" name="auditorSignature" value="@Model.AuditorSignature"
+                       placeholder="Full name…"
+                       style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);max-width:400px">
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px">By signing, you confirm this audit record is accurate and complete.</div>
+        </div>
+
+        <div class="submit-bar">
+            <button type="submit" class="sbtn primary">
+                @(Model.EditingId.HasValue ? "Save changes" : "Submit audit")
+            </button>
+            <a asp-page="/AuditStart" class="sbtn">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@functions {
+    async Task RenderQ(string label, string name, bool? val)
+    {
+        var yId = name.Replace(".", "_") + "_y";
+        var nId = name.Replace(".", "_") + "_n";
+        <div class="audit-q">
+            <span class="audit-q-text">@Html.Raw(label)</span>
+            <div class="audit-yn">
+                <input type="radio" class="ayn-y" name="@name" id="@yId" value="True" checked="@(val == true ? "checked" : null)">
+                <label for="@yId">Yes</label>
+                <input type="radio" class="ayn-n" name="@name" id="@nId" value="False" checked="@(val == false ? "checked" : null)">
+                <label for="@nId">No</label>
+            </div>
+        </div>
+    }
+
+    async Task RenderNote(string label, string name, string? val)
+    {
+        <div class="audit-note">
+            <label class="audit-note-lbl">@Html.Raw(label)</label>
+            <textarea name="@name" class="audit-ta" placeholder="Detail any findings…">@val</textarea>
+        </div>
+    }
+
+    async Task RenderStatus(string label, string name, string? val)
+    {
+        var cls = val == "Green" ? "g" : val == "Amber" ? "a" : val == "Red" ? "r" : "";
+        <div class="audit-q">
+            <span class="audit-q-text">@label</span>
+            <select name="@name" class="audit-ssel @cls"
+                    onchange="this.className='audit-ssel '+(this.value===''?'':this.value==='Green'?'g':this.value==='Amber'?'a':'r')">
+                <option value="">— Not set —</option>
+                <option value="Green" selected="@(val == "Green" ? "selected" : null)">Green</option>
+                <option value="Amber" selected="@(val == "Amber" ? "selected" : null)">Amber</option>
+                <option value="Red"   selected="@(val == "Red"   ? "selected" : null)">Red</option>
+            </select>
+        </div>
+    }
+}

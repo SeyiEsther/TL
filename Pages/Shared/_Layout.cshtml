@@ -31,6 +31,7 @@
         }
         <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
         <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
+        <a class="tbtn @(pg == "/AuditStart" || pg == "/Audit" ? "active" : "")" asp-page="/AuditStart">Audit</a>
         <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
         <a class="tbtn @(pg == "/History" || pg == "/Handover" ? "active" : "")" asp-page="/History">History</a>
     </div>
