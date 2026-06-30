@@ -334,13 +334,25 @@ thead th.hcol { width: 82px; }
 .sp-g { color: #16a34a; }
 .sp-a { color: #b45309; }
 .sp-r { color: #CC1F2C; }
-.health-pane { padding: 14px 22px; background: var(--ink); min-width: 150px; display: flex; flex-direction: column; justify-content: center; }
+.health-pane { padding: 14px 22px; background: var(--ink); min-width: 160px; display: flex; flex-direction: column; justify-content: center; }
 .health-pane .sp-label { color: #9ca3af; margin-bottom: 4px; }
-.health-num { font-size: 40px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 8px; }
-.health-num small { font-size: 18px; font-weight: 400; color: #9ca3af; }
 .health-bar-bg { height: 5px; background: rgba(255,255,255,.15); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
 .health-bar-fill { height: 100%; border-radius: 3px; }
 .health-bands { display: flex; justify-content: space-between; font-size: 9px; color: #6b7280; }
+/* donut wheel inside each status pane */
+.sp-wheel-wrap { position: relative; width: 100px; height: 100px; margin: 8px auto 4px; }
+.sp-wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
+.sp-pct { font-size: 17px; font-weight: 800; line-height: 1; }
+.sp-pct.g { color: #16a34a; }
+.sp-pct.a { color: #b45309; }
+.sp-pct.r { color: #CC1F2C; }
+.sp-pct.u { color: var(--muted); }
+.sp-pct-sub { font-size: 9px; color: var(--muted); letter-spacing: .04em; margin-top: 1px; }
+.sp-status { font-size: 14px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+.sp-status.g { color: #16a34a; }
+.sp-status.a { color: #b45309; }
+.sp-status.r { color: #CC1F2C; }
+.sp-status.u { color: var(--muted); }
 @media(max-width:700px) { .status-cluster { grid-template-columns: 1fr 1fr; } .health-pane { grid-column: span 2; flex-direction: row; align-items: center; gap: 16px; } }
 
 /* ── ACTIVITY CARD (compact) ── */

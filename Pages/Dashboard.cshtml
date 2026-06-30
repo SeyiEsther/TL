@@ -82,11 +82,23 @@
         </div>
     </div>
 
-    <!-- ── STATUS CLUSTER (replaces 4 chart cards) ── -->
+    <!-- ── STATUS CLUSTER ── -->
+    @{
+        var sTotal = Model.SafetyGreen  + Model.SafetyAmber  + Model.SafetyRed;
+        var qTotal = Model.QualityGreen + Model.QualityAmber + Model.QualityRed;
+        var pTotal = Model.PerfGreen    + Model.PerfAmber    + Model.PerfRed;
+    }
     <div class="status-cluster">
         <div class="status-pane">
             <div class="sp-label">&#128737; Safety</div>
-            <div class="sp-big @safetyDom">@safetyLabel</div>
+            <div class="sp-wheel-wrap">
+                <canvas id="safetyChart"></canvas>
+                <div class="sp-wheel-center">
+                    <div class="sp-pct @safetyDom">@(sTotal > 0 ? $"{Model.SafetyGreen * 100 / sTotal}%" : "—")</div>
+                    <div class="sp-pct-sub">green</div>
+                </div>
+            </div>
+            <div class="sp-status @safetyDom">@safetyLabel</div>
             <div class="sp-tally">
                 <span class="sp-g">@Model.SafetyGreen G</span>
                 <span class="sp-a">@Model.SafetyAmber A</span>
@@ -95,7 +107,14 @@
         </div>
         <div class="status-pane">
             <div class="sp-label">&#9989; Quality</div>
-            <div class="sp-big @qualDom">@qualLabel</div>
+            <div class="sp-wheel-wrap">
+                <canvas id="qualityChart"></canvas>
+                <div class="sp-wheel-center">
+                    <div class="sp-pct @qualDom">@(qTotal > 0 ? $"{Model.QualityGreen * 100 / qTotal}%" : "—")</div>
+                    <div class="sp-pct-sub">green</div>
+                </div>
+            </div>
+            <div class="sp-status @qualDom">@qualLabel</div>
             <div class="sp-tally">
                 <span class="sp-g">@Model.QualityGreen G</span>
                 <span class="sp-a">@Model.QualityAmber A</span>
@@ -104,7 +123,14 @@
         </div>
         <div class="status-pane">
             <div class="sp-label">&#9881; Performance</div>
-            <div class="sp-big @perfDom">@perfLabel</div>
+            <div class="sp-wheel-wrap">
+                <canvas id="perfChart"></canvas>
+                <div class="sp-wheel-center">
+                    <div class="sp-pct @perfDom">@(pTotal > 0 ? $"{Model.PerfGreen * 100 / pTotal}%" : "—")</div>
+                    <div class="sp-pct-sub">green</div>
+                </div>
+            </div>
+            <div class="sp-status @perfDom">@perfLabel</div>
             <div class="sp-tally">
                 <span class="sp-g">@Model.PerfGreen G</span>
                 <span class="sp-a">@Model.PerfAmber A</span>
@@ -113,8 +139,14 @@
         </div>
         <div class="health-pane">
             <div class="sp-label">Health index</div>
-            <div class="health-num" style="color:@hColor">@Model.HealthScore<small>%</small></div>
-            <div class="health-bar-bg">
+            <div class="sp-wheel-wrap">
+                <canvas id="healthChart"></canvas>
+                <div class="sp-wheel-center">
+                    <div class="sp-pct" style="color:@hColor">@Model.HealthScore<span style="font-size:11px;font-weight:500">%</span></div>
+                    <div class="sp-pct-sub" style="color:#9ca3af">score</div>
+                </div>
+            </div>
+            <div class="health-bar-bg" style="margin-top:8px">
                 <div class="health-bar-fill" style="width:@Model.HealthScore%;background:@hColor"></div>
             </div>
             <div class="health-bands"><span>Poor</span><span>Excellent</span></div>
@@ -321,6 +353,58 @@
     const C = { green:'#16a34a', amber:'#f59e0b', red:'#CC1F2C', blue:'#3b82f6', gray:'#e9ebee', ink:'#0f1117' };
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
     Chart.defaults.font.size   = 11;
+
+    function ragDonut(id, g, a, r) {
+        const total = g + a + r;
+        new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: total > 0 ? [g, a, r] : [1, 0, 0],
+                    backgroundColor: total > 0 ? [C.green, C.amber, C.red] : [C.gray],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const labels = ['Green','Amber','Red'];
+                                return ` ${labels[ctx.dataIndex]}: ${ctx.raw}${total > 0 ? ' (' + Math.round(ctx.raw / total * 100) + '%)' : ''}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    ragDonut('safetyChart',  @Model.SafetyGreen,  @Model.SafetyAmber,  @Model.SafetyRed);
+    ragDonut('qualityChart', @Model.QualityGreen, @Model.QualityAmber, @Model.QualityRed);
+    ragDonut('perfChart',    @Model.PerfGreen,    @Model.PerfAmber,    @Model.PerfRed);
+
+    // Health score donut
+    const hScore = @Model.HealthScore;
+    const hColor = hScore >= 67 ? C.green : hScore >= 34 ? C.amber : C.red;
+    new Chart(document.getElementById('healthChart'), {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: hScore > 0 ? [hScore, 100 - hScore] : [1, 99],
+                backgroundColor: hScore > 0 ? [hColor, C.gray] : [C.gray, '#2d2d2d'],
+                borderWidth: 3,
+                borderColor: '#0f1117',
+            }]
+        },
+        options: {
+            cutout: '70%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+    });
 
     new Chart(document.getElementById('activityChart'), {
         type: 'bar',
