@@ -44,7 +44,7 @@
                             {
                                 var display = string.IsNullOrEmpty(area.Machines)
                                     ? area.Label
-                                    : $"{area.Label} — {area.Machines}";
+                                    : $"{area.Label} ({area.Machines})";
                                 <option value="@area.Label" selected="@(Model.Area == area.Label ? "selected" : null)">@display</option>
                             }
                         </optgroup>

@@ -36,7 +36,7 @@
                         <optgroup label="@grp.Key">
                             @foreach (var a in grp)
                             {
-                                var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} — {a.Machines}";
+                                var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
                                 <option value="@a.Label">@disp</option>
                             }
                         </optgroup>

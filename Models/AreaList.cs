@@ -48,14 +48,9 @@ public static class AreaList
         ("Sheet Metal", "Zone 21", "Skiaky Spot Weld"),
         ("Sheet Metal", "Zone 22", "F37, EP3"),
 
-        // ── Dispatch ──────────────────────────────────────────────────────────
-        ("Dispatch", "Loading Bays",    ""),
-        ("Dispatch", "Mez Floor Above", ""),
-        ("Dispatch", "Mez Floor Below", ""),
-
-        // ── Stores ────────────────────────────────────────────────────────────
-        ("Stores", "DP1", ""),
-        ("Stores", "DP3", ""),
+        // ── Stores & Dispatch ─────────────────────────────────────────────────
+        ("Stores & Dispatch", "Stores",   ""),
+        ("Stores & Dispatch", "Dispatch", ""),
     ];
 
     public static string GetMachines(string? label) =>
