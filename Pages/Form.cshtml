@@ -13,7 +13,15 @@
         <div class="sf"><label>Date</label><input type="text" value="@Model.ShiftDate" readonly></div>
         <div class="sf"><label>Shift</label><input type="text" value="@Model.Shift" readonly></div>
         <div class="sf"><label>Team leader</label><input type="text" value="@Model.TeamLeader" readonly></div>
-        <div class="sf"><label>Area</label><input type="text" value="@Model.Area" readonly style="font-weight:700;color:var(--red)"></div>
+        <div class="sf">
+            <label>Area</label>
+            <input type="text" value="@Model.Area" readonly style="font-weight:700;color:var(--red)">
+            @{ var areaMachines = AreaList.GetMachines(Model.Area); }
+            @if (!string.IsNullOrEmpty(areaMachines))
+            {
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;line-height:1.4">@areaMachines</div>
+            }
+        </div>
 
         <!-- Hours selector — pure GET form, no JS -->
         <div class="sf" style="margin-left:auto">

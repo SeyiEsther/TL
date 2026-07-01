@@ -42,7 +42,10 @@
                         <optgroup label="@grp.Key">
                             @foreach (var area in grp)
                             {
-                                <option value="@area.Label" selected="@(Model.Area == area.Label ? "selected" : null)">@area.Label</option>
+                                var display = string.IsNullOrEmpty(area.Machines)
+                                    ? area.Label
+                                    : $"{area.Label} — {area.Machines}";
+                                <option value="@area.Label" selected="@(Model.Area == area.Label ? "selected" : null)">@display</option>
                             }
                         </optgroup>
                     }
