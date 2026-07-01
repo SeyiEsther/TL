@@ -305,6 +305,16 @@ thead th.hcol { width: 82px; }
     .audit-ssel { width: 100%; }
     .audit-wrap { padding: 0 10px 40px; }
 
+/* Once-per-shift activities card */
+.shift-once-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.shift-once-head { background: #431407; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 11px 18px; }
+.shift-once-body { display: flex; flex-direction: column; gap: 0; }
+.shift-once-q { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.shift-once-q:last-child { border-bottom: none; }
+.shift-once-label { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.shift-once-label span:first-child { font-size: 13px; font-weight: 500; }
+.shift-once-hint { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
 /* Question hint text in the hourly check form */
 .q-hint { font-size: 10px; color: var(--muted); margin-top: 3px; line-height: 1.4; font-weight: 400; }
 .q-hint-warn { color: #92400e; background: #fef3c7; border-left: 3px solid #f59e0b; padding: 3px 6px; border-radius: 0 4px 4px 0; margin-top: 4px; }

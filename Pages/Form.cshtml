@@ -112,10 +112,6 @@
                         warn: true); }
                     @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp,
                         "Non-conforming parts are clearly labelled and moved to the dedicated NC zone"); }
-                    @{ await RenderYN("6S activities completed?", "Sixs", h => hd(h).Sixs,
-                        "Sort, Set, Shine, Standardise, Sustain and Safety checks completed for the area"); }
-                    @{ await RenderYN("TPM activities completed?", "Tpm", h => hd(h).Tpm,
-                        "All planned preventive maintenance tasks carried out this hour"); }
                     @{ await RenderNote("Actions taken", "Pnote", h => hd(h).Pnote); }
 
                     <!-- MORALE -->
@@ -136,6 +132,39 @@
 
                 </tbody>
             </table>
+        </div>
+
+        <!-- Once-per-shift activities -->
+        <div class="shift-once-card">
+            <div class="shift-once-head">End-of-shift activities</div>
+            <div class="shift-once-body">
+                @{ var sixsVal = Model.H.Count > 0 ? Model.H[0].Sixs : null; }
+                @{ var tpmVal  = Model.H.Count > 0 ? Model.H[0].Tpm  : null; }
+                <div class="shift-once-q">
+                    <div class="shift-once-label">
+                        <span>6S activities completed?</span>
+                        <span class="shift-once-hint">Sort, Set, Shine, Standardise, Sustain and Safety checks — done once for the whole shift</span>
+                    </div>
+                    <div class="audit-yn">
+                        <input type="radio" class="ayn-y" name="H[0].Sixs" id="sixs_y" value="True"  checked="@(sixsVal == true  ? "checked" : null)">
+                        <label for="sixs_y">Yes</label>
+                        <input type="radio" class="ayn-n" name="H[0].Sixs" id="sixs_n" value="False" checked="@(sixsVal == false ? "checked" : null)">
+                        <label for="sixs_n">No</label>
+                    </div>
+                </div>
+                <div class="shift-once-q">
+                    <div class="shift-once-label">
+                        <span>TPM activities completed?</span>
+                        <span class="shift-once-hint">Planned preventive maintenance tasks — checked once at end of shift, not every hour</span>
+                    </div>
+                    <div class="audit-yn">
+                        <input type="radio" class="ayn-y" name="H[0].Tpm" id="tpm_y" value="True"  checked="@(tpmVal == true  ? "checked" : null)">
+                        <label for="tpm_y">Yes</label>
+                        <input type="radio" class="ayn-n" name="H[0].Tpm" id="tpm_n" value="False" checked="@(tpmVal == false ? "checked" : null)">
+                        <label for="tpm_n">No</label>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Shift summary -->
