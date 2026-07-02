@@ -210,7 +210,7 @@ namespace TL.Services
                     page.Footer().Row(row =>
                     {
                         row.RelativeItem().Text(t =>
-                            t.Span($"Rittal Senior Management Audit — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor(MidGray).FontSize(8));
+                            t.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor(MidGray).FontSize(8));
                     });
                 });
             }).GeneratePdf();
@@ -256,7 +256,7 @@ namespace TL.Services
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text("RITTAL").FontSize(20).Bold().FontColor("#1a1a1a");
-                    col.Item().Text("Team Leader Standard Work").FontSize(11).FontColor("#6b7280");
+                    col.Item().Text("Production Audit System").FontSize(11).FontColor("#6b7280");
                 });
                 row.ConstantItem(6).Background(Red);
             });
@@ -389,7 +389,7 @@ namespace TL.Services
             c.Row(row =>
             {
                 row.RelativeItem().Text(t =>
-                    t.Span($"Rittal TL Standard Work — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor("#6b7280").FontSize(8));
+                    t.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor("#6b7280").FontSize(8));
             });
         }
 
