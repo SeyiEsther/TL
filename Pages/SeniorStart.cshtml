@@ -1,0 +1,82 @@
+@page
+@model SeniorStartModel
+@using TL.Models
+@{ ViewData["Title"] = "Senior Team Audit"; }
+
+<div class="welcome-wrap">
+    <div class="welcome-card" style="max-width:560px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">
+            <div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="welcome-name" style="margin-bottom:0">Senior Team Weekly Audit</div>
+        </div>
+        <div class="welcome-time">Friday walkabout &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;margin:14px 0;font-size:12px;color:#0369a1;line-height:1.6">
+            <strong>Chain of accountability:</strong> TLs check hourly &rarr; managers verify daily &rarr; senior team reviews weekly.
+            This walkabout catches anything the daily checks may have missed and closes the loop before the next audit cycle.
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SuggestedArea))
+        {
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;background:#dc2626;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                    <div style="font-size:12px;font-weight:700;color:#991b1b">Dashboard recommends this area</div>
+                    <div style="font-size:14px;font-weight:700;color:#dc2626;margin:2px 0">@Model.SuggestedArea</div>
+                    <div style="font-size:11px;color:#b91c1c">@Model.SuggestedReason — worst performing this week</div>
+                </div>
+            </div>
+        }
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="sf-row" style="margin-bottom:14px">
+                <div class="fl">
+                    <label>Audit date</label>
+                    <input type="date" name="auditDate" value="@Model.AuditDate" required>
+                </div>
+                <div class="fl">
+                    <label>Auditor name</label>
+                    <input type="text" name="auditorName" value="@Model.AuditorName" placeholder="Your full name" required>
+                </div>
+            </div>
+
+            <div class="fl" style="margin-bottom:6px">
+                <label>Area to audit <span style="color:var(--red)">*</span></label>
+                <select name="area" required>
+                    <option value="">Select area…</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var a in grp)
+                            {
+                                var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
+                                var selected = Model.SuggestedArea == a.Label;
+                                <option value="@a.Label" selected="@(selected ? "selected" : null)">@disp</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+                @if (!string.IsNullOrEmpty(Model.SuggestedArea))
+                {
+                    <div style="font-size:10px;color:#b91c1c;margin-top:4px">
+                        Pre-selected based on this week's dashboard data. Change if Pat, Tappy or the team decides otherwise.
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="err">@Model.Error</div>
+            }
+
+            <button type="submit" class="welcome-btn primary" style="margin-top:16px">Start senior walkabout &rarr;</button>
+            <a asp-page="/Index" class="welcome-btn secondary">Back to home</a>
+        </form>
+    </div>
+</div>

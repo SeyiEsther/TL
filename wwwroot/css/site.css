@@ -206,6 +206,10 @@ thead th.hcol { width: 82px; }
 .audit-q { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
 .audit-q:last-child { border-bottom: none; }
 .audit-q-text { font-size: 13px; font-weight: 500; flex: 1; line-height: 1.4; }
+.audit-q-label { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.audit-q-label span:first-child { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.audit-q-note { display: block; padding: 12px 18px; }
+.audit-head[style*="background:#6d28d9"] .audit-acc { background: #a855f7; }
 .audit-yn { display: flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; flex-shrink: 0; }
 .audit-yn input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
 .audit-yn label { min-width: 58px; padding: 11px 16px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--muted); border-right: 1px solid var(--border); user-select: none; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .1s; }
