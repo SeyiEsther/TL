@@ -57,12 +57,6 @@
                         </optgroup>
                     }
                 </select>
-                @if (!string.IsNullOrEmpty(Model.SuggestedArea))
-                {
-                    <div style="font-size:10px;color:#b91c1c;margin-top:4px">
-                        Pre-selected based on this week's dashboard data. Change if Pat, Tappy or the team decides otherwise.
-                    </div>
-                }
             </div>
 
             @if (!string.IsNullOrEmpty(Model.Error))
