@@ -297,6 +297,48 @@ namespace TL.Migrations
 
                     b.Navigation("Hours");
                 });
+
+            modelBuilder.Entity("TL.Models.SeniorWeeklyAudit", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("AuditorName").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<DateOnly>("AuditDate").HasColumnType("date");
+                    b.Property<string>("Area").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("SubmittedBy").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("SubmittedAt").HasColumnType("datetime2");
+                    b.Property<bool?>("HandoverStandardsFollowed").HasColumnType("bit");
+                    b.Property<bool?>("VisualManagementCurrent").HasColumnType("bit");
+                    b.Property<bool?>("EscalationPathsUsed").HasColumnType("bit");
+                    b.Property<string>("GovernanceNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("PpeComplianceFull").HasColumnType("bit");
+                    b.Property<bool?>("NearMissesReported").HasColumnType("bit");
+                    b.Property<bool?>("SafetyActionLogCurrent").HasColumnType("bit");
+                    b.Property<string>("SafetyNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("FirstOffRecordsComplete").HasColumnType("bit");
+                    b.Property<bool?>("NcCaptureTrended").HasColumnType("bit");
+                    b.Property<bool?>("QualityGatesMaintained").HasColumnType("bit");
+                    b.Property<string>("QualityNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("AbsenceManagedProactively").HasColumnType("bit");
+                    b.Property<bool?>("TlsCoachingTeams").HasColumnType("bit");
+                    b.Property<bool?>("TrainingMatrixCurrent").HasColumnType("bit");
+                    b.Property<string>("PeopleNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("SixSStandardMaintained").HasColumnType("bit");
+                    b.Property<bool?>("TpmScheduleFollowed").HasColumnType("bit");
+                    b.Property<bool?>("StandardWorkVisible").HasColumnType("bit");
+                    b.Property<string>("StandardsNotes").HasColumnType("nvarchar(max)");
+                    b.Property<bool?>("TrackingAgainstWeeklyPlan").HasColumnType("bit");
+                    b.Property<bool?>("MetricsVisibleAndOwned").HasColumnType("bit");
+                    b.Property<bool?>("ImprovementActionsProgressing").HasColumnType("bit");
+                    b.Property<string>("PerformanceNotes").HasColumnType("nvarchar(max)");
+                    b.Property<string>("GoodPracticeObserved").HasColumnType("nvarchar(max)");
+                    b.Property<string>("AreasForImprovement").HasColumnType("nvarchar(max)");
+                    b.Property<string>("ActionsRaised").HasColumnType("nvarchar(max)");
+                    b.Property<string>("OverallVerdict").HasColumnType("nvarchar(max)");
+                    b.Property<string>("AuditorSignature").HasColumnType("nvarchar(max)");
+                    b.HasKey("Id");
+                    b.ToTable("SeniorWeeklyAudits");
+                });
 #pragma warning restore 612, 618
         }
     }

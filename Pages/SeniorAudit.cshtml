@@ -1,0 +1,216 @@
+@page
+@model SeniorAuditModel
+@{ ViewData["Title"] = "Senior Team Audit";
+   var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
+
+<div class="audit-wrap">
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Senior Team Weekly Audit</div>
+            <div class="page-sub">
+                @auditDateDisplay &bull; @Model.Area
+                @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; Auditor: <strong>@Model.AuditorName</strong></span> }
+            </div>
+        </div>
+        @if (Model.EditingId.HasValue)
+        {
+            <span style="font-size:11px;background:#fef3c7;color:#b45309;border:1px solid #fcd34d;border-radius:6px;padding:5px 12px;font-weight:600">Editing</span>
+        }
+    </div>
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="auditDate" value="@Model.AuditDate">
+        <input type="hidden" name="auditorName" value="@Model.AuditorName">
+        <input type="hidden" name="area" value="@Model.Area">
+        @if (Model.EditingId.HasValue) { <input type="hidden" name="editingId" value="@Model.EditingId"> }
+
+        <!-- LEADERSHIP & GOVERNANCE -->
+        <div class="audit-card">
+            <div class="audit-head" style="background:#1e3a5f"><div class="audit-acc"></div><span>Leadership &amp; Governance</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Shift handover standards being followed?",
+                    "A.HandoverStandardsFollowed", Model.A.HandoverStandardsFollowed,
+                    "Outgoing TL has briefed incoming TL; checklist completed and signed"); }
+                @{ await RenderQ("Visual management board up to date?",
+                    "A.VisualManagementCurrent", Model.A.VisualManagementCurrent,
+                    "KPIs, targets and action boards are current and owned"); }
+                @{ await RenderQ("Escalation paths being used correctly?",
+                    "A.EscalationPathsUsed", Model.A.EscalationPathsUsed,
+                    "Issues are being surfaced through the right channels at the right level"); }
+                @{ await RenderNote("Notes", "A.GovernanceNotes", Model.A.GovernanceNotes); }
+            </div>
+        </div>
+
+        <!-- SAFETY CULTURE -->
+        <div class="audit-card">
+            <div class="audit-head safety"><div class="audit-acc"></div><span>Safety Culture</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("PPE compliance 100% across the area?",
+                    "A.PpeComplianceFull", Model.A.PpeComplianceFull,
+                    "All team members wearing correct PPE — no exceptions observed"); }
+                @{ await RenderQ("Near-misses being reported and acted on?",
+                    "A.NearMissesReported", Model.A.NearMissesReported,
+                    "Near-miss log is current; corrective actions have owners and due dates"); }
+                @{ await RenderQ("Safety action log up to date?",
+                    "A.SafetyActionLogCurrent", Model.A.SafetyActionLogCurrent,
+                    "All open safety actions have been reviewed and progressed this week"); }
+                @{ await RenderNote("Notes &amp; observations", "A.SafetyNotes", Model.A.SafetyNotes); }
+            </div>
+        </div>
+
+        <!-- QUALITY GOVERNANCE -->
+        <div class="audit-card">
+            <div class="audit-head quality"><div class="audit-acc"></div><span>Quality Governance</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("First-off inspection records complete?",
+                    "A.FirstOffRecordsComplete", Model.A.FirstOffRecordsComplete,
+                    "First-off checks have been signed off and filed for all jobs run this week"); }
+                @{ await RenderQ("Non-conformance being captured and trended?",
+                    "A.NcCaptureTrended", Model.A.NcCaptureTrended,
+                    "NC data is recorded, visible, and reviewed for repeat patterns"); }
+                @{ await RenderQ("Quality gates maintained across the process?",
+                    "A.QualityGatesMaintained", Model.A.QualityGatesMaintained,
+                    "Inspection points and hold points are staffed and not being bypassed"); }
+                @{ await RenderNote("Notes &amp; observations", "A.QualityNotes", Model.A.QualityNotes); }
+            </div>
+        </div>
+
+        <!-- PEOPLE & WELLBEING -->
+        <div class="audit-card">
+            <div class="audit-head morale"><div class="audit-acc"></div><span>People &amp; Wellbeing</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Absence and attendance being managed proactively?",
+                    "A.AbsenceManagedProactively", Model.A.AbsenceManagedProactively,
+                    "Return-to-work interviews completed; patterns identified and escalated where needed"); }
+                @{ await RenderQ("TLs actively coaching and developing their teams?",
+                    "A.TlsCoachingTeams", Model.A.TlsCoachingTeams,
+                    "Observed TL interaction — coaching, not just directing"); }
+                @{ await RenderQ("Training matrix current and actioned?",
+                    "A.TrainingMatrixCurrent", Model.A.TrainingMatrixCurrent,
+                    "Training plans are up to date, gaps identified and in progress"); }
+                @{ await RenderNote("Notes &amp; observations", "A.PeopleNotes", Model.A.PeopleNotes); }
+            </div>
+        </div>
+
+        <!-- STANDARDS & HOUSEKEEPING -->
+        <div class="audit-card">
+            <div class="audit-head" style="background:#6d28d9"><div class="audit-acc"></div><span>Standards &amp; Housekeeping</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("6S standard maintained across the area?",
+                    "A.SixSStandardMaintained", Model.A.SixSStandardMaintained,
+                    "Audit score consistent with previous week; no regression in any zone"); }
+                @{ await RenderQ("TPM schedule being followed?",
+                    "A.TpmScheduleFollowed", Model.A.TpmScheduleFollowed,
+                    "All planned preventive maintenance tasks completed on schedule this week"); }
+                @{ await RenderQ("Standard work documents visible and in use?",
+                    "A.StandardWorkVisible", Model.A.StandardWorkVisible,
+                    "Work instructions are at the point of use and operators are following them"); }
+                @{ await RenderNote("Notes &amp; observations", "A.StandardsNotes", Model.A.StandardsNotes); }
+            </div>
+        </div>
+
+        <!-- PERFORMANCE -->
+        <div class="audit-card">
+            <div class="audit-head perf"><div class="audit-acc"></div><span>Performance</span></div>
+            <div class="audit-body">
+                @{ await RenderQ("Area tracking against weekly production plan?",
+                    "A.TrackingAgainstWeeklyPlan", Model.A.TrackingAgainstWeeklyPlan,
+                    "Output is on or ahead of the weekly plan; any shortfall has a recovery plan"); }
+                @{ await RenderQ("Performance metrics visible and owned?",
+                    "A.MetricsVisibleAndOwned", Model.A.MetricsVisibleAndOwned,
+                    "OEE or equivalent KPIs are displayed, current, and each has a named owner"); }
+                @{ await RenderQ("Improvement actions progressing?",
+                    "A.ImprovementActionsProgressing", Model.A.ImprovementActionsProgressing,
+                    "CI actions from last audit have moved forward; no stalled items without reason"); }
+                @{ await RenderNote("Notes &amp; actions taken", "A.PerformanceNotes", Model.A.PerformanceNotes); }
+            </div>
+        </div>
+
+        <!-- FINDINGS SUMMARY -->
+        <div class="audit-card" style="margin-top:16px">
+            <div class="card-head"><span class="card-title">Audit findings &amp; actions</span></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:12px;padding:16px">
+
+                <div class="fl">
+                    <label>Good practice observed</label>
+                    <textarea name="A.GoodPracticeObserved" rows="3" placeholder="What was working well and should be recognised or shared…">@Model.A.GoodPracticeObserved</textarea>
+                </div>
+
+                <div class="fl">
+                    <label>Areas for improvement</label>
+                    <textarea name="A.AreasForImprovement" rows="3" placeholder="What needs to improve before the next audit…">@Model.A.AreasForImprovement</textarea>
+                </div>
+
+                <div class="fl">
+                    <label>Actions raised</label>
+                    <textarea name="A.ActionsRaised" rows="4" placeholder="Specific actions, owner and due date for each…">@Model.A.ActionsRaised</textarea>
+                </div>
+
+                <div class="fl">
+                    <label>Overall audit verdict</label>
+                    <div style="display:flex;gap:10px;margin-top:4px">
+                        @foreach (var v in new[] { "Green", "Amber", "Red" })
+                        {
+                            var col = v == "Green" ? "#16a34a" : v == "Amber" ? "#d97706" : "#dc2626";
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:@col">
+                                <input type="radio" name="A.OverallVerdict" value="@v" checked="@(Model.A.OverallVerdict == v)">
+                                @v
+                            </label>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIGNATURE -->
+        <div class="audit-card" style="margin-top:16px">
+            <div class="card-head"><span class="card-title">Sign-off</span></div>
+            <div class="card-body" style="padding:16px">
+                <div class="fl" style="max-width:320px">
+                    <label>Auditor signature</label>
+                    <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Type your full name to sign">
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;padding-bottom:32px">
+            <button type="submit" class="welcome-btn primary">Submit audit &rarr;</button>
+            <a asp-page="/SeniorStart" class="welcome-btn secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@functions {
+    async Task RenderQ(string label, string field, bool? val, string? hint = null)
+    {
+        <div class="audit-q">
+            <div class="audit-q-label">
+                <span>@Html.Raw(label)</span>
+                @if (hint != null)
+                {
+                    <span class="q-hint">@hint</span>
+                }
+            </div>
+            <div class="audit-yn">
+                <input type="radio" class="ayn-y" name="@field" id="@(field)_y" value="True"  checked="@(val == true)">
+                <label for="@(field)_y">Yes</label>
+                <input type="radio" class="ayn-n" name="@field" id="@(field)_n" value="False" checked="@(val == false)">
+                <label for="@(field)_n">No</label>
+            </div>
+        </div>
+        await Task.CompletedTask;
+    }
+
+    async Task RenderNote(string label, string field, string? val)
+    {
+        <div class="audit-q audit-q-note">
+            <div class="fl" style="flex:1">
+                <label style="font-size:11px;color:var(--muted)">@Html.Raw(label)</label>
+                <textarea name="@field" rows="2" style="font-size:12px">@val</textarea>
+            </div>
+        </div>
+        await Task.CompletedTask;
+    }
+}

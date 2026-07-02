@@ -9,6 +9,7 @@ namespace TL.Data
         public DbSet<HourlyCheck> HourlyChecks => Set<HourlyCheck>();
         public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
         public DbSet<AuditSubmission> AuditSubmissions => Set<AuditSubmission>();
+        public DbSet<SeniorWeeklyAudit> SeniorWeeklyAudits => Set<SeniorWeeklyAudit>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             

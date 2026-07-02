@@ -1,0 +1,60 @@
+@page
+@model SeniorStartModel
+@using TL.Models
+@{ ViewData["Title"] = "Senior Team Audit"; }
+
+<div class="welcome-wrap">
+    <div class="welcome-card" style="max-width:540px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">
+            <div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="welcome-name" style="margin-bottom:0">Senior Team Weekly Audit</div>
+        </div>
+        <div class="welcome-time">Senior leadership walkabout &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin:14px 0;font-size:12px;color:#1e40af;line-height:1.5">
+            Weekly senior team audit covering leadership, safety culture, quality governance, people &amp; wellbeing, standards, and performance. Replaces questions from John when received.
+        </div>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="sf-row" style="margin-bottom:14px">
+                <div class="fl">
+                    <label>Audit date</label>
+                    <input type="date" name="auditDate" value="@Model.AuditDate" required>
+                </div>
+                <div class="fl">
+                    <label>Auditor name</label>
+                    <input type="text" name="auditorName" value="@Model.AuditorName" placeholder="Your full name" required>
+                </div>
+            </div>
+
+            <div class="fl" style="margin-bottom:6px">
+                <label>Area to audit <span style="color:var(--red)">*</span></label>
+                <select name="area" required>
+                    <option value="">Select area…</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var a in grp)
+                            {
+                                var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
+                                <option value="@a.Label">@disp</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="err">@Model.Error</div>
+            }
+
+            <button type="submit" class="welcome-btn primary" style="margin-top:16px">Start senior audit &rarr;</button>
+            <a asp-page="/Index" class="welcome-btn secondary">Back to home</a>
+        </form>
+    </div>
+</div>
