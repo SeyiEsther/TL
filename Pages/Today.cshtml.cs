@@ -16,6 +16,7 @@ public class TodayModel : PageModel
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         var rows = await _db.ShiftSubmissions
+            .ExcludeAudits()
             .Include(s => s.Hours)
             .Where(s => s.ShiftDate == today)
             .OrderByDescending(s => s.SubmittedAt)
@@ -39,6 +40,7 @@ public class TodayModel : PageModel
 
         // Load all unacknowledged handovers (outgoing signed, incoming not yet signed)
         var pending = await _db.ShiftSubmissions
+            .ExcludeAudits()
             .Where(s => !string.IsNullOrEmpty(s.OutgoingTLSignature)
                      && string.IsNullOrEmpty(s.IncomingTLSignature))
             .OrderByDescending(s => s.ShiftDate)

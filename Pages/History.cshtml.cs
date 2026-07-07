@@ -19,7 +19,7 @@ public class HistoryModel : PageModel
         From = from;
         To = to;
 
-        var q = _db.ShiftSubmissions.Include(s => s.Hours).AsQueryable();
+        var q = _db.ShiftSubmissions.ExcludeAudits();
         if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) q = q.Where(s => s.ShiftDate >= f);
         if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) q = q.Where(s => s.ShiftDate <= t);
 

@@ -21,6 +21,7 @@ public class HandoverModel : PageModel
         // Load all shifts for this area that have an outgoing signature (i.e., completed handovers),
         // plus any pending ones (outgoing set, incoming not yet set)
         var rows = await _db.ShiftSubmissions
+            .ExcludeAudits()
             .Where(s => s.Area == area && !string.IsNullOrEmpty(s.OutgoingTLSignature))
             .OrderByDescending(s => s.ShiftDate)
             .ThenByDescending(s => s.SubmittedAt)
