@@ -423,6 +423,7 @@ thead th.hcol { width: 82px; }
 .dp-custom-btn:hover { background: #eef0f3; }
 .dp-custom-btn svg { width: 16px; height: 16px; color: var(--muted); }
 .dp-calendar { margin-top: 4px; animation: popIn var(--dur-normal) var(--ease-out) both; display: none; }
+.dp-calendar[aria-hidden="false"] { display: block; }
 .dp-day {
     width: 100%; aspect-ratio: 1; border: none; border-radius: 8px; background: none;
     font-size: 12px; font-weight: 500; font-family: inherit; color: var(--ink); cursor: pointer;

@@ -179,26 +179,35 @@
     }
 
     /* ── Date picker ── */
+    function getPopover(dp) {
+        return dp._portaledPopover || dp.querySelector('.dp-popover');
+    }
+
     function closePicker(dp) {
-        closePopover(dp, dp.querySelector('.dp-trigger'), dp.querySelector('.dp-popover'));
+        var pop = getPopover(dp);
+        if (!pop) return;
+        closePopover(dp, dp.querySelector('.dp-trigger'), pop);
         hideCalendar(dp);
     }
 
     function hideCalendar(dp) {
-        var cal = dp.querySelector('.dp-calendar');
+        var pop = getPopover(dp);
+        if (!pop) return;
+        var cal = pop.querySelector('.dp-calendar');
         cal.setAttribute('aria-hidden', 'true');
         cal.style.display = 'none';
-        dp.querySelector('.dp-quick').style.display = '';
-        dp.querySelector('.dp-custom-btn').style.display = '';
+        pop.querySelector('.dp-quick').style.display = '';
+        pop.querySelector('.dp-custom-btn').style.display = '';
     }
 
     function showCalendar(dp) {
-        dp.querySelector('.dp-quick').style.display = 'none';
-        dp.querySelector('.dp-custom-btn').style.display = 'none';
-        var cal = dp.querySelector('.dp-calendar');
-        cal.style.display = '';
+        var pop = getPopover(dp);
+        if (!pop) return;
+        pop.querySelector('.dp-quick').style.display = 'none';
+        pop.querySelector('.dp-custom-btn').style.display = 'none';
+        var cal = pop.querySelector('.dp-calendar');
+        cal.style.display = 'block';
         cal.setAttribute('aria-hidden', 'false');
-        var pop = dp._portaledPopover || dp.querySelector('.dp-popover');
         var trigger = dp.querySelector('.dp-trigger');
         requestAnimationFrame(function () { positionFloating(trigger, pop); });
     }
@@ -234,8 +243,10 @@
     }
 
     function renderCalendar(dp, viewDate, draft) {
-        var daysEl = dp.querySelector('.dp-days');
-        var label = dp.querySelector('.dp-month-label');
+        var pop = getPopover(dp);
+        if (!pop) return;
+        var daysEl = pop.querySelector('.dp-days');
+        var label = pop.querySelector('.dp-month-label');
         var y = viewDate.getFullYear();
         var m = viewDate.getMonth();
         label.textContent = MONTHS[m] + ' ' + y;
@@ -263,7 +274,7 @@
                 var cellDate = new Date(y, m, dayNum);
                 if (draft && sameDay(cellDate, draft)) btn.classList.add('selected');
                 btn.addEventListener('click', function () {
-                    dp.querySelectorAll('.dp-day.selected').forEach(function (el) { el.classList.remove('selected'); });
+                    pop.querySelectorAll('.dp-day.selected').forEach(function (el) { el.classList.remove('selected'); });
                     btn.classList.add('selected');
                     dp._draft = new Date(y, m, dayNum);
                 });
@@ -307,7 +318,8 @@
             });
         });
 
-        dp.querySelector('.dp-custom-btn').addEventListener('click', function () {
+        dp.querySelector('.dp-custom-btn').addEventListener('click', function (e) {
+            e.stopPropagation();
             var val = getValue(dp) || new Date();
             showCalendar(dp);
             renderCalendar(dp, val, val);
@@ -340,6 +352,10 @@
     }
 
     /* ── Filter dropdowns (shift / area) ── */
+    function getFilterPopover(fs) {
+        return fs._portaledPopover || fs.querySelector('.fs-popover');
+    }
+
     function setFilterValue(fs, value, label, placeholder) {
         var input = fs.querySelector('.fs-input');
         var display = fs.querySelector('.fs-display');
@@ -352,14 +368,18 @@
     }
 
     function closeFilter(fs) {
-        closePopover(fs, fs.querySelector('.fs-trigger'), fs.querySelector('.fs-popover'));
-        var search = fs.querySelector('.fs-search');
+        var pop = getFilterPopover(fs);
+        if (!pop) return;
+        closePopover(fs, fs.querySelector('.fs-trigger'), pop);
+        var search = pop.querySelector('.fs-search');
         if (search) { search.value = ''; filterAreaOptions(fs, ''); }
     }
 
     function filterAreaOptions(fs, query) {
+        var pop = getFilterPopover(fs);
+        if (!pop) return;
         var q = query.toLowerCase().trim();
-        fs.querySelectorAll('.fs-group').forEach(function (group) {
+        pop.querySelectorAll('.fs-group').forEach(function (group) {
             var anyVisible = false;
             group.querySelectorAll('.fs-option').forEach(function (opt) {
                 var text = opt.dataset.search || opt.textContent.toLowerCase();
