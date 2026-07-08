@@ -35,12 +35,22 @@ public class SeniorDashboardModel : PageModel
         To = to;
         AreaFilter = area;
 
-        var q = _db.SeniorWeeklyAudits.AsQueryable();
-        if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) q = q.Where(a => a.AuditDate >= f);
-        if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) q = q.Where(a => a.AuditDate <= t);
-        if (!string.IsNullOrEmpty(area)) q = q.Where(a => a.Area == area);
+        try
+        {
+            var q = _db.SeniorWeeklyAudits.AsQueryable();
+            if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) q = q.Where(a => a.AuditDate >= f);
+            if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) q = q.Where(a => a.AuditDate <= t);
+            if (!string.IsNullOrEmpty(area)) q = q.Where(a => a.Area == area);
 
-        Audits = await q.OrderByDescending(a => a.AuditDate).ThenByDescending(a => a.SubmittedAt).ToListAsync();
+            Audits = await q.OrderByDescending(a => a.AuditDate).ThenByDescending(a => a.SubmittedAt).ToListAsync();
+        }
+        catch
+        {
+            // If the database is unreachable, degrade gracefully by showing an
+            // empty dashboard instead of a 500 error.
+            Audits = new List<SeniorWeeklyAudit>();
+        }
+
         TotalAudits = Audits.Count;
         Latest = Audits.FirstOrDefault();
 
