@@ -14,27 +14,11 @@
         <a asp-page="/SeniorStart" class="sbtn primary sm">+ New audit</a>
     </div>
 
-    <div class="card" style="margin-bottom:14px">
+    <div class="card card-filter" style="margin-bottom:14px">
         <form method="get" class="filters">
             <partial name="_DatePicker" model='new DatePickerModel("from", Model.From, "From")' />
             <partial name="_DatePicker" model='new DatePickerModel("to", Model.To, "To")' />
-            <div class="ff">
-                <span class="ff-label">Area</span>
-                <div class="ff-control">
-                    <select name="area" class="ff-select" style="max-width:220px">
-                        <option value="">All areas</option>
-                        @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
-                        {
-                            <optgroup label="@grp.Key">
-                                @foreach (var a in grp)
-                                {
-                                    <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
-                                }
-                            </optgroup>
-                        }
-                    </select>
-                </div>
-            </div>
+            <partial name="_FilterArea" model='new FilterDropdownModel("area", "Area", Model.AreaFilter, "All areas")' />
             <div class="filter-actions">
                 <button type="submit" class="sbtn sm filter-apply">Apply filters</button>
                 <a asp-page="/SeniorDashboard" class="sbtn sm">Clear</a>

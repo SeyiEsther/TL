@@ -24,7 +24,7 @@
                         <optgroup label="@grp.Key">
                             @foreach (var a in grp)
                             {
-                                <option value="@a.Label" selected="@(Model.SelectedArea == a.Label)">@a.Label</option>
+                                <option value="@a.Label" selected="@(Model.SelectedArea == a.Label ? "selected" : null)">@a.Label</option>
                             }
                         </optgroup>
                     }

@@ -38,7 +38,7 @@
                 <select name="hours">
                     @for (int h = 8; h >= 1; h--)
                     {
-                        <option value="@h" selected="@(Model.Hours == h)">@h hrs</option>
+                        <option value="@h" selected="@(Model.Hours == h ? "selected" : null)">@h hrs</option>
                     }
                 </select>
                 <button type="submit" class="sbtn sm">Set</button>
