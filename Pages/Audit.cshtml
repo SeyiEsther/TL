@@ -5,7 +5,7 @@
 @{ ViewData["Title"] = Model.AuditTypeLabel;
    var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate;
    var sections = Model.Questions.GroupBy(q => q.Section).ToList();
-   var answerMap = Model.Answers.ToDictionary(a => a.QuestionId);
+   var tpmBoardCount = Model.Questions.Select(q => q.MachineName).Where(m => m != null).Distinct().Count();
    int qIndex = 0; }
 
 <div class="audit-wrap" data-audit-form data-binary-audit>
@@ -58,7 +58,7 @@
         Score each item <strong>Pass (1)</strong> or <strong>Fail (0)</strong> — no ambiguity.
         @if (Model.AuditType == HodAuditTypes.Tpm)
         {
-            <span> Check every TPM board in this area@(Model.Questions.Select(q => q.MachineName).Distinct().Count() > 1 ? $" ({Model.Questions.Select(q => q.MachineName).Distinct().Count()} boards)" : "").</span>
+            <span> Check every TPM board in this area@(tpmBoardCount > 1 ? $" ({tpmBoardCount} boards)" : "").</span>
         }
     </div>
 
@@ -135,33 +135,54 @@
             <div class="audit-head quality"><div class="audit-acc"></div><span>TL Form Effectiveness Check</span></div>
             <div class="audit-body">
                 <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
-                    Shift forms for this area this week. Incomplete forms are audit findings.
+                    What each TL claimed on their shift forms this week. Incomplete forms are audit findings.
                 </p>
                 @if (Model.EffectivenessFindings.Count == 0)
                 {
                     <div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534">
-                        All TL shift forms complete for this area this week.
+                        No TL shift forms found for this area this week.
                     </div>
                 }
                 else
                 {
-                    @foreach (var f in Model.EffectivenessFindings)
-                    {
-                        <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:8px;font-size:12px">
-                            @if (!string.IsNullOrEmpty(f.TeamLeader))
-                            {
-                                <div style="font-weight:700;margin-bottom:4px">
-                                    @f.TeamLeader &mdash; @f.Shift &mdash; @f.ShiftDate.ToString("dd/MM/yyyy") &mdash; @f.Area
-                                </div>
-                            }
-                            <ul style="margin:0;padding-left:18px">
-                                @foreach (var issue in f.Issues)
+                    <div style="overflow-x:auto">
+                        <table class="dash-table" style="min-width:680px;font-size:12px">
+                            <thead>
+                                <tr>
+                                    <th>Team leader</th>
+                                    <th>Shift</th>
+                                    <th>Date</th>
+                                    <th>Form status</th>
+                                    <th>What to verify</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var f in Model.EffectivenessFindings)
                                 {
-                                    <li>@issue</li>
+                                    <tr style="@(f.IsAuditFinding ? "background:#fef2f2" : null)">
+                                        <td style="font-weight:600">@(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader)</td>
+                                        <td>@(string.IsNullOrEmpty(f.Shift) ? "—" : f.Shift)</td>
+                                        <td>@(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM"))</td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(f.TeamLeader))
+                                            {
+                                                <span class="rag r">No forms</span>
+                                            }
+                                            else if (f.FormComplete)
+                                            {
+                                                <span class="rag g">Complete</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="rag r">@f.HoursComplete/@f.HoursTotal hrs</span>
+                                            }
+                                        </td>
+                                        <td style="color:var(--muted)">@string.Join(" · ", f.Issues)</td>
+                                    </tr>
                                 }
-                            </ul>
-                        </div>
-                    }
+                            </tbody>
+                        </table>
+                    </div>
                 }
             </div>
         </div>
@@ -187,7 +208,7 @@
             <div class="sf-row">
                 <div class="fl">
                     <label>Auditor signature</label>
-                    <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Full name…">
+                    <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Full name…" required>
                 </div>
                 <div class="fl">
                     <label>Area team leader signature</label>

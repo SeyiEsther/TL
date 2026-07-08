@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -62,7 +61,10 @@ public class AuditModel : PageModel
             AuditorSignature = audit.AuditorSignature;
             TeamLeaderSignature = audit.TeamLeaderSignature;
             Answers = HodAuditSerializer.ParseAnswers(audit.AnswersJson);
-            EffectivenessFindings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
+            if (DateOnly.TryParse(AuditDate, out var editDate))
+                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, editDate, AuditType);
+            else
+                EffectivenessFindings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
             TotalScore = audit.TotalScore;
             MaxScore = audit.MaxScore;
         }
@@ -130,27 +132,28 @@ public class AuditModel : PageModel
         var missing = answers.Count(a => !a.Pass.HasValue);
         if (missing > 0)
         {
-            Answers = answers;
-            A = answers.Select(a => new HodAnswerInput
-            {
-                QuestionId = a.QuestionId,
-                Pass = a.Pass,
-                Evidence = a.Evidence,
-            }).ToList();
-            if (DateOnly.TryParse(AuditDate, out var ad))
-                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
+            await RepopulateForErrorAsync(answers);
             ModelState.AddModelError("", $"Answer all {missing} remaining question(s) — each must be Pass (1) or Fail (0).");
+            return Page();
+        }
+
+        if (string.IsNullOrWhiteSpace(auditorSignature))
+        {
+            await RepopulateForErrorAsync(answers);
+            ModelState.AddModelError("", "Auditor signature is required before submitting.");
+            return Page();
+        }
+
+        if (!DateOnly.TryParse(auditDate, out var auditD))
+        {
+            await RepopulateForErrorAsync(answers);
+            ModelState.AddModelError("", "Invalid audit date.");
             return Page();
         }
 
         (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
         var user = _users.GetCurrentUser();
-
-        List<HodEffectivenessFinding> effectiveness;
-        if (DateOnly.TryParse(AuditDate, out var auditD))
-            effectiveness = await _effectiveness.GetFindingsAsync(Department, Area, auditD, AuditType);
-        else
-            effectiveness = [];
+        var effectiveness = await _effectiveness.GetFindingsAsync(Department, Area, auditD, AuditType);
 
         if (editingId.HasValue)
         {
@@ -200,9 +203,28 @@ public class AuditModel : PageModel
         return RedirectToPage("/Success", new { hodAuditId = audit.Id });
     }
 
+    async Task RepopulateForErrorAsync(List<HodAuditAnswer> answers)
+    {
+        Answers = answers;
+        A = answers.Select(a => new HodAnswerInput
+        {
+            QuestionId = a.QuestionId,
+            Pass = a.Pass,
+            Evidence = a.Evidence,
+        }).ToList();
+        MaxScore = Questions.Count;
+        RatingBand = HodAuditScoring.RatingBand(TotalScore, MaxScore);
+        RatingDetail = HodAuditScoring.RatingDetail(TotalScore, MaxScore);
+        if (DateOnly.TryParse(AuditDate, out var ad))
+            EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
+    }
+
     List<HodAuditAnswer> BuildAnswers()
     {
-        var inputById = A.ToDictionary(a => a.QuestionId, a => a);
+        var inputById = A
+            .Where(a => !string.IsNullOrEmpty(a.QuestionId))
+            .GroupBy(a => a.QuestionId)
+            .ToDictionary(g => g.Key, g => g.Last());
         return Questions.Select(q =>
         {
             inputById.TryGetValue(q.Id, out var inp);

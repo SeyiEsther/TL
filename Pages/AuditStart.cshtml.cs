@@ -31,16 +31,17 @@ public class AuditStartModel : PageModel
         {
             AuditorName = auditorName ?? "";
             AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
-            SuggestedType = string.IsNullOrEmpty(auditType)
-                ? HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek)
-                : auditType;
-            SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
+            if (DateOnly.TryParse(AuditDate, out var d))
+            {
+                SuggestedType = HodAuditTypes.SuggestedForDate(d);
+                SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
+            }
             Error = "Please fill in all required fields.";
             return Page();
         }
 
         var type = string.IsNullOrWhiteSpace(auditType)
-            ? HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek)
+            ? (DateOnly.TryParse(auditDate, out var ad) ? HodAuditTypes.SuggestedForDate(ad) : HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek))
             : auditType;
 
         return RedirectToPage("/Audit", new { date = auditDate, auditor = auditorName, department, area, type });

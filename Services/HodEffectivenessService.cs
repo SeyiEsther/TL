@@ -44,46 +44,101 @@ public class HodEffectivenessService
             q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));
 
         var shifts = await q.OrderBy(s => s.ShiftDate).ThenBy(s => s.Shift).ToListAsync();
-        var findings = new List<HodEffectivenessFinding>();
 
-        foreach (var shift in shifts)
+        if (shifts.Count == 0)
         {
-            var completion = _completion.Evaluate(shift);
-            var issues = new List<string>(completion.MissingItems);
-
-            var endHour = shift.Hours.FirstOrDefault(h => h.HourNumber == 1) ?? shift.Hours.FirstOrDefault();
-            var claimedSixS = endHour?.SixSCompleted == true;
-            var claimedTpm = endHour?.TPMCompleted == true;
-
-            if (auditType == HodAuditTypes.SixS && claimedSixS && !completion.IsComplete)
-                issues.Add("TL claimed 6S done but shift form is incomplete");
-            if (auditType == HodAuditTypes.Tpm && claimedTpm && !completion.IsComplete)
-                issues.Add("TL claimed TPM done but shift form is incomplete");
-
-            if (!completion.IsComplete || issues.Count > completion.MissingItems.Count)
-            {
-                findings.Add(new HodEffectivenessFinding
+            return
+            [
+                new HodEffectivenessFinding
                 {
-                    TeamLeader = shift.TeamLeaderDisplay,
-                    Shift = shift.Shift,
-                    ShiftDate = shift.ShiftDate,
-                    Area = shift.Area ?? "",
-                    Issues = issues.Distinct().ToList(),
-                    TlClaimedSixS = claimedSixS,
-                    TlClaimedTpm = claimedTpm,
-                });
-            }
+                    Area = area,
+                    Issues = ["No TL shift forms submitted for this area/week"],
+                    IsAuditFinding = true,
+                }
+            ];
         }
 
-        if (findings.Count == 0 && shifts.Count == 0)
+        return shifts.Select(s => BuildFinding(s, auditType)).ToList();
+    }
+
+    HodEffectivenessFinding BuildFinding(ShiftSubmission shift, string auditType)
+    {
+        var completion = _completion.Evaluate(shift);
+        var hours = shift.Hours.OrderBy(h => h.HourNumber).ToList();
+        var endHour = hours.FirstOrDefault(h => h.HourNumber == 1) ?? hours.FirstOrDefault();
+
+        var claimedSixS = endHour?.SixSCompleted == true;
+        var claimedTpm = endHour?.TPMCompleted == true;
+        var allPartsId = hours.Count > 0 && hours.All(h => h.PartsIdCorrect == true);
+        var anyPartsIdFail = hours.Any(h => h.PartsIdCorrect == false);
+        var allNcStored = hours.Count > 0 && hours.All(h => h.NCPartsStoredCorrectly == true);
+        var anyNcFail = hours.Any(h => h.NCPartsStoredCorrectly == false);
+        var allQuality = hours.Count > 0 && hours.All(h => h.QualityChecksCompleted == true);
+        var anyQualityFail = hours.Any(h => h.QualityChecksCompleted == false);
+
+        var issues = new List<string>();
+        if (!completion.IsComplete)
+            issues.AddRange(completion.MissingItems.Take(3));
+        if (!completion.IsComplete && completion.MissingItems.Count > 3)
+            issues.Add($"+{completion.MissingItems.Count - 3} more missing items");
+
+        switch (auditType)
         {
-            findings.Add(new HodEffectivenessFinding
-            {
-                Area = area,
-                Issues = ["No TL shift forms submitted for this area/week — incomplete compliance"],
-            });
+            case HodAuditTypes.SixS:
+                if (claimedSixS)
+                    issues.Add("TL claimed 6S done — verify on walkaround");
+                else if (endHour?.SixSCompleted == false)
+                    issues.Add("TL marked 6S as not done");
+                else
+                    issues.Add("TL has not answered 6S check");
+                break;
+
+            case HodAuditTypes.Tpm:
+                if (claimedTpm)
+                    issues.Add("TL claimed TPM done — verify physical boards");
+                else if (endHour?.TPMCompleted == false)
+                    issues.Add("TL marked TPM as not done");
+                else
+                    issues.Add("TL has not answered TPM check");
+                break;
+
+            case HodAuditTypes.PartsIdNc:
+                if (anyPartsIdFail)
+                    issues.Add("TL recorded parts ID failures during shift");
+                else if (allPartsId)
+                    issues.Add("TL claimed all parts ID'd — verify on floor");
+                if (anyNcFail)
+                    issues.Add("TL recorded NC storage/ID failures during shift");
+                else if (allNcStored)
+                    issues.Add("TL claimed NC parts correct — verify red cards");
+                break;
+
+            case HodAuditTypes.Quality:
+                if (anyQualityFail)
+                    issues.Add("TL recorded quality check failures during shift");
+                else if (allQuality)
+                    issues.Add("TL claimed all quality checks done — verify documentation");
+                break;
         }
 
-        return findings;
+        return new HodEffectivenessFinding
+        {
+            TeamLeader = shift.TeamLeaderDisplay,
+            Shift = shift.Shift,
+            ShiftDate = shift.ShiftDate,
+            Area = shift.Area ?? "",
+            FormComplete = completion.IsComplete,
+            HoursComplete = completion.HoursComplete,
+            HoursTotal = completion.HoursTotal,
+            TlClaimedSixS = claimedSixS,
+            TlClaimedTpm = claimedTpm,
+            TlClaimedPartsId = hours.Count > 0 ? allPartsId : null,
+            TlClaimedNcStored = hours.Count > 0 ? allNcStored : null,
+            TlClaimedQuality = hours.Count > 0 ? allQuality : null,
+            Issues = issues.Distinct().ToList(),
+            IsAuditFinding = !completion.IsComplete
+                || (auditType == HodAuditTypes.SixS && !claimedSixS)
+                || (auditType == HodAuditTypes.Tpm && !claimedTpm),
+        };
     }
 }

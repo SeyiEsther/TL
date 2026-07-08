@@ -44,9 +44,16 @@ public class HodEffectivenessFinding
     public string Shift { get; set; } = "";
     public DateOnly ShiftDate { get; set; }
     public string Area { get; set; } = "";
+    public bool FormComplete { get; set; }
+    public int HoursComplete { get; set; }
+    public int HoursTotal { get; set; }
     public List<string> Issues { get; set; } = new();
     public bool TlClaimedSixS { get; set; }
     public bool TlClaimedTpm { get; set; }
+    public bool? TlClaimedPartsId { get; set; }
+    public bool? TlClaimedNcStored { get; set; }
+    public bool? TlClaimedQuality { get; set; }
+    public bool IsAuditFinding { get; set; }
 }
 
 public record HodAuditQuestion(string Id, string Section, string Label, string? MachineName = null);
@@ -69,13 +76,16 @@ public static class HodAuditTypes
     public static string LabelFor(string type) =>
         All.FirstOrDefault(t => t.Value == type).Label ?? type;
 
-    /// <summary>Suggested audit type by weekday (Mon=6S … Thu=Quality, Fri=6S).</summary>
+    /// <summary>Suggested audit type by weekday (Mon–Thu rotation, Fri=catch-up).</summary>
     public static string SuggestedForDay(DayOfWeek day) => day switch
     {
         DayOfWeek.Monday => SixS,
         DayOfWeek.Tuesday => Tpm,
         DayOfWeek.Wednesday => PartsIdNc,
         DayOfWeek.Thursday => Quality,
+        DayOfWeek.Friday => SixS,
         _ => SixS,
     };
+
+    public static string SuggestedForDate(DateOnly date) => SuggestedForDay(date.DayOfWeek);
 }

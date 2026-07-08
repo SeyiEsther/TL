@@ -37,13 +37,15 @@ public static class HodAuditDefinitions
             machines = [area];
 
         var questions = new List<HodAuditQuestion>();
-        foreach (var machine in machines)
+        for (int i = 0; i < machines.Count; i++)
         {
+            var machine = machines[i];
+            var idBase = $"tpm_{i}_{Slug(machine)}";
             var section = $"TPM Board — {machine}";
-            questions.Add(new($"tpm_{Slug(machine)}_content", section, "Does the TPM board have the required content?", machine));
-            questions.Add(new($"tpm_{Slug(machine)}_current", section, "Is the TPM board up to date?", machine));
-            questions.Add(new($"tpm_{Slug(machine)}_filled", section, "Is the TPM board being filled out?", machine));
-            questions.Add(new($"tpm_{Slug(machine)}_visual", section, "Does the TPM board meet the visual standard?", machine));
+            questions.Add(new($"{idBase}_content", section, "Does the TPM board have the required content?", machine));
+            questions.Add(new($"{idBase}_current", section, "Is the TPM board up to date?", machine));
+            questions.Add(new($"{idBase}_filled", section, "Is the TPM board being filled out?", machine));
+            questions.Add(new($"{idBase}_visual", section, "Does the TPM board meet the visual standard?", machine));
         }
         return questions;
     }

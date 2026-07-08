@@ -1,15 +1,126 @@
 @page
 @model AuditResultModel
-@{ ViewData["Title"] = "Audit result"; var h = Model.Check; var a = Model.Audit!; }
+@using TL.Models
+@using TL.Services
+@{ ViewData["Title"] = "Audit result"; }
 
 <div class="dwrap">
+@if (Model.IsHodDaily && Model.HodAudit != null)
+{
+    var a = Model.HodAudit;
+    var sections = Model.Answers.GroupBy(x => x.Section).ToList();
     <div class="page-head" style="margin-bottom:14px">
         <div>
-            <div class="page-title" style="font-size:18px;font-weight:700">Head of Department / Shift Manager</div>
-            <div class="page-sub">Audit result &bull; @a.ShiftDate.ToString("dd/MM/yyyy") &bull; <strong>@a.Area</strong></div>
+            <div class="page-title" style="font-size:18px;font-weight:700">@HodAuditTypes.LabelFor(a.AuditType)</div>
+            <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; <strong>@a.Area</strong> &bull; @a.Department</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a asp-page="/Audit" asp-route-id="@a.Id" class="sbtn sm">Edit</a>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="meta-row">
+            <div class="meta-item"><span class="meta-label">Auditor</span><span class="meta-val">@a.AuditorName</span></div>
+            <div class="meta-item"><span class="meta-label">Submitted</span><span class="meta-val">@a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</span></div>
+            <div class="meta-item"><span class="meta-label">Score</span><span class="meta-val" style="font-weight:800;color:@HodAuditScoring.BandColor(a.TotalScore, a.MaxScore)">@a.TotalScore / @a.MaxScore</span></div>
+            <div class="meta-item"><span class="meta-label">Rating</span><span class="meta-val">@Model.RatingBand</span></div>
+            <div class="meta-item"><span class="meta-label">Auditor signed</span><span class="meta-val">@(a.AuditorSignature ?? "—")</span></div>
+            <div class="meta-item"><span class="meta-label">TL signed</span><span class="meta-val">@(a.TeamLeaderSignature ?? "—")</span></div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.RatingDetail))
+        {
+            <div style="padding:10px 18px 14px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)">@Model.RatingDetail</div>
+        }
+    </div>
+
+    @foreach (var sec in sections)
+    {
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">@sec.Key</span></div>
+            <table class="dash-table">
+                <thead><tr><th>Question</th><th>Score</th><th>Evidence</th></tr></thead>
+                <tbody>
+                    @foreach (var q in sec)
+                    {
+                        <tr>
+                            <td>@q.Label</td>
+                            <td><span class="rag @(q.Pass == true ? "g" : q.Pass == false ? "r" : "u")">@AuditResultModel.PassFail(q.Pass)</span></td>
+                            <td style="font-size:12px;color:var(--muted)">@(string.IsNullOrWhiteSpace(q.Evidence) ? "—" : q.Evidence)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (Model.Effectiveness.Count > 0)
+    {
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">TL form effectiveness</span></div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:700px">
+                    <thead>
+                        <tr><th>TL</th><th>Shift</th><th>Date</th><th>Form</th><th>Notes</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in Model.Effectiveness)
+                        {
+                            <tr style="@(f.IsAuditFinding ? "background:#fef2f2" : null)">
+                                <td>@(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader)</td>
+                                <td>@(f.Shift ?? "—")</td>
+                                <td>@(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM"))</td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(f.TeamLeader))
+                                    {
+                                        <span class="rag r">No forms</span>
+                                    }
+                                    else if (f.FormComplete)
+                                    {
+                                        <span class="rag g">Complete</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rag r">@f.HoursComplete/@f.HoursTotal hrs</span>
+                                    }
+                                </td>
+                                <td style="font-size:11px">@string.Join(" · ", f.Issues)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head"><span class="card-title">Findings &amp; actions</span></div>
+        <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px;font-size:13px">
+            @if (!string.IsNullOrWhiteSpace(a.ActionsRaised))
+            {
+                <div><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px">Actions raised</div>@a.ActionsRaised</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(a.GoodPractice))
+            {
+                <div><div style="font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:4px">Good practice</div>@a.GoodPractice</div>
+            }
+            @if (string.IsNullOrWhiteSpace(a.ActionsRaised) && string.IsNullOrWhiteSpace(a.GoodPractice))
+            {
+                <div style="color:var(--muted)">No findings recorded.</div>
+            }
+        </div>
+    </div>
+}
+else if (Model.Audit != null)
+{
+    var h = Model.Check;
+    var a = Model.Audit;
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Head of Department / Shift Manager (legacy)</div>
+            <div class="page-sub">Audit result &bull; @a.ShiftDate.ToString("dd/MM/yyyy") &bull; <strong>@a.Area</strong></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a href="/api/submissions/@a.Id/pdf" class="sbtn primary sm pdf-dl" data-filename="Audit_@(a.ShiftDate.ToString("yyyyMMdd")).pdf">&#8595; PDF</a>
         </div>
     </div>
@@ -31,58 +142,13 @@
     @if (h != null)
     {
         <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Health &amp; Safety</span></div>
+            <div class="card-head"><span class="card-title">Summary</span></div>
             <div class="meta-row">
-                <div class="meta-item"><span class="meta-label">Hazards observed</span><span class="meta-val">@AuditResultModel.Bn(h.HazardsObserved)</span></div>
-                <div class="meta-item"><span class="meta-label">Unsafe behaviours</span><span class="meta-val">@AuditResultModel.Bn(h.UnsafeBehaviours)</span></div>
-                <div class="meta-item"><span class="meta-label">Positive behaviours</span><span class="meta-val">@AuditResultModel.Bn(h.PositiveBehaviours)</span></div>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(h.SafetyNotes))
-            {
-                <div style="padding:12px 18px;font-size:12px;border-top:1px solid var(--border)"><strong>Notes:</strong> @h.SafetyNotes</div>
-            }
-        </div>
-
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Quality</span></div>
-            <div class="meta-row">
-                <div class="meta-item"><span class="meta-label">Checks completed</span><span class="meta-val">@AuditResultModel.Bn(h.QualityChecksCompleted)</span></div>
-                <div class="meta-item"><span class="meta-label">Deviations escalated</span><span class="meta-val">@AuditResultModel.Bn(h.DeviationsEscalated)</span></div>
-                <div class="meta-item"><span class="meta-label">Non-compliance addressed</span><span class="meta-val">@AuditResultModel.Bn(h.NonComplianceAddressed)</span></div>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(h.QualityNotes))
-            {
-                <div style="padding:12px 18px;font-size:12px;border-top:1px solid var(--border)"><strong>Notes:</strong> @h.QualityNotes</div>
-            }
-        </div>
-
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Performance</span></div>
-            <div class="meta-row">
-                <div class="meta-item"><span class="meta-label">Target achieved</span><span class="meta-val">@AuditResultModel.Bn(h.HourlyTargetAchieved)</span></div>
-                <div class="meta-item"><span class="meta-label">Maintenance issues</span><span class="meta-val">@AuditResultModel.Bn(h.MaintenanceIssues)</span></div>
-                <div class="meta-item"><span class="meta-label">Materials available</span><span class="meta-val">@AuditResultModel.Bn(h.MaterialsAvailable)</span></div>
-                <div class="meta-item"><span class="meta-label">Tools available</span><span class="meta-val">@AuditResultModel.Bn(h.ToolsAvailable)</span></div>
                 <div class="meta-item"><span class="meta-label">6S completed</span><span class="meta-val">@AuditResultModel.Bn(h.SixSCompleted)</span></div>
                 <div class="meta-item"><span class="meta-label">TPM completed</span><span class="meta-val">@AuditResultModel.Bn(h.TPMCompleted)</span></div>
+                <div class="meta-item"><span class="meta-label">Parts ID'd</span><span class="meta-val">@AuditResultModel.Bn(h.PartsIdCorrect)</span></div>
+                <div class="meta-item"><span class="meta-label">NC stored correctly</span><span class="meta-val">@AuditResultModel.Bn(h.NCPartsStoredCorrectly)</span></div>
             </div>
-            @if (!string.IsNullOrWhiteSpace(h.PerformanceNotes))
-            {
-                <div style="padding:12px 18px;font-size:12px;border-top:1px solid var(--border)"><strong>Notes:</strong> @h.PerformanceNotes</div>
-            }
-        </div>
-
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Morale &amp; wellbeing</span></div>
-            <div class="meta-row">
-                <div class="meta-item"><span class="meta-label">Wellbeing confirmed</span><span class="meta-val">@AuditResultModel.Bn(h.WellbeingConfirmed)</span></div>
-                <div class="meta-item"><span class="meta-label">Support required</span><span class="meta-val">@AuditResultModel.Bn(h.SupportRequired)</span></div>
-                <div class="meta-item"><span class="meta-label">Accidents reported</span><span class="meta-val">@AuditResultModel.Bn(h.AccidentsReported)</span></div>
-            </div>
-            @if (!string.IsNullOrWhiteSpace(h.MoraleNotes))
-            {
-                <div style="padding:12px 18px;font-size:12px;border-top:1px solid var(--border)"><strong>Notes:</strong> @h.MoraleNotes</div>
-            }
         </div>
     }
 
@@ -107,6 +173,7 @@
             }
         </div>
     </div>
+}
 
     <a asp-page="/History" asp-route-tab="hod" class="sbtn">&larr; Back to history</a>
 </div>

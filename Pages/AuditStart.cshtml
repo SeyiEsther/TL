@@ -39,7 +39,7 @@
                         <option value="@t.Value" selected="@(t.Value == Model.SuggestedType ? "selected" : null)">@t.Label</option>
                     }
                 </select>
-                <div style="font-size:11px;color:var(--muted);margin-top:4px">Mon=6S &bull; Tue=TPM &bull; Wed=Parts ID/NC &bull; Thu=Quality</div>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Mon=6S &bull; Tue=TPM &bull; Wed=Parts ID/NC &bull; Thu=Quality &bull; Fri=catch-up</div>
             </div>
 
             <div class="fl" style="margin-bottom:14px">
@@ -85,17 +85,36 @@
 (function () {
     var dept = document.getElementById('deptSelect');
     var area = document.getElementById('areaSelect');
-    if (!dept || !area) return;
+    var dateInput = document.querySelector('input[name="auditDate"]');
+    var typeSelect = document.querySelector('select[name="auditType"]');
+    var rotation = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        HodAuditTypes.All.ToDictionary(t => t.Value, t => t.Label)));
 
-    function filterAreas() {
-        var d = dept.value;
-        Array.from(area.options).forEach(function (opt) {
-            if (!opt.value) return;
-            opt.hidden = d && opt.dataset.dept !== d;
-        });
-        if (area.selectedOptions[0]?.hidden) area.value = '';
+  var dayMap = { 0: 'SixS', 1: 'Tpm', 2: 'PartsIdNc', 3: 'Quality', 4: 'SixS', 5: 'SixS', 6: 'SixS' };
+
+    function suggestType() {
+        if (!dateInput || !typeSelect) return;
+        var d = new Date(dateInput.value + 'T12:00:00');
+        if (isNaN(d.getTime())) return;
+        var dow = d.getDay();
+        var map = { 1: 'SixS', 2: 'Tpm', 3: 'PartsIdNc', 4: 'Quality', 5: 'SixS' };
+        var suggested = map[dow] || 'SixS';
+        if (rotation[suggested]) typeSelect.value = suggested;
     }
-    dept.addEventListener('change', filterAreas);
-    filterAreas();
+
+    if (dept && area) {
+        function filterAreas() {
+            var d = dept.value;
+            Array.from(area.options).forEach(function (opt) {
+                if (!opt.value) return;
+                opt.hidden = d && opt.dataset.dept !== d;
+            });
+            if (area.selectedOptions[0]?.hidden) area.value = '';
+        }
+        dept.addEventListener('change', filterAreas);
+        filterAreas();
+    }
+
+    if (dateInput) dateInput.addEventListener('change', suggestType);
 })();
 </script>

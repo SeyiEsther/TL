@@ -283,6 +283,15 @@
         const allHours = complete === hoursCount;
         const canSubmit = allHours && sixsOk && tpmOk && sig.length > 0;
 
+        document.querySelectorAll('.shift-once-q').forEach(function (row) {
+            var isSixs = !!row.querySelector('[name="H[0].Sixs"]');
+            var isTpm = !!row.querySelector('[name="H[0].Tpm"]');
+            var incomplete = (isSixs && !sixsOk) || (isTpm && !tpmOk);
+            row.classList.toggle('hour-incomplete', incomplete);
+        });
+        var sigWrap = form.querySelector('input[name="OutgoingTLSignature"]')?.closest('div.sfield, div[style*="border"]');
+        if (sigWrap) sigWrap.classList.toggle('hour-incomplete', !sig);
+
         if (progressText) progressText.textContent = complete + ' of ' + hoursCount + ' hours complete';
         if (progressFill) progressFill.style.width = (hoursCount ? Math.round(complete / hoursCount * 100) : 0) + '%';
 

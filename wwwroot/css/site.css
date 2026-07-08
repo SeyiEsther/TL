@@ -256,6 +256,8 @@ thead th.hcol { width: 82px; }
 .sfield textarea:focus { outline: none; border-color: var(--red); }
 .submit-bar { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; display: flex; gap: 12px; align-items: center; }
 td.hour-incomplete { background: #fef2f2 !important; box-shadow: inset 0 0 0 1px #fecaca; }
+.shift-once-q.hour-incomplete { background: #fef2f2; border-radius: 8px; padding: 8px; box-shadow: inset 0 0 0 1px #fecaca; }
+.hour-incomplete input, .hour-incomplete textarea { border-color: #fca5a5 !important; }
 .sbtn {
     padding: 10px 24px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
     font-family: inherit; border: 1px solid var(--border); background: none; color: var(--muted);
