@@ -1,0 +1,338 @@
+@page
+@model HodDashboardModel
+@using TL.Models
+@using TL.Services
+@{ ViewData["Title"] = "HoD Dashboard"; }
+
+<div class="dwrap">
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">HoD / Shift Manager Dashboard</div>
+            <div class="page-sub">Daily effectiveness audits &amp; TL shift compliance</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a asp-page="/AuditStart" class="sbtn primary sm">+ New audit</a>
+            <a asp-page="/History" asp-route-tab="hod" class="sbtn sm">Audit history</a>
+        </div>
+    </div>
+
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
+        <strong>Today (@DateTime.Today.ToString("dddd")):</strong> suggested audit type is
+        <strong>@Model.TodaysSuggestedLabel</strong>.
+        @if (Model.TodayAudits == 0)
+        {
+            <span> No audit recorded yet today.</span>
+        }
+        else
+        {
+            <span> @Model.TodayAudits audit@(Model.TodayAudits == 1 ? "" : "s") already submitted today.</span>
+        }
+    </div>
+
+    <div class="card card-filter" style="margin-bottom:14px">
+        <form method="get" class="filters">
+            <partial name="_DatePicker" model='new DatePickerModel("from", Model.From, "From")' />
+            <partial name="_DatePicker" model='new DatePickerModel("to", Model.To, "To")' />
+            <partial name="_FilterArea" model='new FilterDropdownModel("area", "Area", Model.AreaFilter, "All areas")' />
+            <div class="ff">
+                <span class="ff-label">Department</span>
+                <div class="ff-control">
+                    <select name="department" class="ff-input" style="min-width:160px">
+                        <option value="">All departments</option>
+                        @foreach (var dept in AreaList.Departments)
+                        {
+                            <option value="@dept" selected="@(Model.DepartmentFilter == dept ? "selected" : null)">@dept</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="sbtn sm filter-apply">Apply filters</button>
+                <a asp-page="/HodDashboard" class="sbtn sm">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="kpi-row" style="margin-bottom:14px">
+        <div class="kpi kpi-blue">
+            <div class="kpi-icon-wrap kpi-icon-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <div class="kpi-label">Audits</div>
+            <div class="kpi-val">@Model.TotalAudits</div>
+            <div class="kpi-sub">@Model.ThisWeekAudits this week</div>
+        </div>
+        <div class="kpi kpi-indigo">
+            <div class="kpi-icon-wrap kpi-icon-indigo">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div class="kpi-label">Avg score</div>
+            <div class="kpi-val" style="color:@HodAuditScoring.BandColor(Model.AvgScorePct, 100)">@(Model.TotalAudits > 0 ? $"{Model.AvgScorePct}%" : "—")</div>
+            <div class="kpi-sub">Pass rate across audits</div>
+        </div>
+        <div class="kpi kpi-green">
+            <div class="kpi-icon-wrap kpi-icon-green">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="kpi-label">Excellent / Good</div>
+            <div class="kpi-val" style="color:#16a34a">@(Model.Excellent + Model.Good)</div>
+            <div class="kpi-sub">@Model.Excellent excellent &bull; @Model.Good good</div>
+        </div>
+        <div class="kpi kpi-amber">
+            <div class="kpi-icon-wrap kpi-icon-amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            </div>
+            <div class="kpi-label">Needs action</div>
+            <div class="kpi-val" style="color:#b45309">@(Model.NeedsImprovement + Model.Poor)</div>
+            <div class="kpi-sub">@Model.NeedsImprovement needs improvement &bull; @Model.Poor poor</div>
+        </div>
+        <div class="kpi kpi-amber">
+            <div class="kpi-icon-wrap kpi-icon-amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            </div>
+            <div class="kpi-label">TL shifts not closed</div>
+            <div class="kpi-val" style="color:#b45309">@Model.TlNotClosed</div>
+            <div class="kpi-sub">@Model.TlShiftCount shifts this week</div>
+        </div>
+    </div>
+
+    <div class="chart-grid-act" style="margin-bottom:14px">
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">14-day audit activity</span>
+                <span style="font-size:10px;color:var(--muted)">Audits per day</span>
+            </div>
+            <canvas id="hodActivityChart" style="max-height:200px"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-card-head">
+                <span class="chart-title">Audit types</span>
+                <span style="font-size:10px;color:var(--muted)">In selected period</span>
+            </div>
+            <div style="position:relative;max-width:180px;margin:0 auto">
+                <canvas id="hodTypeChart"></canvas>
+            </div>
+            <div class="shift-type-legend">
+                <div class="shift-type-item"><span class="rag-dot" style="background:#1e3a5f"></span>6S <strong>@Model.SixSCount</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#3b82f6"></span>TPM <strong>@Model.TpmCount</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#f59e0b"></span>Parts/NC <strong>@Model.PartsCount</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#16a34a"></span>Quality <strong>@Model.QualityCount</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+            <span class="card-title">This week's audit rotation</span>
+            <span class="card-sub">Mon=6S &bull; Tue=TPM &bull; Wed=Parts ID/NC &bull; Thu=Quality</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:640px">
+                <thead>
+                    <tr><th>Day</th><th>Date</th><th>Suggested</th><th>Done</th><th>Areas audited</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.WeekRotation)
+                    {
+                        var isToday = row.Date == DateOnly.FromDateTime(DateTime.Today);
+                        <tr style="@(isToday ? "background:#eff6ff" : null)">
+                            <td style="font-weight:@(isToday ? "700" : "500")">@row.DayName@(isToday ? " (today)" : "")</td>
+                            <td>@row.Date.ToString("dd/MM")</td>
+                            <td>@row.SuggestedLabel</td>
+                            <td>
+                                @if (row.AuditsDone > 0)
+                                {
+                                    <span class="rag g">@row.AuditsDone</span>
+                                }
+                                else
+                                {
+                                    <span class="rag u">0</span>
+                                }
+                            </td>
+                            <td style="font-size:11px;color:var(--muted)">
+                                @(row.CompletedDetail.Count > 0 ? string.Join(" · ", row.CompletedDetail) : "—")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (Model.TlShiftCount > 0)
+    {
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head">
+                <div>
+                    <span class="card-title">TL shift compliance this week</span>
+                    <span class="card-sub" style="margin-left:8px">unsigned, incomplete, or handover pending</span>
+                </div>
+            </div>
+            @if (Model.TlNotClosed == 0)
+            {
+                <div style="padding:16px 18px;font-size:13px;color:#166534;background:#f0fdf4">
+                    All @Model.TlShiftCount shift form(s) in view are closed correctly this week.
+                </div>
+            }
+            else
+            {
+                <div style="padding:12px 18px;font-size:12px;color:#991b1b;background:#fef2f2;border-bottom:1px solid #fecaca">
+                    <strong>@Model.TlNotClosed</strong> of <strong>@Model.TlShiftCount</strong> shifts need attention —
+                    @Model.TlIncomplete incomplete,
+                    @Model.TlUnsigned unsigned,
+                    @Model.TlHandoverPending handover pending.
+                </div>
+                @if (Model.AreaCompliance.Count > 0)
+                {
+                    <table class="dash-table">
+                        <thead>
+                            <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th><th>Handover pending</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.AreaCompliance)
+                            {
+                                <tr>
+                                    <td style="font-weight:600">@a.Area</td>
+                                    <td>@a.TotalShifts</td>
+                                    <td><span class="rag @(a.Incomplete > 0 ? "r" : "g")">@a.Incomplete</span></td>
+                                    <td><span class="rag @(a.Unsigned > 0 ? "r" : "g")">@a.Unsigned</span></td>
+                                    <td><span class="rag @(a.HandoverPending > 0 ? "a" : "g")">@a.HandoverPending</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            }
+        </div>
+    }
+
+    @if (Model.AreaAuditScores.Count > 0)
+    {
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head">
+                <span class="card-title">Areas needing attention</span>
+                <span class="card-sub">lowest audit scores in period</span>
+            </div>
+            <table class="dash-table">
+                <thead>
+                    <tr><th>Area</th><th>Audits</th><th>Avg score</th><th>Poor / needs improvement</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.AreaAuditScores)
+                    {
+                        <tr>
+                            <td style="font-weight:600">@a.Area</td>
+                            <td>@a.AuditCount</td>
+                            <td><span style="font-weight:700;color:@HodAuditScoring.BandColor(a.AvgScorePct, 100)">@a.AvgScorePct%</span></td>
+                            <td><span class="rag @(a.PoorCount > 0 ? "r" : "g")">@a.PoorCount</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">HoD audits</span>
+            <span class="card-sub">@Model.TotalAudits record@(Model.TotalAudits == 1 ? "" : "s")</span>
+        </div>
+        @if (Model.TotalAudits == 0)
+        {
+            <div class="empty">No HoD audits in this period.</div>
+            <div style="text-align:center;padding-bottom:24px">
+                <a asp-page="/AuditStart" class="sbtn primary">Start first audit</a>
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:900px">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Area</th>
+                            <th>Department</th>
+                            <th>Auditor</th>
+                            <th>Score</th>
+                            <th>Rating</th>
+                            <th>Submitted</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.Audits)
+                        {
+                            var band = HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore);
+                            <tr>
+                                <td>@a.AuditDate.ToString("dd/MM/yyyy")</td>
+                                <td>@HodAuditTypes.LabelFor(a.AuditType)</td>
+                                <td style="font-weight:600">@a.Area</td>
+                                <td>@a.Department</td>
+                                <td>@a.AuditorName</td>
+                                <td><span style="font-weight:700;color:@HodAuditScoring.BandColor(a.TotalScore, a.MaxScore)">@a.TotalScore / @a.MaxScore</span></td>
+                                <td><span class="rag @HodDashboardModel.BandClass(a)">@band</span></td>
+                                <td style="font-size:11px;color:var(--muted)">@a.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                <td style="white-space:nowrap">
+                                    <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
+                                    <a href="/api/audits/@a.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.Area.Replace(" ", "_")).pdf">PDF</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const C = { navy: '#1e3a5f', blue: '#3b82f6', amber: '#f59e0b', green: '#16a34a', gray: '#e9ebee', red: '#CC1F2C' };
+    Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+    Chart.defaults.font.size = 11;
+
+    new Chart(document.getElementById('hodActivityChart'), {
+        type: 'bar',
+        data: {
+            labels: @Html.Raw(Model.J(Model.ActivityLabels)),
+            datasets: [{
+                label: 'Audits',
+                data: @Html.Raw(Model.J(Model.ActivityData)),
+                backgroundColor: ctx => ctx.raw === 0 ? C.gray : C.navy,
+                borderRadius: 5,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+                y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: '#f0f0f0' } }
+            }
+        }
+    });
+
+    const typeTotal = @Model.SixSCount + @Model.TpmCount + @Model.PartsCount + @Model.QualityCount;
+    new Chart(document.getElementById('hodTypeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['6S', 'TPM', 'Parts/NC', 'Quality'],
+            datasets: [{
+                data: typeTotal > 0 ? [@Model.SixSCount, @Model.TpmCount, @Model.PartsCount, @Model.QualityCount] : [1, 1, 1, 1],
+                backgroundColor: typeTotal > 0 ? [C.navy, C.blue, C.amber, C.green] : [C.gray, C.gray, C.gray, C.gray],
+                borderWidth: 3,
+                borderColor: '#fff',
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: { legend: { display: false } }
+        }
+    });
+})();
+</script>
