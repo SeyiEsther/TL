@@ -1,0 +1,54 @@
+@model DatePickerModel
+@{
+    var id = $"dp-{Model.Name}";
+    var display = "";
+    if (!string.IsNullOrEmpty(Model.Value) && DateOnly.TryParse(Model.Value, out var d))
+        display = d.ToString("dd MMM yyyy");
+}
+<div class="dp" id="@id" data-name="@Model.Name">
+    <span class="dp-label">@Model.Label</span>
+    <button type="button" class="dp-trigger" aria-haspopup="dialog" aria-expanded="false">
+        <svg class="dp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        <span class="dp-display">@(string.IsNullOrEmpty(display) ? "Select date" : display)</span>
+    </button>
+    <input type="hidden" name="@Model.Name" value="@Model.Value" class="dp-input">
+    <div class="dp-popover" hidden>
+        <div class="dp-quick">
+            <button type="button" class="dp-quick-btn" data-offset="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                <span>Yesterday</span>
+            </button>
+            <button type="button" class="dp-quick-btn" data-offset="0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                <span>Today</span>
+            </button>
+            <button type="button" class="dp-quick-btn" data-offset="1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                <span>Tomorrow</span>
+            </button>
+        </div>
+        <button type="button" class="dp-custom-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Custom
+        </button>
+        <div class="dp-calendar" hidden>
+            <div class="dp-cal-head">
+                <button type="button" class="dp-nav" data-dir="-1" aria-label="Previous month">&lsaquo;</button>
+                <span class="dp-month-label"></span>
+                <button type="button" class="dp-nav" data-dir="1" aria-label="Next month">&rsaquo;</button>
+            </div>
+            <div class="dp-dow">
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            </div>
+            <div class="dp-days"></div>
+            <div class="dp-cal-foot">
+                <button type="button" class="dp-cancel">Cancel</button>
+                <button type="button" class="dp-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>

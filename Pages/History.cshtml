@@ -15,26 +15,36 @@
     <div class="card" style="margin-bottom:14px">
         <form method="get" class="filters">
             <input type="hidden" name="tab" value="@Model.Tab">
-            <div class="sf"><label>From</label><input type="date" name="from" value="@Model.From"></div>
-            <div class="sf"><label>To</label><input type="date" name="to" value="@Model.To"></div>
-            <div class="sf">
-                <label>Area</label>
-                <select name="area" style="max-width:200px">
-                    <option value="">All areas</option>
-                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
-                    {
-                        <optgroup label="@grp.Key">
-                            @foreach (var a in grp)
-                            {
-                                <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
-                            }
-                        </optgroup>
-                    }
-                </select>
+            <partial name="_DatePicker" model='new DatePickerModel("from", Model.From, "From")' />
+            <partial name="_DatePicker" model='new DatePickerModel("to", Model.To, "To")' />
+            <div class="ff">
+                <span class="ff-label">Area</span>
+                <div class="ff-control">
+                    <select name="area" class="ff-select" style="max-width:220px">
+                        <option value="">All areas</option>
+                        @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                        {
+                            <optgroup label="@grp.Key">
+                                @foreach (var a in grp)
+                                {
+                                    <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
             </div>
-            <div class="sf"><label>Name</label><input type="text" name="q" value="@Model.PersonFilter" placeholder="Team leader or auditor…" style="min-width:160px"></div>
-            <button type="submit" class="sbtn sm">Filter</button>
-            <a asp-page="/History" asp-route-tab="@Model.Tab" class="sbtn sm">Clear</a>
+            <div class="ff">
+                <span class="ff-label">Name</span>
+                <div class="ff-control">
+                    <svg class="ff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" name="q" class="ff-input" value="@Model.PersonFilter" placeholder="Team leader or auditor…" style="min-width:180px">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="sbtn sm filter-apply">Apply filters</button>
+                <a asp-page="/History" asp-route-tab="@Model.Tab" class="sbtn sm">Clear</a>
+            </div>
         </form>
     </div>
 
