@@ -544,7 +544,7 @@
 
             function countProgress() {
                 var groups = {};
-                form.querySelectorAll('.audit-yn input[type="radio"], .audit-binary input[type="radio"]').forEach(function (r) {
+                form.querySelectorAll('.audit-yn input[type="radio"], .audit-binary input[type="radio"], .score-3 input[type="radio"]').forEach(function (r) {
                     if (!groups[r.name]) groups[r.name] = false;
                     if (r.checked) groups[r.name] = true;
                 });

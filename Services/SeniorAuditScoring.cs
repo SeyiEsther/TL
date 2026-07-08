@@ -4,11 +4,17 @@ namespace TL.Services;
 
 public static class SeniorAuditScoring
 {
-    public static int CategoryScore(params bool?[] fields)
+    public const byte NotMet = 0;
+    public const byte Partial = 1;
+    public const byte Met = 2;
+
+    public static int CategoryScore(params byte?[] fields)
     {
-        var answered = fields.Where(f => f.HasValue).ToArray();
+        var answered = fields.Where(f => f is >= 0 and <= 2).ToArray();
         if (answered.Length == 0) return 0;
-        return answered.Count(f => f == true) * 100 / answered.Length;
+        var total = answered.Sum(f => f!.Value);
+        var max = answered.Length * Met;
+        return total * 100 / max;
     }
 
     public static int GovernanceScore(SeniorWeeklyAudit a) =>
@@ -38,6 +44,21 @@ public static class SeniorAuditScoring
         }.Where(s => s > 0).ToArray();
         return scores.Length > 0 ? (int)scores.Average() : 0;
     }
+
+    public static int QuestionAvgPct(IEnumerable<SeniorWeeklyAudit> audits, Func<SeniorWeeklyAudit, byte?> field)
+    {
+        var answered = audits.Where(a => field(a) is >= 0 and <= 2).ToList();
+        if (answered.Count == 0) return 0;
+        return (int)answered.Average(a => field(a)!.Value * 50.0);
+    }
+
+    public static string ScoreLabel(byte? score) => score switch
+    {
+        2 => "Met (2)",
+        1 => "Partial (1)",
+        0 => "Not met (0)",
+        _ => "—",
+    };
 
     public static string GaugeColor(int pct) => pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
 }

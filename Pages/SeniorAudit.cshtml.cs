@@ -9,34 +9,34 @@ namespace TL.Pages;
 
 public class SeniorAuditInputModel
 {
-    public bool? HandoverStandardsFollowed { get; set; }
-    public bool? VisualManagementCurrent { get; set; }
-    public bool? EscalationPathsUsed { get; set; }
+    public byte? HandoverStandardsFollowed { get; set; }
+    public byte? VisualManagementCurrent { get; set; }
+    public byte? EscalationPathsUsed { get; set; }
     public string? GovernanceNotes { get; set; }
 
-    public bool? PpeComplianceFull { get; set; }
-    public bool? NearMissesReported { get; set; }
-    public bool? SafetyActionLogCurrent { get; set; }
+    public byte? PpeComplianceFull { get; set; }
+    public byte? NearMissesReported { get; set; }
+    public byte? SafetyActionLogCurrent { get; set; }
     public string? SafetyNotes { get; set; }
 
-    public bool? FirstOffRecordsComplete { get; set; }
-    public bool? NcCaptureTrended { get; set; }
-    public bool? QualityGatesMaintained { get; set; }
+    public byte? FirstOffRecordsComplete { get; set; }
+    public byte? NcCaptureTrended { get; set; }
+    public byte? QualityGatesMaintained { get; set; }
     public string? QualityNotes { get; set; }
 
-    public bool? AbsenceManagedProactively { get; set; }
-    public bool? TlsCoachingTeams { get; set; }
-    public bool? TrainingMatrixCurrent { get; set; }
+    public byte? AbsenceManagedProactively { get; set; }
+    public byte? TlsCoachingTeams { get; set; }
+    public byte? TrainingMatrixCurrent { get; set; }
     public string? PeopleNotes { get; set; }
 
-    public bool? SixSStandardMaintained { get; set; }
-    public bool? TpmScheduleFollowed { get; set; }
-    public bool? StandardWorkVisible { get; set; }
+    public byte? SixSStandardMaintained { get; set; }
+    public byte? TpmScheduleFollowed { get; set; }
+    public byte? StandardWorkVisible { get; set; }
     public string? StandardsNotes { get; set; }
 
-    public bool? TrackingAgainstWeeklyPlan { get; set; }
-    public bool? MetricsVisibleAndOwned { get; set; }
-    public bool? ImprovementActionsProgressing { get; set; }
+    public byte? TrackingAgainstWeeklyPlan { get; set; }
+    public byte? MetricsVisibleAndOwned { get; set; }
+    public byte? ImprovementActionsProgressing { get; set; }
     public string? PerformanceNotes { get; set; }
 
     public string? GoodPracticeObserved { get; set; }
@@ -92,6 +92,13 @@ public class SeniorAuditModel : PageModel
         EditingId = editingId;
         AuditorSignature = auditorSignature;
 
+        var missing = CountMissingScores(A);
+        if (missing > 0)
+        {
+            ModelState.AddModelError("", $"Answer all {missing} question(s) using the 0–2 scale.");
+            return Page();
+        }
+
         var user = _users.GetCurrentUser();
 
         if (editingId.HasValue)
@@ -104,87 +111,96 @@ public class SeniorAuditModel : PageModel
             await _db.SaveChangesAsync();
             return RedirectToPage("/SeniorSuccess", new { id = editingId });
         }
-        else
+
+        if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
+
+        var audit = new SeniorWeeklyAudit
         {
-            if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
+            SubmittedBy = user.Username,
+            AuditorName = auditorName ?? user.DisplayName,
+            AuditDate = d,
+            Area = area,
+            AuditorSignature = auditorSignature,
+        };
+        ApplyInput(audit, A);
 
-            var sub = new SeniorWeeklyAudit
-            {
-                SubmittedBy = user.Username,
-                AuditorName = auditorName ?? user.DisplayName,
-                AuditDate = d,
-                Area = area,
-                AuditorSignature = auditorSignature,
-            };
-            ApplyInput(sub, A);
-
-            _db.SeniorWeeklyAudits.Add(sub);
-            await _db.SaveChangesAsync();
-            return RedirectToPage("/SeniorSuccess", new { id = sub.Id });
-        }
+        _db.SeniorWeeklyAudits.Add(audit);
+        await _db.SaveChangesAsync();
+        return RedirectToPage("/SeniorSuccess", new { id = audit.Id });
     }
+
+    static int CountMissingScores(SeniorAuditInputModel a) =>
+        new byte?[]
+        {
+            a.HandoverStandardsFollowed, a.VisualManagementCurrent, a.EscalationPathsUsed,
+            a.PpeComplianceFull, a.NearMissesReported, a.SafetyActionLogCurrent,
+            a.FirstOffRecordsComplete, a.NcCaptureTrended, a.QualityGatesMaintained,
+            a.AbsenceManagedProactively, a.TlsCoachingTeams, a.TrainingMatrixCurrent,
+            a.SixSStandardMaintained, a.TpmScheduleFollowed, a.StandardWorkVisible,
+            a.TrackingAgainstWeeklyPlan, a.MetricsVisibleAndOwned, a.ImprovementActionsProgressing,
+        }.Count(v => v is null or > 2);
 
     private static SeniorAuditInputModel MapToInput(SeniorWeeklyAudit s) => new()
     {
         HandoverStandardsFollowed = s.HandoverStandardsFollowed,
-        VisualManagementCurrent   = s.VisualManagementCurrent,
-        EscalationPathsUsed       = s.EscalationPathsUsed,
-        GovernanceNotes           = s.GovernanceNotes,
-        PpeComplianceFull         = s.PpeComplianceFull,
-        NearMissesReported        = s.NearMissesReported,
-        SafetyActionLogCurrent    = s.SafetyActionLogCurrent,
-        SafetyNotes               = s.SafetyNotes,
-        FirstOffRecordsComplete   = s.FirstOffRecordsComplete,
-        NcCaptureTrended          = s.NcCaptureTrended,
-        QualityGatesMaintained    = s.QualityGatesMaintained,
-        QualityNotes              = s.QualityNotes,
+        VisualManagementCurrent = s.VisualManagementCurrent,
+        EscalationPathsUsed = s.EscalationPathsUsed,
+        GovernanceNotes = s.GovernanceNotes,
+        PpeComplianceFull = s.PpeComplianceFull,
+        NearMissesReported = s.NearMissesReported,
+        SafetyActionLogCurrent = s.SafetyActionLogCurrent,
+        SafetyNotes = s.SafetyNotes,
+        FirstOffRecordsComplete = s.FirstOffRecordsComplete,
+        NcCaptureTrended = s.NcCaptureTrended,
+        QualityGatesMaintained = s.QualityGatesMaintained,
+        QualityNotes = s.QualityNotes,
         AbsenceManagedProactively = s.AbsenceManagedProactively,
-        TlsCoachingTeams          = s.TlsCoachingTeams,
-        TrainingMatrixCurrent     = s.TrainingMatrixCurrent,
-        PeopleNotes               = s.PeopleNotes,
-        SixSStandardMaintained    = s.SixSStandardMaintained,
-        TpmScheduleFollowed       = s.TpmScheduleFollowed,
-        StandardWorkVisible       = s.StandardWorkVisible,
-        StandardsNotes            = s.StandardsNotes,
-        TrackingAgainstWeeklyPlan     = s.TrackingAgainstWeeklyPlan,
-        MetricsVisibleAndOwned        = s.MetricsVisibleAndOwned,
+        TlsCoachingTeams = s.TlsCoachingTeams,
+        TrainingMatrixCurrent = s.TrainingMatrixCurrent,
+        PeopleNotes = s.PeopleNotes,
+        SixSStandardMaintained = s.SixSStandardMaintained,
+        TpmScheduleFollowed = s.TpmScheduleFollowed,
+        StandardWorkVisible = s.StandardWorkVisible,
+        StandardsNotes = s.StandardsNotes,
+        TrackingAgainstWeeklyPlan = s.TrackingAgainstWeeklyPlan,
+        MetricsVisibleAndOwned = s.MetricsVisibleAndOwned,
         ImprovementActionsProgressing = s.ImprovementActionsProgressing,
-        PerformanceNotes          = s.PerformanceNotes,
-        GoodPracticeObserved      = s.GoodPracticeObserved,
-        AreasForImprovement       = s.AreasForImprovement,
-        ActionsRaised             = s.ActionsRaised,
-        OverallVerdict            = s.OverallVerdict,
+        PerformanceNotes = s.PerformanceNotes,
+        GoodPracticeObserved = s.GoodPracticeObserved,
+        AreasForImprovement = s.AreasForImprovement,
+        ActionsRaised = s.ActionsRaised,
+        OverallVerdict = s.OverallVerdict,
     };
 
     private static void ApplyInput(SeniorWeeklyAudit s, SeniorAuditInputModel a)
     {
-        s.HandoverStandardsFollowed   = a.HandoverStandardsFollowed;
-        s.VisualManagementCurrent     = a.VisualManagementCurrent;
-        s.EscalationPathsUsed         = a.EscalationPathsUsed;
-        s.GovernanceNotes             = a.GovernanceNotes;
-        s.PpeComplianceFull           = a.PpeComplianceFull;
-        s.NearMissesReported          = a.NearMissesReported;
-        s.SafetyActionLogCurrent      = a.SafetyActionLogCurrent;
-        s.SafetyNotes                 = a.SafetyNotes;
-        s.FirstOffRecordsComplete     = a.FirstOffRecordsComplete;
-        s.NcCaptureTrended            = a.NcCaptureTrended;
-        s.QualityGatesMaintained      = a.QualityGatesMaintained;
-        s.QualityNotes                = a.QualityNotes;
-        s.AbsenceManagedProactively   = a.AbsenceManagedProactively;
-        s.TlsCoachingTeams            = a.TlsCoachingTeams;
-        s.TrainingMatrixCurrent       = a.TrainingMatrixCurrent;
-        s.PeopleNotes                 = a.PeopleNotes;
-        s.SixSStandardMaintained      = a.SixSStandardMaintained;
-        s.TpmScheduleFollowed         = a.TpmScheduleFollowed;
-        s.StandardWorkVisible         = a.StandardWorkVisible;
-        s.StandardsNotes              = a.StandardsNotes;
-        s.TrackingAgainstWeeklyPlan       = a.TrackingAgainstWeeklyPlan;
-        s.MetricsVisibleAndOwned          = a.MetricsVisibleAndOwned;
-        s.ImprovementActionsProgressing   = a.ImprovementActionsProgressing;
-        s.PerformanceNotes            = a.PerformanceNotes;
-        s.GoodPracticeObserved        = a.GoodPracticeObserved;
-        s.AreasForImprovement         = a.AreasForImprovement;
-        s.ActionsRaised               = a.ActionsRaised;
-        s.OverallVerdict              = a.OverallVerdict;
+        s.HandoverStandardsFollowed = a.HandoverStandardsFollowed;
+        s.VisualManagementCurrent = a.VisualManagementCurrent;
+        s.EscalationPathsUsed = a.EscalationPathsUsed;
+        s.GovernanceNotes = a.GovernanceNotes;
+        s.PpeComplianceFull = a.PpeComplianceFull;
+        s.NearMissesReported = a.NearMissesReported;
+        s.SafetyActionLogCurrent = a.SafetyActionLogCurrent;
+        s.SafetyNotes = a.SafetyNotes;
+        s.FirstOffRecordsComplete = a.FirstOffRecordsComplete;
+        s.NcCaptureTrended = a.NcCaptureTrended;
+        s.QualityGatesMaintained = a.QualityGatesMaintained;
+        s.QualityNotes = a.QualityNotes;
+        s.AbsenceManagedProactively = a.AbsenceManagedProactively;
+        s.TlsCoachingTeams = a.TlsCoachingTeams;
+        s.TrainingMatrixCurrent = a.TrainingMatrixCurrent;
+        s.PeopleNotes = a.PeopleNotes;
+        s.SixSStandardMaintained = a.SixSStandardMaintained;
+        s.TpmScheduleFollowed = a.TpmScheduleFollowed;
+        s.StandardWorkVisible = a.StandardWorkVisible;
+        s.StandardsNotes = a.StandardsNotes;
+        s.TrackingAgainstWeeklyPlan = a.TrackingAgainstWeeklyPlan;
+        s.MetricsVisibleAndOwned = a.MetricsVisibleAndOwned;
+        s.ImprovementActionsProgressing = a.ImprovementActionsProgressing;
+        s.PerformanceNotes = a.PerformanceNotes;
+        s.GoodPracticeObserved = a.GoodPracticeObserved;
+        s.AreasForImprovement = a.AreasForImprovement;
+        s.ActionsRaised = a.ActionsRaised;
+        s.OverallVerdict = a.OverallVerdict;
     }
 }

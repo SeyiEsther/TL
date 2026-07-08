@@ -1,5 +1,6 @@
 @page
 @model SeniorAuditModel
+@using TL.Services
 @{ ViewData["Title"] = "Senior Team Audit";
    var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
 
@@ -31,6 +32,22 @@
         </nav>
     </div>
 
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
+        <strong>Scoring:</strong> Each question uses a 0–2 scale —
+        <strong>0</strong> not met, <strong>1</strong> partial, <strong>2</strong> fully met.
+        Two auditors should score the same way.
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="err" style="margin-bottom:14px">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@err.ErrorMessage</div>
+            }
+        </div>
+    }
+
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
@@ -42,13 +59,13 @@
         <div class="audit-card" id="sec-leadership">
             <div class="audit-head" style="background:#1e3a5f"><div class="audit-acc"></div><span>Leadership &amp; Governance</span></div>
             <div class="audit-body">
-                @{ await RenderQ("Shift handover standards being followed?",
+                @{ await RenderScore("Shift handover standards being followed?",
                     "A.HandoverStandardsFollowed", Model.A.HandoverStandardsFollowed,
                     "Outgoing TL has briefed incoming TL; checklist completed and signed"); }
-                @{ await RenderQ("Visual management board up to date?",
+                @{ await RenderScore("Visual management board up to date?",
                     "A.VisualManagementCurrent", Model.A.VisualManagementCurrent,
                     "KPIs, targets and action boards are current and owned"); }
-                @{ await RenderQ("Escalation paths being used correctly?",
+                @{ await RenderScore("Escalation paths being used correctly?",
                     "A.EscalationPathsUsed", Model.A.EscalationPathsUsed,
                     "Issues are being surfaced through the right channels at the right level"); }
                 @{ await RenderNote("Notes", "A.GovernanceNotes", Model.A.GovernanceNotes); }
@@ -59,13 +76,13 @@
         <div class="audit-card" id="sec-safety">
             <div class="audit-head safety"><div class="audit-acc"></div><span>Safety Culture</span></div>
             <div class="audit-body">
-                @{ await RenderQ("PPE compliance 100% across the area?",
+                @{ await RenderScore("PPE compliance 100% across the area?",
                     "A.PpeComplianceFull", Model.A.PpeComplianceFull,
                     "All team members wearing correct PPE — no exceptions observed"); }
-                @{ await RenderQ("Near-misses being reported and acted on?",
+                @{ await RenderScore("Near-misses being reported and acted on?",
                     "A.NearMissesReported", Model.A.NearMissesReported,
                     "Near-miss log is current; corrective actions have owners and due dates"); }
-                @{ await RenderQ("Safety action log up to date?",
+                @{ await RenderScore("Safety action log up to date?",
                     "A.SafetyActionLogCurrent", Model.A.SafetyActionLogCurrent,
                     "All open safety actions have been reviewed and progressed this week"); }
                 @{ await RenderNote("Notes &amp; observations", "A.SafetyNotes", Model.A.SafetyNotes); }
@@ -76,13 +93,13 @@
         <div class="audit-card" id="sec-quality">
             <div class="audit-head quality"><div class="audit-acc"></div><span>Quality Governance</span></div>
             <div class="audit-body">
-                @{ await RenderQ("First-off inspection records complete?",
+                @{ await RenderScore("First-off inspection records complete?",
                     "A.FirstOffRecordsComplete", Model.A.FirstOffRecordsComplete,
                     "First-off checks have been signed off and filed for all jobs run this week"); }
-                @{ await RenderQ("Non-conformance being captured and trended?",
+                @{ await RenderScore("Non-conformance being captured and trended?",
                     "A.NcCaptureTrended", Model.A.NcCaptureTrended,
                     "NC data is recorded, visible, and reviewed for repeat patterns"); }
-                @{ await RenderQ("Quality gates maintained across the process?",
+                @{ await RenderScore("Quality gates maintained across the process?",
                     "A.QualityGatesMaintained", Model.A.QualityGatesMaintained,
                     "Inspection points and hold points are staffed and not being bypassed"); }
                 @{ await RenderNote("Notes &amp; observations", "A.QualityNotes", Model.A.QualityNotes); }
@@ -93,13 +110,13 @@
         <div class="audit-card" id="sec-people">
             <div class="audit-head morale"><div class="audit-acc"></div><span>People &amp; Wellbeing</span></div>
             <div class="audit-body">
-                @{ await RenderQ("Absence and attendance being managed proactively?",
+                @{ await RenderScore("Absence and attendance being managed proactively?",
                     "A.AbsenceManagedProactively", Model.A.AbsenceManagedProactively,
                     "Return-to-work interviews completed; patterns identified and escalated where needed"); }
-                @{ await RenderQ("TLs actively coaching and developing their teams?",
+                @{ await RenderScore("TLs actively coaching and developing their teams?",
                     "A.TlsCoachingTeams", Model.A.TlsCoachingTeams,
                     "Observed TL interaction — coaching, not just directing"); }
-                @{ await RenderQ("Training matrix current and actioned?",
+                @{ await RenderScore("Training matrix current and actioned?",
                     "A.TrainingMatrixCurrent", Model.A.TrainingMatrixCurrent,
                     "Training plans are up to date, gaps identified and in progress"); }
                 @{ await RenderNote("Notes &amp; observations", "A.PeopleNotes", Model.A.PeopleNotes); }
@@ -110,13 +127,13 @@
         <div class="audit-card" id="sec-standards">
             <div class="audit-head" style="background:#6d28d9"><div class="audit-acc"></div><span>Standards &amp; Housekeeping</span></div>
             <div class="audit-body">
-                @{ await RenderQ("6S standard maintained across the area?",
+                @{ await RenderScore("6S standard maintained across the area?",
                     "A.SixSStandardMaintained", Model.A.SixSStandardMaintained,
                     "Audit score consistent with previous week; no regression in any zone"); }
-                @{ await RenderQ("TPM schedule being followed?",
+                @{ await RenderScore("TPM schedule being followed?",
                     "A.TpmScheduleFollowed", Model.A.TpmScheduleFollowed,
                     "All planned preventive maintenance tasks completed on schedule this week"); }
-                @{ await RenderQ("Standard work documents visible and in use?",
+                @{ await RenderScore("Standard work documents visible and in use?",
                     "A.StandardWorkVisible", Model.A.StandardWorkVisible,
                     "Work instructions are at the point of use and operators are following them"); }
                 @{ await RenderNote("Notes &amp; observations", "A.StandardsNotes", Model.A.StandardsNotes); }
@@ -127,13 +144,13 @@
         <div class="audit-card" id="sec-performance">
             <div class="audit-head perf"><div class="audit-acc"></div><span>Performance</span></div>
             <div class="audit-body">
-                @{ await RenderQ("Area tracking against weekly production plan?",
+                @{ await RenderScore("Area tracking against weekly production plan?",
                     "A.TrackingAgainstWeeklyPlan", Model.A.TrackingAgainstWeeklyPlan,
                     "Output is on or ahead of the weekly plan; any shortfall has a recovery plan"); }
-                @{ await RenderQ("Performance metrics visible and owned?",
+                @{ await RenderScore("Performance metrics visible and owned?",
                     "A.MetricsVisibleAndOwned", Model.A.MetricsVisibleAndOwned,
                     "OEE or equivalent KPIs are displayed, current, and each has a named owner"); }
-                @{ await RenderQ("Improvement actions progressing?",
+                @{ await RenderScore("Improvement actions progressing?",
                     "A.ImprovementActionsProgressing", Model.A.ImprovementActionsProgressing,
                     "CI actions from last audit have moved forward; no stalled items without reason"); }
                 @{ await RenderNote("Notes &amp; actions taken", "A.PerformanceNotes", Model.A.PerformanceNotes); }
@@ -192,8 +209,9 @@
 </div>
 
 @functions {
-    async Task RenderQ(string label, string field, bool? val, string? hint = null)
+    async Task RenderScore(string label, string field, byte? val, string? hint = null)
     {
+        var gid = field.Replace(".", "_");
         <div class="audit-q">
             <div class="audit-q-label">
                 <span>@Html.Raw(label)</span>
@@ -202,11 +220,13 @@
                     <span class="q-hint">@hint</span>
                 }
             </div>
-            <div class="audit-yn">
-                <input type="radio" class="ayn-y" name="@field" id="@(field)_y" value="True"  checked="@(val == true ? "checked" : null)">
-                <label for="@(field)_y">Yes</label>
-                <input type="radio" class="ayn-n" name="@field" id="@(field)_n" value="False" checked="@(val == false ? "checked" : null)">
-                <label for="@(field)_n">No</label>
+            <div class="audit-yn score-3">
+                @foreach (var opt in new[] { (0, "0", "Not met"), (1, "1", "Partial"), (2, "2", "Met") })
+                {
+                    var id = $"{gid}_{opt.Item1}";
+                    <input type="radio" name="@field" id="@id" value="@opt.Item1" checked="@(val == opt.Item1 ? "checked" : null)">
+                    <label for="@id" title="@opt.Item3">@opt.Item2</label>
+                }
             </div>
         </div>
         await Task.CompletedTask;

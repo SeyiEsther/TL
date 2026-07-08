@@ -567,6 +567,10 @@ a.pdf-loading { opacity: .55; pointer-events: none; }
 .audit-yn label { min-width: 58px; padding: 11px 16px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--muted); border-right: 1px solid var(--border); user-select: none; text-align: center; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .1s; }
 .audit-yn label:last-child { border-right: none; }
 .ayn-y:checked + label { background: var(--green-bg); color: var(--green); }
+.score-3 label { min-width: 52px; }
+.score-3 input[value="0"]:checked + label { background: #fee2e2; color: #991b1b; }
+.score-3 input[value="1"]:checked + label { background: #fef3c7; color: #b45309; }
+.score-3 input[value="2"]:checked + label { background: var(--green-bg); color: var(--green); }
 .ayn-n:checked + label { background: var(--red-bg); color: var(--red-text); }
 .audit-note { padding: 10px 18px 16px; border-bottom: 1px solid var(--border); }
 .audit-note:last-child { border-bottom: none; }

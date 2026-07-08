@@ -206,7 +206,7 @@
     }
 
     void RenderCategoryPanel(string tabId, string title, int score,
-        params (string Label, Func<SeniorWeeklyAudit, bool?> Field)[] fields)
+        params (string Label, Func<SeniorWeeklyAudit, byte?> Field)[] fields)
     {
         <div class="sd-panel" id="panel-@tabId">
             <div class="card" style="margin-bottom:14px">
@@ -221,9 +221,7 @@
                     <div class="sd-checklist">
                         @foreach (var f in fields)
                         {
-                            var answered = Model.Audits.Where(a => f.Field(a).HasValue).ToList();
-                            var pass = answered.Count(a => f.Field(a) == true);
-                            var pct = answered.Count > 0 ? pass * 100 / answered.Count : 0;
+                            var pct = SeniorAuditScoring.QuestionAvgPct(Model.Audits, f.Field);
                             <div class="sd-check-row">
                                 <span>@f.Label</span>
                                 <span class="sd-check-pct" style="color:@SeniorDashboardModel.GaugeColor(pct)">@pct%</span>

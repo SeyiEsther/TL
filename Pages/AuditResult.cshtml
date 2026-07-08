@@ -15,7 +15,9 @@
             <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; <strong>@a.Area</strong> &bull; @a.Department</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
             <a asp-page="/Audit" asp-route-id="@a.Id" class="sbtn sm">Edit</a>
+            <a href="/api/audits/@a.Id/pdf" class="sbtn primary sm pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.Area.Replace(" ", "_")).pdf">&#8595; PDF</a>
         </div>
     </div>
 
