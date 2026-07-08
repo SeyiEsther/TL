@@ -531,6 +531,65 @@
         });
     }
 
+    /* ── Audit form progress & section nav ── */
+    function initAuditForms() {
+        document.querySelectorAll('[data-audit-form]').forEach(function (wrap) {
+            var form = wrap.querySelector('form');
+            if (!form) return;
+
+            var fill = wrap.querySelector('.audit-progress-fill');
+            var text = wrap.querySelector('.audit-progress-text');
+            var links = wrap.querySelectorAll('.audit-sec-link');
+            var sections = wrap.querySelectorAll('.audit-card[id]');
+
+            function countProgress() {
+                var groups = {};
+                form.querySelectorAll('.audit-yn input[type="radio"]').forEach(function (r) {
+                    if (!groups[r.name]) groups[r.name] = false;
+                    if (r.checked) groups[r.name] = true;
+                });
+                form.querySelectorAll('.status-pills input[type="radio"]:checked, .verdict-pills input[type="radio"]:checked').forEach(function (r) {
+                    if (r.value) groups[r.name] = true;
+                });
+                var names = Object.keys(groups);
+                var done = names.filter(function (n) { return groups[n]; }).length;
+                var pct = names.length ? Math.round((done / names.length) * 100) : 0;
+                if (fill) fill.style.width = pct + '%';
+                if (text) text.textContent = done + '/' + names.length;
+            }
+
+            function updateActiveSection() {
+                if (!sections.length || !links.length) return;
+                var offset = 140;
+                var current = sections[0];
+                sections.forEach(function (sec) {
+                    if (sec.getBoundingClientRect().top - offset <= 0) current = sec;
+                });
+                links.forEach(function (link) {
+                    var href = link.getAttribute('href') || '';
+                    link.classList.toggle('active', href === '#' + current.id);
+                });
+            }
+
+            form.addEventListener('change', countProgress);
+            countProgress();
+
+            links.forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    var id = link.getAttribute('href');
+                    if (!id || id.charAt(0) !== '#') return;
+                    var target = wrap.querySelector(id);
+                    if (!target) return;
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+                });
+            });
+
+            window.addEventListener('scroll', updateActiveSection, { passive: true });
+            updateActiveSection();
+        });
+    }
+
     window.addEventListener('resize', repositionOpen);
     window.addEventListener('scroll', repositionOpen, true);
 
@@ -539,6 +598,7 @@
         initTabBars();
         initSdPanels();
         initPdfDownloads();
+        initAuditForms();
         document.querySelectorAll('.dp').forEach(initPicker);
         document.querySelectorAll('.fs').forEach(initFilter);
     });

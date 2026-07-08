@@ -3,21 +3,34 @@
 @{ ViewData["Title"] = "Senior Team Audit";
    var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
 
-<div class="audit-wrap">
+<div class="audit-wrap" data-audit-form>
 
-    <div class="page-head" style="margin-bottom:10px">
-        <div>
-            <div class="page-title" style="font-size:18px;font-weight:700">Senior Team Weekly Audit</div>
-            <div class="page-sub">
-                @auditDateDisplay &bull; <strong>@Model.Area</strong>
-                @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
+    <div class="audit-sticky">
+        <div class="audit-sticky-top">
+            <div>
+                <div class="audit-sticky-title">Senior Team Weekly Audit</div>
+                <div class="audit-sticky-sub">
+                    @auditDateDisplay &bull; <strong>@Model.Area</strong>
+                    @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
+                </div>
+            </div>
+            @if (Model.EditingId.HasValue) { <span class="audit-badge-editing">Editing</span> }
+            <div class="audit-progress-meta">
+                <div class="audit-progress-track"><div class="audit-progress-fill"></div></div>
+                <span class="audit-progress-text">0/0</span>
             </div>
         </div>
-        @if (Model.EditingId.HasValue)
-        {
-            <span style="font-size:11px;background:#fef3c7;color:#b45309;border:1px solid #fcd34d;border-radius:6px;padding:5px 12px;font-weight:600">Editing</span>
-        }
+        <nav class="audit-sec-nav" aria-label="Audit sections">
+            <a href="#sec-leadership" class="audit-sec-link">Leadership</a>
+            <a href="#sec-safety" class="audit-sec-link">Safety</a>
+            <a href="#sec-quality" class="audit-sec-link">Quality</a>
+            <a href="#sec-people" class="audit-sec-link">People</a>
+            <a href="#sec-standards" class="audit-sec-link">Standards</a>
+            <a href="#sec-performance" class="audit-sec-link">Performance</a>
+            <a href="#sec-findings" class="audit-sec-link">Findings</a>
+        </nav>
     </div>
+
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
@@ -26,7 +39,7 @@
         @if (Model.EditingId.HasValue) { <input type="hidden" name="editingId" value="@Model.EditingId"> }
 
         <!-- LEADERSHIP & GOVERNANCE -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-leadership">
             <div class="audit-head" style="background:#1e3a5f"><div class="audit-acc"></div><span>Leadership &amp; Governance</span></div>
             <div class="audit-body">
                 @{ await RenderQ("Shift handover standards being followed?",
@@ -43,7 +56,7 @@
         </div>
 
         <!-- SAFETY CULTURE -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-safety">
             <div class="audit-head safety"><div class="audit-acc"></div><span>Safety Culture</span></div>
             <div class="audit-body">
                 @{ await RenderQ("PPE compliance 100% across the area?",
@@ -60,7 +73,7 @@
         </div>
 
         <!-- QUALITY GOVERNANCE -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-quality">
             <div class="audit-head quality"><div class="audit-acc"></div><span>Quality Governance</span></div>
             <div class="audit-body">
                 @{ await RenderQ("First-off inspection records complete?",
@@ -77,7 +90,7 @@
         </div>
 
         <!-- PEOPLE & WELLBEING -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-people">
             <div class="audit-head morale"><div class="audit-acc"></div><span>People &amp; Wellbeing</span></div>
             <div class="audit-body">
                 @{ await RenderQ("Absence and attendance being managed proactively?",
@@ -94,7 +107,7 @@
         </div>
 
         <!-- STANDARDS & HOUSEKEEPING -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-standards">
             <div class="audit-head" style="background:#6d28d9"><div class="audit-acc"></div><span>Standards &amp; Housekeeping</span></div>
             <div class="audit-body">
                 @{ await RenderQ("6S standard maintained across the area?",
@@ -111,7 +124,7 @@
         </div>
 
         <!-- PERFORMANCE -->
-        <div class="audit-card">
+        <div class="audit-card" id="sec-performance">
             <div class="audit-head perf"><div class="audit-acc"></div><span>Performance</span></div>
             <div class="audit-body">
                 @{ await RenderQ("Area tracking against weekly production plan?",
@@ -128,9 +141,9 @@
         </div>
 
         <!-- FINDINGS SUMMARY -->
-        <div class="audit-card" style="margin-top:16px">
+        <div class="audit-card audit-findings-card" id="sec-findings" style="margin-top:16px">
             <div class="card-head"><span class="card-title">Audit findings &amp; actions</span></div>
-            <div class="card-body" style="display:flex;flex-direction:column;gap:12px;padding:16px">
+            <div class="audit-findings-body">
 
                 <div class="fl">
                     <label>Good practice observed</label>
@@ -149,14 +162,12 @@
 
                 <div class="fl">
                     <label>Overall audit verdict</label>
-                    <div style="display:flex;gap:10px;margin-top:4px">
+                    <div class="verdict-pills" style="margin-top:6px">
                         @foreach (var v in new[] { "Green", "Amber", "Red" })
                         {
-                            var col = v == "Green" ? "#16a34a" : v == "Amber" ? "#d97706" : "#dc2626";
-                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:@col">
-                                <input type="radio" name="A.OverallVerdict" value="@v" checked="@(Model.A.OverallVerdict == v)">
-                                @v
-                            </label>
+                            var vid = $"verdict_{v.ToLower()}";
+                            <input type="radio" name="A.OverallVerdict" id="@vid" value="@v" checked="@(Model.A.OverallVerdict == v ? "checked" : null)">
+                            <label for="@vid" class="verdict-pill">@v</label>
                         }
                     </div>
                 </div>
@@ -164,17 +175,16 @@
         </div>
 
         <!-- SIGNATURE -->
-        <div class="audit-card" style="margin-top:16px">
-            <div class="card-head"><span class="card-title">Sign-off</span></div>
-            <div class="card-body" style="padding:16px">
-                <div class="fl" style="max-width:320px">
-                    <label>Auditor signature</label>
-                    <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Type your full name to sign">
-                </div>
+        <div class="audit-sign-card">
+            <div class="audit-sign-title">Sign-off</div>
+            <div class="fl" style="max-width:360px">
+                <label>Auditor signature</label>
+                <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Type your full name to sign">
             </div>
+            <div class="audit-sign-hint">By signing, you confirm this audit record is accurate and complete.</div>
         </div>
 
-        <div style="display:flex;gap:10px;margin-top:20px;padding-bottom:32px">
+        <div class="audit-footer">
             <button type="submit" class="welcome-btn primary">Submit audit &rarr;</button>
             <a asp-page="/SeniorStart" class="welcome-btn secondary">Cancel</a>
         </div>
@@ -193,9 +203,9 @@
                 }
             </div>
             <div class="audit-yn">
-                <input type="radio" class="ayn-y" name="@field" id="@(field)_y" value="True"  checked="@(val == true)">
+                <input type="radio" class="ayn-y" name="@field" id="@(field)_y" value="True"  checked="@(val == true ? "checked" : null)">
                 <label for="@(field)_y">Yes</label>
-                <input type="radio" class="ayn-n" name="@field" id="@(field)_n" value="False" checked="@(val == false)">
+                <input type="radio" class="ayn-n" name="@field" id="@(field)_n" value="False" checked="@(val == false ? "checked" : null)">
                 <label for="@(field)_n">No</label>
             </div>
         </div>
@@ -204,11 +214,9 @@
 
     async Task RenderNote(string label, string field, string? val)
     {
-        <div class="audit-q audit-q-note">
-            <div class="fl" style="flex:1">
-                <label style="font-size:11px;color:var(--muted)">@Html.Raw(label)</label>
-                <textarea name="@field" rows="2" style="font-size:12px">@val</textarea>
-            </div>
+        <div class="audit-note">
+            <label class="audit-note-lbl">@Html.Raw(label)</label>
+            <textarea name="@field" class="audit-ta" placeholder="Detail any findings…">@val</textarea>
         </div>
         await Task.CompletedTask;
     }
