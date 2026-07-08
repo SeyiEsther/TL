@@ -190,14 +190,31 @@
         hideCalendar(dp);
     }
 
+    function isCalendarVisible(dp) {
+        var pop = getPopover(dp);
+        if (!pop) return false;
+        var cal = pop.querySelector('.dp-calendar');
+        return cal && cal.getAttribute('aria-hidden') === 'false';
+    }
+
+    function repositionPicker(dp) {
+        var pop = getPopover(dp);
+        var trigger = dp.querySelector('.dp-trigger');
+        if (pop && trigger && pop.classList.contains('is-open')) {
+            requestAnimationFrame(function () { positionFloating(trigger, pop); });
+        }
+    }
+
     function hideCalendar(dp) {
         var pop = getPopover(dp);
         if (!pop) return;
         var cal = pop.querySelector('.dp-calendar');
         cal.setAttribute('aria-hidden', 'true');
         cal.style.display = 'none';
-        pop.querySelector('.dp-quick').style.display = '';
-        pop.querySelector('.dp-custom-btn').style.display = '';
+        pop.querySelector('.dp-quick').style.display = 'grid';
+        pop.querySelector('.dp-custom-btn').style.display = 'flex';
+        dp._calendarOpen = false;
+        repositionPicker(dp);
     }
 
     function showCalendar(dp) {
@@ -208,8 +225,8 @@
         var cal = pop.querySelector('.dp-calendar');
         cal.style.display = 'block';
         cal.setAttribute('aria-hidden', 'false');
-        var trigger = dp.querySelector('.dp-trigger');
-        requestAnimationFrame(function () { positionFloating(trigger, pop); });
+        dp._calendarOpen = true;
+        repositionPicker(dp);
     }
 
     function getValue(dp) {
@@ -232,10 +249,12 @@
     }
 
     function updateQuickActive(dp) {
+        var pop = getPopover(dp);
+        if (!pop) return;
         var val = getValue(dp);
         var today = new Date();
         today.setHours(0, 0, 0, 0);
-        dp.querySelectorAll('.dp-quick-btn').forEach(function (btn) {
+        pop.querySelectorAll('.dp-quick-btn').forEach(function (btn) {
             var offset = +btn.dataset.offset;
             var target = addDays(today, offset);
             btn.classList.toggle('active', sameDay(val, target));
@@ -273,11 +292,6 @@
                 btn.textContent = dayNum;
                 var cellDate = new Date(y, m, dayNum);
                 if (draft && sameDay(cellDate, draft)) btn.classList.add('selected');
-                btn.addEventListener('click', function () {
-                    pop.querySelectorAll('.dp-day.selected').forEach(function (el) { el.classList.remove('selected'); });
-                    btn.classList.add('selected');
-                    dp._draft = new Date(y, m, dayNum);
-                });
                 daysEl.appendChild(btn);
             })(d);
         }
@@ -298,7 +312,11 @@
         trigger.addEventListener('click', function (e) {
             e.stopPropagation();
             if (dp.classList.contains('open')) {
-                closePicker(dp);
+                if (isCalendarVisible(dp)) {
+                    hideCalendar(dp);
+                } else {
+                    closePicker(dp);
+                }
             } else {
                 closeAllDropdowns(dp);
                 hideCalendar(dp);
@@ -307,47 +325,47 @@
             }
         });
 
-        pop.addEventListener('click', function (e) { e.stopPropagation(); });
+        pop.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var el = e.target.closest('.dp-quick-btn, .dp-custom-btn, .dp-back, .dp-cancel, .dp-save, .dp-nav, .dp-day:not(.dp-day-ghost)');
+            if (!el) return;
 
-        dp.querySelectorAll('.dp-quick-btn').forEach(function (btn) {
-            btn.addEventListener('click', function () {
+            if (el.classList.contains('dp-quick-btn')) {
                 var today = new Date();
                 today.setHours(0, 0, 0, 0);
-                setValue(dp, addDays(today, +btn.dataset.offset));
+                setValue(dp, addDays(today, +el.dataset.offset));
                 closePicker(dp);
-            });
-        });
-
-        dp.querySelector('.dp-custom-btn').addEventListener('click', function (e) {
-            e.stopPropagation();
-            var val = getValue(dp) || new Date();
-            showCalendar(dp);
-            renderCalendar(dp, val, val);
-        });
-
-        dp.querySelectorAll('.dp-nav').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var vd = dp._viewDate || new Date();
-                vd.setMonth(vd.getMonth() + (+btn.dataset.dir));
-                renderCalendar(dp, vd, dp._draft);
-                requestAnimationFrame(function () {
-                    var p = dp._portaledPopover || pop;
-                    positionFloating(trigger, p);
-                });
-            });
-        });
-
-        dp.querySelector('.dp-cancel').addEventListener('click', function () {
-            hideCalendar(dp);
-            requestAnimationFrame(function () {
-                var p = dp._portaledPopover || pop;
-                positionFloating(trigger, p);
-            });
-        });
-
-        dp.querySelector('.dp-save').addEventListener('click', function () {
-            if (dp._draft) setValue(dp, dp._draft);
-            closePicker(dp);
+                return;
+            }
+            if (el.classList.contains('dp-custom-btn')) {
+                var val = getValue(dp) || new Date();
+                showCalendar(dp);
+                renderCalendar(dp, val, val);
+                return;
+            }
+            if (el.classList.contains('dp-back') || el.classList.contains('dp-cancel')) {
+                hideCalendar(dp);
+                return;
+            }
+            if (el.classList.contains('dp-save')) {
+                if (dp._draft) setValue(dp, dp._draft);
+                closePicker(dp);
+                return;
+            }
+            if (el.classList.contains('dp-nav')) {
+                var base = dp._viewDate ? new Date(dp._viewDate) : new Date();
+                base.setMonth(base.getMonth() + (+el.dataset.dir));
+                renderCalendar(dp, base, dp._draft);
+                repositionPicker(dp);
+                return;
+            }
+            if (el.classList.contains('dp-day')) {
+                pop.querySelectorAll('.dp-day.selected').forEach(function (node) { node.classList.remove('selected'); });
+                el.classList.add('selected');
+                var y = dp._viewDate.getFullYear();
+                var m = dp._viewDate.getMonth();
+                dp._draft = new Date(y, m, +el.textContent);
+            }
         });
     }
 
@@ -440,6 +458,11 @@
     }
 
     document.addEventListener('click', function () { closeAllDropdowns(null); });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAllDropdowns(null);
+    });
+
     window.addEventListener('resize', repositionOpen);
     window.addEventListener('scroll', repositionOpen, true);
 
