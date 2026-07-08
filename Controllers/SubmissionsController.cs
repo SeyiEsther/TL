@@ -162,6 +162,7 @@ namespace TL.Controllers
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             var items = await _db.ShiftSubmissions
+                .ExcludeAudits()
                 .Include(s => s.Hours)
                 .Where(s => s.ShiftDate == today)
                 .OrderByDescending(s => s.SubmittedAt)
@@ -207,7 +208,10 @@ namespace TL.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
-            var query = _db.ShiftSubmissions.Include(s => s.Hours).AsQueryable();
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 200);
+
+            var query = _db.ShiftSubmissions.ExcludeAudits();
             if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) query = query.Where(s => s.ShiftDate >= f);
             if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) query = query.Where(s => s.ShiftDate <= t);
 
@@ -268,11 +272,11 @@ namespace TL.Controllers
         [HttpGet("export/csv")]
         public async Task<IActionResult> Csv([FromQuery] string? from, [FromQuery] string? to)
         {
-            var query = _db.ShiftSubmissions.Include(s => s.Hours).AsQueryable();
+            var query = _db.ShiftSubmissions.ExcludeAudits();
             if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) query = query.Where(s => s.ShiftDate >= f);
             if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) query = query.Where(s => s.ShiftDate <= t);
 
-            var rows = await query.OrderByDescending(s => s.ShiftDate).ToListAsync();
+            var rows = await query.Include(s => s.Hours).OrderByDescending(s => s.ShiftDate).ToListAsync();
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("ShiftId,Date,Shift,Area,TeamLeader,Hour,Hazards,UnsafeBehaviours,TargetHit,Maintenance,Escalations,SafetyStatus,QualityStatus,PerfStatus");
 

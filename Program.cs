@@ -8,6 +8,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddControllers().AddJsonOptions(o =>

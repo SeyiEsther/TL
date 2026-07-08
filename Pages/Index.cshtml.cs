@@ -59,6 +59,7 @@ public class IndexModel : PageModel
         // has an outgoing TL signature but no incoming TL signature yet.
         // If so, the incoming TL must acknowledge before starting a new shift.
         var previousShift = await _db.ShiftSubmissions
+            .ExcludeAudits()
             .Where(s => s.Area == area
                      && !string.IsNullOrEmpty(s.OutgoingTLSignature)
                      && string.IsNullOrEmpty(s.IncomingTLSignature))

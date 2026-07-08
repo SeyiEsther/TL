@@ -1,7 +1,7 @@
 @page
 @model AuditStartModel
 @using TL.Models
-@{ ViewData["Title"] = "Senior Audit"; }
+@{ ViewData["Title"] = "Head of Department / Shift Manager"; }
 
 <div class="welcome-wrap">
     <div class="welcome-card" style="max-width:540px">
@@ -9,9 +9,9 @@
             <div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             </div>
-            <div class="welcome-name" style="margin-bottom:0">Senior Management Audit</div>
+            <div class="welcome-name" style="margin-bottom:0">Head of Department / Shift Manager</div>
         </div>
-        <div class="welcome-time">Weekly walkaround checklist &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+        <div class="welcome-time">Area audit checklist &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
 
         <form method="post">
             @Html.AntiForgeryToken()
