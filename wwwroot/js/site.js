@@ -112,20 +112,31 @@
         });
     }
 
-    /* ── Staggered page reveals ── */
-    function initReveals() {
-        if (reducedMotion) return;
-        var sel = '.card, .kpi, .page-head, .welcome-card, .success-card, .chart-card, .session-bar, .grid-wrap, .audit-card, .kpi-row, .chart-grid-4, .chart-grid-act, .summary-grid, .submit-bar, .shift-once-card';
-        var els = document.querySelectorAll(sel);
-        els.forEach(function (el, i) {
-            el.classList.add('reveal');
-            el.style.transitionDelay = (i % 10) * 0.05 + 's';
-        });
-        requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-                els.forEach(function (el) { el.classList.add('visible'); });
-            });
-        });
+    /* ── Smooth navigation (fade out before full page load) ── */
+    function initSmoothNavigation() {
+        function markNavigating() {
+            document.documentElement.classList.add('is-navigating');
+        }
+
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest('a[href]');
+            if (!a || a.target === '_blank' || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            if (a.classList.contains('pdf-dl') || a.hasAttribute('download')) return;
+            var href = a.getAttribute('href');
+            if (!href || href.charAt(0) === '#' || href.indexOf('javascript:') === 0) return;
+            try {
+                var url = new URL(a.href, location.href);
+                if (url.origin !== location.origin) return;
+            } catch (_) { return; }
+            markNavigating();
+        }, true);
+
+        document.addEventListener('submit', function (e) {
+            if (e.defaultPrevented) return;
+            var form = e.target;
+            if (form && form.getAttribute('data-no-nav-fade') !== null) return;
+            markNavigating();
+        }, true);
     }
 
     /* ── Tab bar sliding indicator ── */
@@ -594,7 +605,7 @@
     window.addEventListener('scroll', repositionOpen, true);
 
     document.addEventListener('DOMContentLoaded', function () {
-        initReveals();
+        initSmoothNavigation();
         initTabBars();
         initSdPanels();
         initPdfDownloads();
