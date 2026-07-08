@@ -7,6 +7,11 @@ namespace TL.Controllers
     public class PingController : ControllerBase
     {
         [HttpGet]
-        public IActionResult Get() => Ok();
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult Get()
+        {
+            Response.Headers.CacheControl = "no-store, no-cache";
+            return NoContent();
+        }
     }
 }
