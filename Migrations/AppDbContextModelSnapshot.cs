@@ -339,6 +339,31 @@ namespace TL.Migrations
                     b.HasKey("Id");
                     b.ToTable("SeniorWeeklyAudits");
                 });
+
+            modelBuilder.Entity("TL.Models.HodDailyAudit", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("ActionsRaised").HasColumnType("nvarchar(max)");
+                    b.Property<DateOnly>("AuditDate").HasColumnType("date");
+                    b.Property<string>("AuditType").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("AnswersJson").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("Area").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("AuditorName").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("AuditorSignature").HasColumnType("nvarchar(max)");
+                    b.Property<string>("Department").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("EffectivenessJson").HasColumnType("nvarchar(max)");
+                    b.Property<string>("GoodPractice").HasColumnType("nvarchar(max)");
+                    b.Property<string>("LastEditedBy").HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("LastEditedAt").HasColumnType("datetime2");
+                    b.Property<int>("MaxScore").HasColumnType("int");
+                    b.Property<DateTime>("SubmittedAt").HasColumnType("datetime2");
+                    b.Property<string>("SubmittedBy").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("TeamLeaderSignature").HasColumnType("nvarchar(max)");
+                    b.Property<int>("TotalScore").HasColumnType("int");
+                    b.HasKey("Id");
+                    b.ToTable("HodDailyAudits");
+                });
 #pragma warning restore 612, 618
         }
     }

@@ -2,13 +2,19 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Models;
+using TL.Services;
 
 namespace TL.Pages;
 
 public class DashboardModel : PageModel
 {
     private readonly AppDbContext _db;
-    public DashboardModel(AppDbContext db) => _db = db;
+    private readonly ShiftCompletionService _completion;
+    public DashboardModel(AppDbContext db, ShiftCompletionService completion)
+    {
+        _db = db;
+        _completion = completion;
+    }
 
     public string? From { get; set; }
     public string? To { get; set; }
@@ -18,6 +24,8 @@ public class DashboardModel : PageModel
     public string CsvQuery { get; set; } = "";
 
     public List<ShiftSummaryDto> Shifts { get; set; } = new();
+    public Dictionary<int, ShiftCompletionResult> CompletionById { get; set; } = new();
+    public int IncompleteShifts { get; set; }
     public int ThisWeek { get; set; }
     public int Today { get; set; }
     public int WithEscalations { get; set; }
@@ -57,44 +65,47 @@ public class DashboardModel : PageModel
         if (!string.IsNullOrEmpty(tl)) q = q.Where(s => s.TeamLeaderDisplay.Contains(tl));
 
         var raw = await q
+            .Include(s => s.Hours)
             .OrderByDescending(s => s.ShiftDate)
             .ThenBy(s => s.Shift)
-            .Select(s => new ShiftSummaryDto
-            {
-                Id = s.Id,
-                ShiftDate = s.ShiftDate,
-                Shift = s.Shift,
-                Area = s.Area,
-                TeamLeaderDisplay = s.TeamLeaderDisplay,
-                HoursCompleted = s.HoursCompleted,
-                OverallSafetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault(),
-                OverallQualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault(),
-                OverallPerfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault(),
-                SubmittedAt = s.SubmittedAt,
-                Escalations = s.Escalations,
-            })
             .ToListAsync();
 
-        Shifts = raw;
+        CompletionById = raw.ToDictionary(s => s.Id, s => _completion.Evaluate(s));
+        IncompleteShifts = CompletionById.Count(kv => !kv.Value.IsComplete);
+
+        Shifts = raw.Select(s => new ShiftSummaryDto
+        {
+            Id = s.Id,
+            ShiftDate = s.ShiftDate,
+            Shift = s.Shift,
+            Area = s.Area,
+            TeamLeaderDisplay = s.TeamLeaderDisplay,
+            HoursCompleted = s.HoursCompleted,
+            OverallSafetyStatus = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault(),
+            OverallQualityStatus = s.Hours.Where(h => h.OverallQualityStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault(),
+            OverallPerfStatus = s.Hours.Where(h => h.OverallPerfStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault(),
+            SubmittedAt = s.SubmittedAt,
+            Escalations = s.Escalations,
+        }).ToList();
         var todayDate = DateOnly.FromDateTime(DateTime.Today);
         var weekAgo = todayDate.AddDays(-7);
-        Today = raw.Count(s => s.ShiftDate == todayDate);
-        ThisWeek = raw.Count(s => s.ShiftDate >= weekAgo);
-        WithEscalations = raw.Count(s => !string.IsNullOrEmpty(s.Escalations));
+        Today = Shifts.Count(s => s.ShiftDate == todayDate);
+        ThisWeek = Shifts.Count(s => s.ShiftDate >= weekAgo);
+        WithEscalations = Shifts.Count(s => !string.IsNullOrEmpty(s.Escalations));
 
-        SafetyGreen = raw.Count(s => s.OverallSafetyStatus == "Green");
-        SafetyAmber = raw.Count(s => s.OverallSafetyStatus == "Amber");
-        SafetyRed = raw.Count(s => s.OverallSafetyStatus == "Red");
-        QualityGreen = raw.Count(s => s.OverallQualityStatus == "Green");
-        QualityAmber = raw.Count(s => s.OverallQualityStatus == "Amber");
-        QualityRed = raw.Count(s => s.OverallQualityStatus == "Red");
-        PerfGreen = raw.Count(s => s.OverallPerfStatus == "Green");
-        PerfAmber = raw.Count(s => s.OverallPerfStatus == "Amber");
-        PerfRed = raw.Count(s => s.OverallPerfStatus == "Red");
+        SafetyGreen = Shifts.Count(s => s.OverallSafetyStatus == "Green");
+        SafetyAmber = Shifts.Count(s => s.OverallSafetyStatus == "Amber");
+        SafetyRed = Shifts.Count(s => s.OverallSafetyStatus == "Red");
+        QualityGreen = Shifts.Count(s => s.OverallQualityStatus == "Green");
+        QualityAmber = Shifts.Count(s => s.OverallQualityStatus == "Amber");
+        QualityRed = Shifts.Count(s => s.OverallQualityStatus == "Red");
+        PerfGreen = Shifts.Count(s => s.OverallPerfStatus == "Green");
+        PerfAmber = Shifts.Count(s => s.OverallPerfStatus == "Amber");
+        PerfRed = Shifts.Count(s => s.OverallPerfStatus == "Red");
 
-        DayShifts = raw.Count(s => s.Shift == "Day");
-        AfternoonShifts = raw.Count(s => s.Shift == "Afternoon");
-        NightShifts = raw.Count(s => s.Shift == "Night");
+        DayShifts = Shifts.Count(s => s.Shift == "Day");
+        AfternoonShifts = Shifts.Count(s => s.Shift == "Afternoon");
+        NightShifts = Shifts.Count(s => s.Shift == "Night");
 
         var totalStatuses = SafetyGreen + SafetyAmber + SafetyRed + QualityGreen + QualityAmber + QualityRed + PerfGreen + PerfAmber + PerfRed;
         var weighted = (SafetyGreen + QualityGreen + PerfGreen) * 100 + (SafetyAmber + QualityAmber + PerfAmber) * 50;
@@ -104,9 +115,9 @@ public class DashboardModel : PageModel
             .Select(i => DateOnly.FromDateTime(DateTime.Today.AddDays(-13 + i)))
             .ToList();
         ActivityLabels = last14.Select(d => d.ToString("dd/MM")).ToArray();
-        ActivityData = last14.Select(d => raw.Count(s => s.ShiftDate == d)).ToArray();
+        ActivityData = last14.Select(d => Shifts.Count(s => s.ShiftDate == d)).ToArray();
 
-        var areaGroups = raw
+        var areaGroups = Shifts
             .Where(s => !string.IsNullOrEmpty(s.Area))
             .GroupBy(s => s.Area!)
             .OrderByDescending(g => g.Count())
@@ -115,7 +126,7 @@ public class DashboardModel : PageModel
         AreaLabels = areaGroups.Select(g => g.Key).ToArray();
         AreaData = areaGroups.Select(g => g.Count()).ToArray();
 
-        WorstAreas = raw
+        WorstAreas = Shifts
             .Where(s => !string.IsNullOrEmpty(s.Area))
             .GroupBy(s => s.Area!)
             .Select(g => new WorstAreaDto(

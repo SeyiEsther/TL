@@ -60,4 +60,18 @@ public static class AreaList
 
     public static string GetMachines(string? label) =>
         All.FirstOrDefault(a => a.Label == label).Machines ?? "";
+
+    public static string GetDepartment(string? label) =>
+        All.FirstOrDefault(a => a.Label == label).Group ?? "";
+
+    public static IReadOnlyList<string> Departments =>
+        All.Select(a => a.Group).Distinct().ToList();
+
+    public static List<string> GetMachineList(string? label)
+    {
+        var machines = GetMachines(label);
+        if (string.IsNullOrWhiteSpace(machines))
+            return [];
+        return machines.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
 }

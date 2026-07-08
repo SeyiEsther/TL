@@ -4,14 +4,18 @@
 @{ ViewData["Title"] = "Head of Department / Shift Manager"; }
 
 <div class="welcome-wrap">
-    <div class="welcome-card" style="max-width:540px">
+    <div class="welcome-card" style="max-width:580px">
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">
             <div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
             </div>
             <div class="welcome-name" style="margin-bottom:0">Head of Department / Shift Manager</div>
         </div>
-        <div class="welcome-time">Area audit checklist &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+        <div class="welcome-time">Daily effectiveness audit &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;line-height:1.5">
+            One audit type per day. Verify what TLs claimed on their shift forms.
+            <br>Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
+        </div>
 
         <form method="post" class="start-form">
             @Html.AntiForgeryToken()
@@ -27,17 +31,39 @@
                 </div>
             </div>
 
+            <div class="fl" style="margin-bottom:14px">
+                <label>Audit type <span style="color:var(--red)">*</span></label>
+                <select name="auditType" required>
+                    @foreach (var t in HodAuditTypes.All)
+                    {
+                        <option value="@t.Value" selected="@(t.Value == Model.SuggestedType ? "selected" : null)">@t.Label</option>
+                    }
+                </select>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Mon=6S &bull; Tue=TPM &bull; Wed=Parts ID/NC &bull; Thu=Quality</div>
+            </div>
+
+            <div class="fl" style="margin-bottom:14px">
+                <label>Department <span style="color:var(--red)">*</span></label>
+                <select name="department" id="deptSelect" required>
+                    <option value="">Select department…</option>
+                    @foreach (var dept in AreaList.Departments)
+                    {
+                        <option value="@dept">@dept</option>
+                    }
+                </select>
+            </div>
+
             <div class="fl" style="margin-bottom:6px">
                 <label>Area to audit <span style="color:var(--red)">*</span></label>
-                <select name="area" required>
+                <select name="area" id="areaSelect" required>
                     <option value="">Select area…</option>
                     @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
                     {
-                        <optgroup label="@grp.Key">
+                        <optgroup label="@grp.Key" data-dept="@grp.Key">
                             @foreach (var a in grp)
                             {
                                 var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
-                                <option value="@a.Label">@disp</option>
+                                <option value="@a.Label" data-dept="@grp.Key">@disp</option>
                             }
                         </optgroup>
                     }
@@ -54,3 +80,22 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var dept = document.getElementById('deptSelect');
+    var area = document.getElementById('areaSelect');
+    if (!dept || !area) return;
+
+    function filterAreas() {
+        var d = dept.value;
+        Array.from(area.options).forEach(function (opt) {
+            if (!opt.value) return;
+            opt.hidden = d && opt.dataset.dept !== d;
+        });
+        if (area.selectedOptions[0]?.hidden) area.value = '';
+    }
+    dept.addEventListener('change', filterAreas);
+    filterAreas();
+})();
+</script>

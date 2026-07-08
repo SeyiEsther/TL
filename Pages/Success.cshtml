@@ -5,10 +5,23 @@
 <div class="success-wrap">
     <div class="success-card">
         <div class="success-icon">&#10003;</div>
-        <div class="success-title">@(Model.IsAudit ? "Head of Department / Shift Manager audit submitted!" : "Shift submitted!")</div>
+        @if (Model.IsHodDailyAudit)
+        {
+            <div class="success-title">@(Model.HodAuditTypeLabel ?? "HoD audit") submitted!</div>
+        }
+        else
+        {
+            <div class="success-title">@(Model.IsAudit ? "Head of Department / Shift Manager audit submitted!" : "Shift submitted!")</div>
+        }
         <div class="success-sub">Saved successfully.</div>
         <div class="success-ref">Ref #@Model.SubmissionId</div>
-        @if (Model.IsAudit)
+        @if (Model.IsHodDailyAudit)
+        {
+            <a asp-page="/Audit" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">View / edit audit</a>
+            <a asp-page="/AuditStart" class="welcome-btn secondary">New audit</a>
+            <a asp-page="/History" asp-route-tab="hod" class="welcome-btn secondary">Audit history</a>
+        }
+        else if (Model.IsAudit)
         {
             <a asp-page="/AuditResult" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">View result</a>
             <a asp-page="/AuditStart" class="welcome-btn secondary">New audit</a>
@@ -18,6 +31,9 @@
         {
             <a asp-page="/Index" class="welcome-btn primary">Back to home</a>
         }
-        <a href="/api/submissions/@Model.SubmissionId/pdf" class="welcome-btn secondary pdf-dl" data-filename="TLSW_Submission.pdf">&#8595; Download PDF</a>
+        @if (!Model.IsHodDailyAudit)
+        {
+            <a href="/api/submissions/@Model.SubmissionId/pdf" class="welcome-btn secondary pdf-dl" data-filename="TLSW_Submission.pdf">&#8595; Download PDF</a>
+        }
     </div>
 </div>

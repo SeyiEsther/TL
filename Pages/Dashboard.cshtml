@@ -61,6 +61,14 @@
             <div class="kpi-icon-wrap kpi-icon-amber">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
+            <div class="kpi-label">Incomplete</div>
+            <div class="kpi-val" style="color:#b45309">@Model.IncompleteShifts</div>
+            <div class="kpi-sub">Missing hours / 6S / sign-off</div>
+        </div>
+        <div class="kpi kpi-amber">
+            <div class="kpi-icon-wrap kpi-icon-amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
             <div class="kpi-label">Escalations</div>
             <div class="kpi-val" style="color:#b45309">@Model.WithEscalations</div>
             <div class="kpi-sub">With escalations</div>
@@ -237,16 +245,30 @@
         {
             <table class="dash-table">
                 <thead>
-                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
+                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Complete</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var s in Model.Shifts)
                     {
+                        Model.CompletionById.TryGetValue(s.Id, out var comp);
+                        var complete = comp?.IsComplete == true;
                         <tr>
                             <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
                             <td>@s.Shift</td>
                             <td>@(s.Area ?? "—")</td>
                             <td>@s.TeamLeaderDisplay</td>
+                            <td>
+                                @if (complete)
+                                {
+                                    <span class="rag g" title="All hours, 6S/TPM and sign-off complete">Complete</span>
+                                }
+                                else
+                                {
+                                    <span class="rag r" title="@(comp != null ? string.Join(", ", comp.MissingItems.Take(3)) : "Incomplete")">
+                                        @(comp != null ? $"{comp.HoursComplete}/{comp.HoursTotal} hrs" : "—")
+                                    </span>
+                                }
+                            </td>
                             <td><span class="rag @DashboardModel.Rc(s.OverallSafetyStatus)">@(s.OverallSafetyStatus ?? "—")</span></td>
                             <td><span class="rag @DashboardModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
                             <td><span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>

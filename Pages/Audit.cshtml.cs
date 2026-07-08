@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
@@ -11,140 +12,216 @@ public class AuditModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly UserService _users;
+    private readonly HodEffectivenessService _effectiveness;
 
-    public AuditModel(AppDbContext db, UserService users) { _db = db; _users = users; }
+    public AuditModel(AppDbContext db, UserService users, HodEffectivenessService effectiveness)
+    {
+        _db = db;
+        _users = users;
+        _effectiveness = effectiveness;
+    }
 
     public string AuditDate { get; set; } = "";
     public string AuditorName { get; set; } = "";
+    public string Department { get; set; } = "";
     public string Area { get; set; } = "";
+    public string AuditType { get; set; } = "";
+    public string AuditTypeLabel { get; set; } = "";
     public int? EditingId { get; set; }
 
-    [BindProperty] public HourInput A { get; set; } = new();
+    public List<HodAuditQuestion> Questions { get; set; } = [];
+    public List<HodAuditAnswer> Answers { get; set; } = [];
+    public List<HodEffectivenessFinding> EffectivenessFindings { get; set; } = [];
+    public int TotalScore { get; set; }
+    public int MaxScore { get; set; }
+    public string RatingBand { get; set; } = "";
+    public string RatingDetail { get; set; } = "";
+
+    [BindProperty] public List<HodAnswerInput> A { get; set; } = [];
     [BindProperty] public string? Actions { get; set; }
     [BindProperty] public string? GoodPractice { get; set; }
-    [BindProperty] public string? FollowUp { get; set; }
-    public string? AuditorSignature { get; set; }
+    [BindProperty] public string? AuditorSignature { get; set; }
+    [BindProperty] public string? TeamLeaderSignature { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string? date, string? auditor, string? area, int? id)
+    public async Task<IActionResult> OnGetAsync(
+        string? date, string? auditor, string? department, string? area, string? type, int? id)
     {
         if (id.HasValue)
         {
-            var sub = await _db.ShiftSubmissions
-                .Include(s => s.Hours.OrderBy(h => h.HourNumber))
-                .FirstOrDefaultAsync(s => s.Id == id.Value && s.Shift == "Audit");
-            if (sub == null) return RedirectToPage("/AuditStart");
+            var audit = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == id.Value);
+            if (audit == null) return RedirectToPage("/AuditStart");
 
-            EditingId = sub.Id;
-            AuditDate = sub.ShiftDate.ToString("yyyy-MM-dd");
-            AuditorName = sub.TeamLeaderDisplay;
-            Area = sub.Area ?? "";
-            Actions = sub.Escalations;
-            GoodPractice = sub.KeyRisks;
-            FollowUp = sub.Priorities;
-            AuditorSignature = sub.OutgoingTLSignature;
-
-            var h = sub.Hours.FirstOrDefault();
-            if (h != null) A = MapFromHour(h);
+            EditingId = audit.Id;
+            AuditDate = audit.AuditDate.ToString("yyyy-MM-dd");
+            AuditorName = audit.AuditorName;
+            Department = audit.Department;
+            Area = audit.Area;
+            AuditType = audit.AuditType;
+            Actions = audit.ActionsRaised;
+            GoodPractice = audit.GoodPractice;
+            AuditorSignature = audit.AuditorSignature;
+            TeamLeaderSignature = audit.TeamLeaderSignature;
+            Answers = HodAuditSerializer.ParseAnswers(audit.AnswersJson);
+            EffectivenessFindings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
+            TotalScore = audit.TotalScore;
+            MaxScore = audit.MaxScore;
         }
         else
         {
             AuditDate = date ?? DateTime.Today.ToString("yyyy-MM-dd");
             AuditorName = auditor ?? "";
+            Department = department ?? AreaList.GetDepartment(area);
             Area = area ?? "";
+            AuditType = type ?? HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
+
+            if (string.IsNullOrWhiteSpace(Area) || string.IsNullOrWhiteSpace(AuditorName))
+                return RedirectToPage("/AuditStart");
+
+            if (DateOnly.TryParse(AuditDate, out var ad))
+                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
         }
+
+        AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
+        Questions = HodAuditDefinitions.GetQuestions(AuditType, Area);
+        MaxScore = Questions.Count;
+
+        if (Answers.Count == 0)
+            Answers = Questions.Select(q => new HodAuditAnswer
+            {
+                QuestionId = q.Id,
+                Section = q.Section,
+                Label = q.Label,
+                MachineName = q.MachineName,
+            }).ToList();
+
+        if (A.Count == 0)
+            A = Answers.Select(a => new HodAnswerInput
+            {
+                QuestionId = a.QuestionId,
+                Pass = a.Pass,
+                Evidence = a.Evidence,
+            }).ToList();
+
+        if (TotalScore == 0 && MaxScore > 0 && Answers.Any(a => a.Pass.HasValue))
+            (TotalScore, MaxScore) = HodAuditScoring.Score(Answers);
+
+        RatingBand = HodAuditScoring.RatingBand(TotalScore, MaxScore);
+        RatingDetail = HodAuditScoring.RatingDetail(TotalScore, MaxScore);
+
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync(
-        string auditDate, string auditorName, string area, int? editingId, string? auditorSignature)
+        string auditDate, string auditorName, string department, string area, string auditType,
+        int? editingId, string? auditorSignature, string? teamLeaderSignature)
     {
         AuditDate = auditDate;
         AuditorName = auditorName;
+        Department = department;
         Area = area;
+        AuditType = auditType;
         EditingId = editingId;
         AuditorSignature = auditorSignature;
+        TeamLeaderSignature = teamLeaderSignature;
+        AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
+        Questions = HodAuditDefinitions.GetQuestions(AuditType, Area);
 
+        var answers = BuildAnswers();
+        var missing = answers.Count(a => !a.Pass.HasValue);
+        if (missing > 0)
+        {
+            Answers = answers;
+            A = answers.Select(a => new HodAnswerInput
+            {
+                QuestionId = a.QuestionId,
+                Pass = a.Pass,
+                Evidence = a.Evidence,
+            }).ToList();
+            if (DateOnly.TryParse(AuditDate, out var ad))
+                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
+            ModelState.AddModelError("", $"Answer all {missing} remaining question(s) — each must be Pass (1) or Fail (0).");
+            return Page();
+        }
+
+        (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
         var user = _users.GetCurrentUser();
+
+        List<HodEffectivenessFinding> effectiveness;
+        if (DateOnly.TryParse(AuditDate, out var auditD))
+            effectiveness = await _effectiveness.GetFindingsAsync(Department, Area, auditD, AuditType);
+        else
+            effectiveness = [];
 
         if (editingId.HasValue)
         {
-            var sub = await _db.ShiftSubmissions
-                .Include(s => s.Hours)
-                .FirstOrDefaultAsync(s => s.Id == editingId.Value);
-            if (sub == null) return RedirectToPage("/AuditStart");
+            var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
+            if (existing == null) return RedirectToPage("/AuditStart");
 
-            sub.Escalations = Actions;
-            sub.KeyRisks = GoodPractice;
-            sub.Priorities = FollowUp;
-            sub.OutgoingTLSignature = auditorSignature;
-            sub.LastEditedBy = auditorName ?? user.DisplayName;
-            sub.LastEditedAt = DateTime.UtcNow;
-
-            var existing = sub.Hours.FirstOrDefault();
-            if (existing != null)
-                ApplyToHour(existing, A);
-            else
-                sub.Hours.Add(MakeHour(A));
+            existing.AuditorName = auditorName ?? user.DisplayName;
+            existing.AuditDate = auditD;
+            existing.Department = department;
+            existing.Area = area;
+            existing.AuditType = auditType;
+            existing.AnswersJson = HodAuditSerializer.ToJson(answers);
+            existing.TotalScore = TotalScore;
+            existing.MaxScore = MaxScore;
+            existing.EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness);
+            existing.ActionsRaised = Actions;
+            existing.GoodPractice = GoodPractice;
+            existing.AuditorSignature = auditorSignature;
+            existing.TeamLeaderSignature = teamLeaderSignature;
+            existing.LastEditedBy = auditorName ?? user.DisplayName;
+            existing.LastEditedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
-            return RedirectToPage("/Success", new { id = editingId, audit = true });
+            return RedirectToPage("/Success", new { hodAuditId = editingId });
         }
-        else
+
+        var audit = new HodDailyAudit
         {
-            if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
+            SubmittedBy = user.Username,
+            AuditorName = auditorName ?? user.DisplayName,
+            AuditDate = auditD,
+            Department = department,
+            Area = area,
+            AuditType = auditType,
+            AnswersJson = HodAuditSerializer.ToJson(answers),
+            TotalScore = TotalScore,
+            MaxScore = MaxScore,
+            EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness),
+            ActionsRaised = Actions,
+            GoodPractice = GoodPractice,
+            AuditorSignature = auditorSignature,
+            TeamLeaderSignature = teamLeaderSignature,
+        };
 
-            var sub = new ShiftSubmission
+        _db.HodDailyAudits.Add(audit);
+        await _db.SaveChangesAsync();
+        return RedirectToPage("/Success", new { hodAuditId = audit.Id });
+    }
+
+    List<HodAuditAnswer> BuildAnswers()
+    {
+        var inputById = A.ToDictionary(a => a.QuestionId, a => a);
+        return Questions.Select(q =>
+        {
+            inputById.TryGetValue(q.Id, out var inp);
+            return new HodAuditAnswer
             {
-                SubmittedBy = user.Username,
-                TeamLeaderDisplay = auditorName ?? user.DisplayName,
-                ShiftDate = d,
-                Shift = "Audit",
-                Area = area,
-                HoursCompleted = 1,
-                Escalations = Actions,
-                KeyRisks = GoodPractice,
-                Priorities = FollowUp,
-                OutgoingTLSignature = auditorSignature,
-                Hours = [MakeHour(A)]
+                QuestionId = q.Id,
+                Section = q.Section,
+                Label = q.Label,
+                MachineName = q.MachineName,
+                Pass = inp?.Pass,
+                Evidence = inp?.Evidence,
             };
-
-            _db.ShiftSubmissions.Add(sub);
-            await _db.SaveChangesAsync();
-            return RedirectToPage("/Success", new { id = sub.Id, audit = true });
-        }
+        }).ToList();
     }
+}
 
-    private static HourInput MapFromHour(HourlyCheck h) => new()
-    {
-        Haz = h.HazardsObserved, Uns = h.UnsafeBehaviours, Pos = h.PositiveBehaviours, Snote = h.SafetyNotes,
-        Qchk = h.QualityChecksCompleted, Dev = h.DeviationsEscalated, Nc = h.NonComplianceAddressed, Qnote = h.QualityNotes,
-        Tgt = h.HourlyTargetAchieved, Maint = h.MaintenanceIssues, Mat = h.MaterialsAvailable, Tools = h.ToolsAvailable,
-        Escl = h.EscalationsNeeded, Pconf = h.PartsConfirmed, Pid = h.PartsIdCorrect, Ncp = h.NCPartsStoredCorrectly,
-        Sixs = h.SixSCompleted, Tpm = h.TPMCompleted, Pnote = h.PerformanceNotes,
-        Wb = h.WellbeingConfirmed, Sup = h.SupportRequired, Mnote = h.MoraleNotes,
-        Acc = h.AccidentsReported, Ss = h.OverallSafetyStatus, Qs = h.OverallQualityStatus, Ps = h.OverallPerfStatus,
-    };
-
-    private static HourlyCheck MakeHour(HourInput a) => new()
-    {
-        HourNumber = 1,
-        HazardsObserved = a.Haz, UnsafeBehaviours = a.Uns, PositiveBehaviours = a.Pos, SafetyNotes = a.Snote,
-        QualityChecksCompleted = a.Qchk, DeviationsEscalated = a.Dev, NonComplianceAddressed = a.Nc, QualityNotes = a.Qnote,
-        HourlyTargetAchieved = a.Tgt, MaintenanceIssues = a.Maint, MaterialsAvailable = a.Mat, ToolsAvailable = a.Tools,
-        EscalationsNeeded = a.Escl, PartsConfirmed = a.Pconf, PartsIdCorrect = a.Pid, NCPartsStoredCorrectly = a.Ncp,
-        SixSCompleted = a.Sixs, TPMCompleted = a.Tpm, PerformanceNotes = a.Pnote,
-        WellbeingConfirmed = a.Wb, SupportRequired = a.Sup, MoraleNotes = a.Mnote,
-        AccidentsReported = a.Acc, OverallSafetyStatus = a.Ss, OverallQualityStatus = a.Qs, OverallPerfStatus = a.Ps,
-    };
-
-    private static void ApplyToHour(HourlyCheck h, HourInput a)
-    {
-        h.HazardsObserved = a.Haz; h.UnsafeBehaviours = a.Uns; h.PositiveBehaviours = a.Pos; h.SafetyNotes = a.Snote;
-        h.QualityChecksCompleted = a.Qchk; h.DeviationsEscalated = a.Dev; h.NonComplianceAddressed = a.Nc; h.QualityNotes = a.Qnote;
-        h.HourlyTargetAchieved = a.Tgt; h.MaintenanceIssues = a.Maint; h.MaterialsAvailable = a.Mat; h.ToolsAvailable = a.Tools;
-        h.EscalationsNeeded = a.Escl; h.PartsConfirmed = a.Pconf; h.PartsIdCorrect = a.Pid; h.NCPartsStoredCorrectly = a.Ncp;
-        h.SixSCompleted = a.Sixs; h.TPMCompleted = a.Tpm; h.PerformanceNotes = a.Pnote;
-        h.WellbeingConfirmed = a.Wb; h.SupportRequired = a.Sup; h.MoraleNotes = a.Mnote;
-        h.AccidentsReported = a.Acc; h.OverallSafetyStatus = a.Ss; h.OverallQualityStatus = a.Qs; h.OverallPerfStatus = a.Ps;
-    }
+public class HodAnswerInput
+{
+    public string QuestionId { get; set; } = "";
+    public bool? Pass { get; set; }
+    public string? Evidence { get; set; }
 }

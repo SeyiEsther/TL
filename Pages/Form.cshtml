@@ -1,5 +1,6 @@
 @page
 @model FormModel
+@using TL.Models
 @{
     ViewData["Title"] = "Hourly Check";
     var H = Model.Hours;
@@ -46,6 +47,11 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.ValidationError))
+    {
+        <div class="err" style="margin-bottom:14px">@Model.ValidationError</div>
+    }
+
     @if (Model.EditingId.HasValue)
     {
         <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b45309">
@@ -55,8 +61,19 @@
 
     <div class="hint">scroll right for all hours &rarr;</div>
 
+    <div id="shift-progress-bar" style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700">Shift completion</span>
+            <span id="shift-progress-text" style="font-size:12px;color:var(--muted)">0 of @H hours complete</span>
+        </div>
+        <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden">
+            <div id="shift-progress-fill" style="height:100%;width:0;background:#16a34a;transition:width .2s"></div>
+        </div>
+        <div id="shift-submit-hint" style="font-size:11px;color:#b45309;margin-top:8px;display:none"></div>
+    </div>
+
     <!-- Main data entry form -->
-    <form method="post">
+    <form method="post" id="shift-form" data-shift-form data-hours="@H">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
         <input type="hidden" name="Shift" value="@Model.Shift">
@@ -205,7 +222,7 @@
         </div>
 
         <div class="submit-bar">
-            <button type="submit" class="sbtn primary">
+            <button type="submit" class="sbtn primary" id="shift-submit-btn">
                 @(Model.EditingId.HasValue ? "Save changes" : "Submit & save shift")
             </button>
             <a asp-page="/Index" class="sbtn">Cancel</a>
@@ -223,10 +240,74 @@
 <script>
 (function () {
     const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))';
-    const form = document.querySelector('form[method="post"]');
+    const form = document.getElementById('shift-form') || document.querySelector('form[method="post"]');
     const statusEl = document.getElementById('draft-status');
     const banner = document.getElementById('draft-restore-banner');
+    const submitBtn = document.getElementById('shift-submit-btn');
+    const progressText = document.getElementById('shift-progress-text');
+    const progressFill = document.getElementById('shift-progress-fill');
+    const submitHint = document.getElementById('shift-submit-hint');
+    const hoursCount = parseInt(form?.dataset.hours || '@H', 10);
     let savedDraft = null;
+
+    const hourFields = ['Haz','Uns','Pos','Qchk','Dev','Nc','Tgt','Maint','Mat','Tools','Escl','Pconf','Pid','Ncp','Wb','Sup','Acc'];
+    const statusFields = ['Ss','Qs','Ps'];
+
+    function hourComplete(h) {
+        for (const f of hourFields) {
+            const radios = form.querySelectorAll(`input[name="H[${h}].${f}"]`);
+            if (radios.length && !Array.from(radios).some(r => r.checked)) return false;
+        }
+        for (const f of statusFields) {
+            const sel = form.querySelector(`select[name="H[${h}].${f}"]`);
+            if (sel && !sel.value) return false;
+        }
+        return true;
+    }
+
+    function updateCompletion() {
+        let complete = 0;
+        for (let h = 0; h < hoursCount; h++) {
+            const colCells = form.querySelectorAll(`input[name^="H[${h}]."]`);
+            const incomplete = !hourComplete(h);
+            colCells.forEach(el => {
+                const cell = el.closest('td');
+                if (cell) cell.classList.toggle('hour-incomplete', incomplete);
+            });
+            if (!incomplete) complete++;
+        }
+
+        const sixsOk = !!form.querySelector('input[name="H[0].Sixs"]:checked');
+        const tpmOk = !!form.querySelector('input[name="H[0].Tpm"]:checked');
+        const sig = (form.querySelector('input[name="OutgoingTLSignature"]')?.value || '').trim();
+        const allHours = complete === hoursCount;
+        const canSubmit = allHours && sixsOk && tpmOk && sig.length > 0;
+
+        if (progressText) progressText.textContent = complete + ' of ' + hoursCount + ' hours complete';
+        if (progressFill) progressFill.style.width = (hoursCount ? Math.round(complete / hoursCount * 100) : 0) + '%';
+
+        const missing = [];
+        if (!allHours) missing.push('complete all hours');
+        if (!sixsOk || !tpmOk) missing.push('6S and TPM checks');
+        if (!sig) missing.push('sign-off');
+
+        if (submitBtn) {
+            submitBtn.disabled = !canSubmit;
+            submitBtn.style.opacity = canSubmit ? '1' : '0.5';
+        }
+        if (submitHint) {
+            if (canSubmit) {
+                submitHint.style.display = 'none';
+            } else {
+                submitHint.style.display = 'block';
+                submitHint.textContent = 'Complete ' + missing.join(', ') + ' before submitting.';
+            }
+        }
+    }
+
+    form?.addEventListener('change', updateCompletion);
+    form?.addEventListener('input', updateCompletion);
+    updateCompletion();
 
     // --- Session keepalive: ping every 10 minutes ---
     setInterval(() => {
@@ -293,6 +374,7 @@
         });
         banner.style.display = 'none';
         statusEl.textContent = 'Draft restored';
+        updateCompletion();
     };
 
     window.dismissDraft = function () {

@@ -1,16 +1,21 @@
 @page
 @model AuditModel
-@{ ViewData["Title"] = "Head of Department / Shift Manager";
-   var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
+@using TL.Services
+@using TL.Pages
+@{ ViewData["Title"] = Model.AuditTypeLabel;
+   var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate;
+   var sections = Model.Questions.GroupBy(q => q.Section).ToList();
+   var answerMap = Model.Answers.ToDictionary(a => a.QuestionId);
+   int qIndex = 0; }
 
-<div class="audit-wrap" data-audit-form>
+<div class="audit-wrap" data-audit-form data-binary-audit>
 
     <div class="audit-sticky">
         <div class="audit-sticky-top">
             <div>
-                <div class="audit-sticky-title">Head of Department / Shift Manager</div>
+                <div class="audit-sticky-title">@Model.AuditTypeLabel</div>
                 <div class="audit-sticky-sub">
-                    @auditDateDisplay &bull; <strong>@Model.Area</strong>
+                    @auditDateDisplay &bull; <strong>@Model.Area</strong> &bull; @Model.Department
                     @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
                 </div>
             </div>
@@ -21,95 +26,149 @@
             </div>
         </div>
         <nav class="audit-sec-nav" aria-label="Audit sections">
-            <a href="#sec-safety" class="audit-sec-link">Safety</a>
-            <a href="#sec-quality" class="audit-sec-link">Quality</a>
-            <a href="#sec-perf" class="audit-sec-link">Performance</a>
-            <a href="#sec-morale" class="audit-sec-link">Morale</a>
-            <a href="#sec-verdict" class="audit-sec-link">Verdict</a>
+            @foreach (var sec in sections)
+            {
+                var sid = "sec-" + sec.Key.Replace(" ", "-").Replace("—", "").ToLowerInvariant();
+                <a href="#@sid" class="audit-sec-link">@sec.Key.Split('—').First().Trim()</a>
+            }
+            <a href="#sec-effectiveness" class="audit-sec-link">TL Check</a>
             <a href="#sec-findings" class="audit-sec-link">Findings</a>
         </nav>
     </div>
 
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="err" style="margin-bottom:14px">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@err.ErrorMessage</div>
+            }
+        </div>
+    }
+
     @if (Model.EditingId.HasValue)
     {
         <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b45309">
-            Editing existing audit &mdash; all changes are recorded.
+            Editing existing audit.
         </div>
     }
+
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
+        <strong>Effectiveness check:</strong> This audit verifies what TLs claimed on their shift forms.
+        Score each item <strong>Pass (1)</strong> or <strong>Fail (0)</strong> — no ambiguity.
+        @if (Model.AuditType == HodAuditTypes.Tpm)
+        {
+            <span> Check every TPM board in this area@(Model.Questions.Select(q => q.MachineName).Distinct().Count() > 1 ? $" ({Model.Questions.Select(q => q.MachineName).Distinct().Count()} boards)" : "").</span>
+        }
+    </div>
 
     <form method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
         <input type="hidden" name="auditorName" value="@Model.AuditorName">
+        <input type="hidden" name="department" value="@Model.Department">
         <input type="hidden" name="area" value="@Model.Area">
+        <input type="hidden" name="auditType" value="@Model.AuditType">
         @if (Model.EditingId.HasValue) { <input type="hidden" name="editingId" value="@Model.EditingId"> }
 
-        <!-- HEALTH & SAFETY -->
-        <div class="audit-card" id="sec-safety">
-            <div class="audit-head safety"><div class="audit-acc"></div><span>Health &amp; Safety</span></div>
+        @foreach (var sec in sections)
+        {
+            var sid = "sec-" + sec.Key.Replace(" ", "-").Replace("—", "").ToLowerInvariant();
+            var secQuestions = sec.ToList();
+            var secMax = secQuestions.Count;
+            <div class="audit-card" id="@sid">
+                <div class="audit-head perf">
+                    <div class="audit-acc"></div>
+                    <span>@sec.Key</span>
+                    <span class="audit-sec-score" data-section-max="@secMax" style="margin-left:auto;font-size:11px;color:var(--muted)">0 / @secMax</span>
+                </div>
+                <div class="audit-body">
+                    @foreach (var q in secQuestions)
+                    {
+                        var inp = Model.A.FirstOrDefault(a => a.QuestionId == q.Id)
+                            ?? new HodAnswerInput { QuestionId = q.Id };
+                        var passVal = inp.Pass;
+                        var pId = $"q_{q.Id}_pass";
+                        var fId = $"q_{q.Id}_fail";
+                        <input type="hidden" name="A[@qIndex].QuestionId" value="@q.Id">
+                        <div class="audit-q" data-binary-q>
+                            <span class="audit-q-text">@q.Label</span>
+                            <div class="audit-yn audit-binary">
+                                <input type="radio" class="ayn-y" name="A[@qIndex].Pass" id="@pId" value="true" checked="@(passVal == true ? "checked" : null)">
+                                <label for="@pId" title="Pass — meets standard">Pass (1)</label>
+                                <input type="radio" class="ayn-n" name="A[@qIndex].Pass" id="@fId" value="false" checked="@(passVal == false ? "checked" : null)">
+                                <label for="@fId" title="Fail — does not meet standard">Fail (0)</label>
+                            </div>
+                        </div>
+                        <div class="audit-note">
+                            <label class="audit-note-lbl">Evidence / comments</label>
+                            <textarea name="A[@qIndex].Evidence" class="audit-ta" placeholder="What you observed…">@inp.Evidence</textarea>
+                        </div>
+                        qIndex++;
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Score summary -->
+        <div class="audit-card" id="sec-score">
+            <div class="audit-head final"><div class="audit-acc"></div><span>Score Summary</span></div>
             <div class="audit-body">
-                @{ await RenderQ("Any hazards observed?", "A.Haz", Model.A.Haz); }
-                @{ await RenderQ("Any unsafe behaviours observed?", "A.Uns", Model.A.Uns); }
-                @{ await RenderQ("Any positive behaviours praised?", "A.Pos", Model.A.Pos); }
-                @{ await RenderNote("Notes &amp; observations", "A.Snote", Model.A.Snote); }
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                    <div style="font-size:28px;font-weight:800;color:@HodAuditScoring.BandColor(Model.TotalScore, Model.MaxScore)">
+                        <span id="live-total">@(Model.TotalScore > 0 || Model.A.Any(a => a.Pass.HasValue) ? Model.TotalScore : "—")</span>
+                        <span style="font-size:16px;color:var(--muted)">/ <span id="live-max">@Model.MaxScore</span></span>
+                    </div>
+                    <div>
+                        <div id="live-band" style="font-weight:700;font-size:14px">@Model.RatingBand</div>
+                        <div id="live-detail" style="font-size:11px;color:var(--muted);max-width:320px">@Model.RatingDetail</div>
+                    </div>
+                </div>
+                <div style="margin-top:12px;font-size:11px;color:var(--muted)">
+                    Rating: 0–40% Poor &bull; 40–72% Needs Improvement &bull; 72–92% Good &bull; 92–100% Excellent
+                </div>
             </div>
         </div>
 
-        <!-- QUALITY -->
-        <div class="audit-card" id="sec-quality">
-            <div class="audit-head quality"><div class="audit-acc"></div><span>Quality</span></div>
+        <!-- TL Effectiveness -->
+        <div class="audit-card" id="sec-effectiveness">
+            <div class="audit-head quality"><div class="audit-acc"></div><span>TL Form Effectiveness Check</span></div>
             <div class="audit-body">
-                @{ await RenderQ("All quality checks completed?", "A.Qchk", Model.A.Qchk); }
-                @{ await RenderQ("Any deviations escalated?", "A.Dev", Model.A.Dev); }
-                @{ await RenderQ("Any non-compliance addressed?", "A.Nc", Model.A.Nc); }
-                @{ await RenderNote("Notes &amp; observations", "A.Qnote", Model.A.Qnote); }
+                <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
+                    Shift forms for this area this week. Incomplete forms are audit findings.
+                </p>
+                @if (Model.EffectivenessFindings.Count == 0)
+                {
+                    <div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534">
+                        All TL shift forms complete for this area this week.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var f in Model.EffectivenessFindings)
+                    {
+                        <div style="padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:8px;font-size:12px">
+                            @if (!string.IsNullOrEmpty(f.TeamLeader))
+                            {
+                                <div style="font-weight:700;margin-bottom:4px">
+                                    @f.TeamLeader &mdash; @f.Shift &mdash; @f.ShiftDate.ToString("dd/MM/yyyy") &mdash; @f.Area
+                                </div>
+                            }
+                            <ul style="margin:0;padding-left:18px">
+                                @foreach (var issue in f.Issues)
+                                {
+                                    <li>@issue</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                }
             </div>
         </div>
 
-        <!-- PERFORMANCE -->
-        <div class="audit-card" id="sec-perf">
-            <div class="audit-head perf"><div class="audit-acc"></div><span>Performance</span></div>
-            <div class="audit-body">
-                @{ await RenderQ("Hourly target achieved?", "A.Tgt", Model.A.Tgt); }
-                @{ await RenderQ("Any maintenance issues observed?", "A.Maint", Model.A.Maint); }
-                @{ await RenderQ("All materials available?", "A.Mat", Model.A.Mat); }
-                @{ await RenderQ("All tools available?", "A.Tools", Model.A.Tools); }
-                @{ await RenderQ("Any escalations needed?", "A.Escl", Model.A.Escl); }
-                @{ await RenderQ("All parts confirmed?", "A.Pconf", Model.A.Pconf); }
-                @{ await RenderQ("All parts ID'd properly?", "A.Pid", Model.A.Pid); }
-                @{ await RenderQ("All NC parts ID'd &amp; stored correctly?", "A.Ncp", Model.A.Ncp); }
-                @{ await RenderQ("6S activities completed?", "A.Sixs", Model.A.Sixs); }
-                @{ await RenderQ("TPM activities completed?", "A.Tpm", Model.A.Tpm); }
-                @{ await RenderNote("Actions taken / issues found", "A.Pnote", Model.A.Pnote); }
-            </div>
-        </div>
-
-        <!-- MORALE -->
-        <div class="audit-card" id="sec-morale">
-            <div class="audit-head morale"><div class="audit-acc"></div><span>Morale Check</span></div>
-            <div class="audit-body">
-                @{ await RenderQ("Operator wellbeing confirmed?", "A.Wb", Model.A.Wb); }
-                @{ await RenderQ("Does any operator require support?", "A.Sup", Model.A.Sup); }
-                @{ await RenderNote("Detail support required", "A.Mnote", Model.A.Mnote); }
-            </div>
-        </div>
-
-        <!-- FINAL STATUS -->
-        <div class="audit-card" id="sec-verdict">
-            <div class="audit-head final"><div class="audit-acc"></div><span>Audit Verdict</span></div>
-            <div class="audit-body">
-                @{ await RenderQ("Any accidents reported during audit?", "A.Acc", Model.A.Acc); }
-                @{ await RenderStatus("Overall safety status", "A.Ss", Model.A.Ss); }
-                @{ await RenderStatus("Overall quality status", "A.Qs", Model.A.Qs); }
-                @{ await RenderStatus("Overall performance status", "A.Ps", Model.A.Ps); }
-            </div>
-        </div>
-
-        <!-- FINDINGS SUMMARY -->
-        <div class="audit-card audit-findings-card" id="sec-findings" style="margin-top:16px">
-            <div class="card-head">
-                <span class="card-title">Audit findings &amp; actions</span>
-            </div>
+        <!-- Findings -->
+        <div class="audit-card audit-findings-card" id="sec-findings">
+            <div class="card-head"><span class="card-title">Actions required</span></div>
             <div class="audit-findings-body">
                 <div class="sfield full">
                     <label>Actions raised / concerns identified</label>
@@ -119,19 +178,21 @@
                     <label>Good practice observed</label>
                     <textarea name="GoodPractice" placeholder="Positive examples noted during the walkaround…">@Model.GoodPractice</textarea>
                 </div>
-                <div class="sfield full">
-                    <label>Follow-up required by</label>
-                    <textarea name="FollowUp" placeholder="Who needs to action what, and by when…">@Model.FollowUp</textarea>
-                </div>
             </div>
         </div>
 
-        <!-- AUDITOR SIGN-OFF -->
+        <!-- Sign off -->
         <div class="audit-sign-card">
-            <div class="audit-sign-title">Auditor sign-off</div>
-            <div class="fl">
-                <label>Type your full name to sign off this audit</label>
-                <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Full name…">
+            <div class="audit-sign-title">Sign off</div>
+            <div class="sf-row">
+                <div class="fl">
+                    <label>Auditor signature</label>
+                    <input type="text" name="auditorSignature" value="@Model.AuditorSignature" placeholder="Full name…">
+                </div>
+                <div class="fl">
+                    <label>Area team leader signature</label>
+                    <input type="text" name="teamLeaderSignature" value="@Model.TeamLeaderSignature" placeholder="Full name…">
+                </div>
             </div>
             <div class="audit-sign-hint">By signing, you confirm this audit record is accurate and complete.</div>
         </div>
@@ -145,43 +206,59 @@
     </form>
 </div>
 
-@functions {
-    async Task RenderQ(string label, string name, bool? val)
-    {
-        var yId = name.Replace(".", "_") + "_y";
-        var nId = name.Replace(".", "_") + "_n";
-        <div class="audit-q">
-            <span class="audit-q-text">@Html.Raw(label)</span>
-            <div class="audit-yn">
-                <input type="radio" class="ayn-y" name="@name" id="@yId" value="True" checked="@(val == true ? "checked" : null)">
-                <label for="@yId">Yes</label>
-                <input type="radio" class="ayn-n" name="@name" id="@nId" value="False" checked="@(val == false ? "checked" : null)">
-                <label for="@nId">No</label>
-            </div>
-        </div>
+<script>
+(function () {
+    var wrap = document.querySelector('[data-binary-audit]');
+    if (!wrap) return;
+    var form = wrap.querySelector('form');
+    var maxScore = @Model.MaxScore;
+
+    function bandFor(pct) {
+        if (pct >= 92) return { band: 'Excellent', detail: 'Best practice standard maintained. Continue to sustain.', color: '#22c55e' };
+        if (pct >= 72) return { band: 'Good', detail: 'Minor improvements required. Follow up within one week.', color: '#3b82f6' };
+        if (pct >= 40) return { band: 'Needs Improvement', detail: 'Significant gaps identified. Action plan required within 48 hours.', color: '#f59e0b' };
+        return { band: 'Poor', detail: 'Immediate corrective action required. Area must not be signed off.', color: '#ef4444' };
     }
 
-    async Task RenderNote(string label, string name, string? val)
-    {
-        <div class="audit-note">
-            <label class="audit-note-lbl">@Html.Raw(label)</label>
-            <textarea name="@name" class="audit-ta" placeholder="Detail any findings…">@val</textarea>
-        </div>
+    function updateScores() {
+        var groups = {};
+        form.querySelectorAll('.audit-binary input[type="radio"]').forEach(function (r) {
+            if (!groups[r.name]) groups[r.name] = null;
+            if (r.checked) groups[r.name] = r.value === 'true';
+        });
+        var names = Object.keys(groups);
+        var done = names.filter(function (n) { return groups[n] !== null; }).length;
+        var total = names.filter(function (n) { return groups[n] === true; }).length;
+
+        var fill = wrap.querySelector('.audit-progress-fill');
+        var text = wrap.querySelector('.audit-progress-text');
+        if (fill) fill.style.width = (names.length ? Math.round(done / names.length * 100) : 0) + '%';
+        if (text) text.textContent = done + '/' + names.length;
+
+        var liveTotal = document.getElementById('live-total');
+        var liveBand = document.getElementById('live-band');
+        var liveDetail = document.getElementById('live-detail');
+        if (liveTotal) liveTotal.textContent = done === names.length ? total : '—';
+        if (done === names.length && names.length > 0) {
+            var pct = total * 100 / names.length;
+            var b = bandFor(pct);
+            if (liveBand) { liveBand.textContent = b.band; liveBand.style.color = b.color; }
+            if (liveDetail) liveDetail.textContent = b.detail;
+            if (liveTotal) liveTotal.style.color = b.color;
+        }
+
+        wrap.querySelectorAll('.audit-card[id^="sec-"]').forEach(function (card) {
+            var badge = card.querySelector('.audit-sec-score');
+            if (!badge) return;
+            var secMax = +badge.dataset.sectionMax || 0;
+            var radios = card.querySelectorAll('.audit-binary input[type="radio"]:checked');
+            var secTotal = 0;
+            radios.forEach(function (r) { if (r.value === 'true') secTotal++; });
+            badge.textContent = secTotal + ' / ' + secMax;
+        });
     }
 
-    async Task RenderStatus(string label, string name, string? val)
-    {
-        var gid = name.Replace(".", "_");
-        <div class="audit-q">
-            <span class="audit-q-text">@label</span>
-            <div class="status-pills">
-                @foreach (var v in new[] { "Green", "Amber", "Red" })
-                {
-                    var id = $"{gid}_{v.ToLower()}";
-                    <input type="radio" name="@name" id="@id" value="@v" checked="@(val == v ? "checked" : null)">
-                    <label for="@id" class="status-pill">@v</label>
-                }
-            </div>
-        </div>
-    }
-}
+    form.addEventListener('change', updateScores);
+    updateScores();
+})();
+</script>

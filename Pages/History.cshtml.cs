@@ -79,9 +79,26 @@ public class HistoryModel : PageModel
 
     async Task<List<HistoryRow>> LoadHodAuditsAsync()
     {
+        var rows = new List<HistoryRow>();
+
+        var newQ = _db.HodDailyAudits.AsQueryable();
+        if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f)) newQ = newQ.Where(a => a.AuditDate >= f);
+        if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t)) newQ = newQ.Where(a => a.AuditDate <= t);
+        if (!string.IsNullOrEmpty(AreaFilter)) newQ = newQ.Where(a => a.Area == AreaFilter);
+        if (!string.IsNullOrEmpty(PersonFilter)) newQ = newQ.Where(a => a.AuditorName.Contains(PersonFilter));
+
+        var newAudits = await newQ.OrderByDescending(a => a.AuditDate).ToListAsync();
+        rows.AddRange(newAudits.Select(a => new HistoryRow(
+            $"HoD — {HodAuditTypes.LabelFor(a.AuditType)}", "hod", a.Id, a.AuditDate,
+            $"{a.TotalScore}/{a.MaxScore}", a.Area, a.AuditorName,
+            null, null, null, HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore),
+            !string.IsNullOrEmpty(a.ActionsRaised), false, a.SubmittedAt,
+            a.MaxScore > 0 ? a.TotalScore * 100 / a.MaxScore : null,
+            IsNewHodAudit: true)));
+
         var q = _db.ShiftSubmissions.Where(s => s.Shift == ShiftQueryExtensions.AuditPseudoShift);
-        if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f)) q = q.Where(s => s.ShiftDate >= f);
-        if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t)) q = q.Where(s => s.ShiftDate <= t);
+        if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f2)) q = q.Where(s => s.ShiftDate >= f2);
+        if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t2)) q = q.Where(s => s.ShiftDate <= t2);
         if (!string.IsNullOrEmpty(AreaFilter)) q = q.Where(s => s.Area == AreaFilter);
         if (!string.IsNullOrEmpty(PersonFilter)) q = q.Where(s => s.TeamLeaderDisplay.Contains(PersonFilter));
 
@@ -90,14 +107,16 @@ public class HistoryModel : PageModel
             .OrderByDescending(s => s.ShiftDate)
             .ToListAsync();
 
-        return items.Select(s =>
+        rows.AddRange(items.Select(s =>
         {
             var h = s.Hours.OrderByDescending(x => x.HourNumber).FirstOrDefault();
             return new HistoryRow(
-                "HoD / Shift Mgr", "hod", s.Id, s.ShiftDate, null, s.Area ?? "—", s.TeamLeaderDisplay,
+                "HoD / Shift Mgr (legacy)", "hod", s.Id, s.ShiftDate, null, s.Area ?? "—", s.TeamLeaderDisplay,
                 h?.OverallSafetyStatus, h?.OverallQualityStatus, h?.OverallPerfStatus, null,
                 !string.IsNullOrEmpty(s.Escalations), false, s.SubmittedAt);
-        }).ToList();
+        }));
+
+        return rows;
     }
 
     async Task<List<HistoryRow>> LoadSeniorAuditsAsync()
@@ -172,4 +191,5 @@ public record HistoryRow(
     bool HasActions,
     bool HandoverPending,
     DateTime SubmittedAt,
-    int? Score = null);
+    int? Score = null,
+    bool IsNewHodAudit = false);

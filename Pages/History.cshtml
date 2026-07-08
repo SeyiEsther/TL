@@ -115,9 +115,16 @@
                                             <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             break;
                                         case "hod":
-                                            <a asp-page="/AuditResult" asp-route-id="@r.Id" class="dl-link">View</a>
-                                            <a asp-page="/Audit" asp-route-id="@r.Id" class="dl-link">Edit</a>
-                                            <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
+                                            @if (r.IsNewHodAudit)
+                                            {
+                                                <a asp-page="/Audit" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            }
+                                            else
+                                            {
+                                                <a asp-page="/AuditResult" asp-route-id="@r.Id" class="dl-link">View</a>
+                                                <a asp-page="/Audit" asp-route-id="@r.Id" class="dl-link">Edit</a>
+                                                <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
+                                            }
                                             break;
                                         case "senior":
                                             <a asp-page="/SeniorAudit" asp-route-id="@r.Id" class="dl-link">View</a>

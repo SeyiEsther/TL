@@ -11,11 +11,13 @@ public class FormModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly UserService _users;
+    private readonly ShiftCompletionService _completion;
 
-    public FormModel(AppDbContext db, UserService users)
+    public FormModel(AppDbContext db, UserService users, ShiftCompletionService completion)
     {
         _db = db;
         _users = users;
+        _completion = completion;
     }
 
     // Display properties (from query string or loaded submission)
@@ -31,7 +33,8 @@ public class FormModel : PageModel
     [BindProperty] public string? Escalations { get; set; }
     [BindProperty] public string? KeyRisks { get; set; }
     [BindProperty] public string? Priorities { get; set; }
-    public string? OutgoingTLSignature { get; set; }
+    [BindProperty] public string? OutgoingTLSignature { get; set; }
+    public string? ValidationError { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? shift, string? area, string? tl,
@@ -99,6 +102,21 @@ public class FormModel : PageModel
         // Trim H to the declared hours
         while (H.Count < Hours) H.Add(new HourInput());
         var hours = H.Take(Hours).ToList();
+
+        var preview = new ShiftSubmission
+        {
+            HoursCompleted = (byte)hours.Count,
+            OutgoingTLSignature = outgoingTLSignature,
+            Hours = hours.Select((inp, i) => MapHour(inp, i + 1)).ToList(),
+        };
+        var check = _completion.Evaluate(preview);
+        if (!check.IsComplete)
+        {
+            ValidationError = "Cannot submit — complete all hours, 6S/TPM checks, and sign-off first: "
+                + string.Join("; ", check.MissingItems.Take(5))
+                + (check.MissingItems.Count > 5 ? $" (+{check.MissingItems.Count - 5} more)" : "");
+            return Page();
+        }
 
         var user = _users.GetCurrentUser();
 
