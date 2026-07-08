@@ -10,7 +10,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a asp-page="/Audit" asp-route-id="@a.Id" class="sbtn sm">Edit</a>
-            <a href="/api/submissions/@a.Id/pdf" class="sbtn primary sm">&#8595; PDF</a>
+            <a href="/api/submissions/@a.Id/pdf" class="sbtn primary sm pdf-dl" data-filename="Audit_@(a.ShiftDate.ToString("yyyyMMdd")).pdf">&#8595; PDF</a>
         </div>
     </div>
 

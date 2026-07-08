@@ -463,6 +463,74 @@
         if (e.key === 'Escape') closeAllDropdowns(null);
     });
 
+    /* ── PDF downloads (iPad / cross-device) ── */
+    function isIOSDevice() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function initPdfDownloads() {
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest('a[href*="/pdf"]');
+            if (!a) return;
+
+            var url = a.getAttribute('href');
+            if (!url) return;
+
+            e.preventDefault();
+
+            var name = a.getAttribute('data-filename') || 'Rittal_Report.pdf';
+            a.classList.add('pdf-loading');
+            a.setAttribute('aria-busy', 'true');
+
+            fetch(url, {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/pdf, application/octet-stream' }
+            })
+                .then(function (res) {
+                    var ct = (res.headers.get('content-type') || '').toLowerCase();
+                    if (!res.ok) {
+                        throw new Error('Could not load PDF (server returned ' + res.status + ').');
+                    }
+                    if (ct.indexOf('pdf') === -1 && ct.indexOf('octet-stream') === -1) {
+                        throw new Error(
+                            'Expected a PDF but got ' + (ct || 'a web page') + ' instead. ' +
+                            'On iPad this usually means the server needs anonymous access to /api — contact IT.'
+                        );
+                    }
+                    return res.blob();
+                })
+                .then(function (blob) {
+                    var pdfBlob = blob.type && blob.type.indexOf('pdf') >= 0
+                        ? blob
+                        : new Blob([blob], { type: 'application/pdf' });
+                    var objUrl = URL.createObjectURL(pdfBlob);
+
+                    if (isIOSDevice()) {
+                        var win = window.open(objUrl, '_blank');
+                        if (!win) window.location.assign(objUrl);
+                    } else {
+                        var link = document.createElement('a');
+                        link.href = objUrl;
+                        link.download = name;
+                        link.rel = 'noopener';
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                    }
+
+                    setTimeout(function () { URL.revokeObjectURL(objUrl); }, 120000);
+                })
+                .catch(function (err) {
+                    alert(err.message || 'PDF download failed.');
+                })
+                .finally(function () {
+                    a.classList.remove('pdf-loading');
+                    a.removeAttribute('aria-busy');
+                });
+        });
+    }
+
     window.addEventListener('resize', repositionOpen);
     window.addEventListener('scroll', repositionOpen, true);
 
@@ -470,6 +538,7 @@
         initReveals();
         initTabBars();
         initSdPanels();
+        initPdfDownloads();
         document.querySelectorAll('.dp').forEach(initPicker);
         document.querySelectorAll('.fs').forEach(initFilter);
     });

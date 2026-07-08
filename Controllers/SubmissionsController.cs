@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
+using TL.Helpers;
 using TL.Models;
 using TL.Services;
 
@@ -266,9 +267,22 @@ namespace TL.Controllers
                 .Include(s => s.Hours.OrderBy(h => h.HourNumber))
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (shift == null) return NotFound();
-            var bytes = _pdf.GenerateShift(shift);
-            var filename = $"TLSW_{shift.ShiftDate:yyyyMMdd}_{shift.Shift}_{shift.TeamLeaderDisplay.Replace(" ", "_")}.pdf";
-            return File(bytes, "application/pdf", filename);
+
+            try
+            {
+                var bytes = _pdf.GenerateShift(shift);
+                var filename = $"TLSW_{shift.ShiftDate:yyyyMMdd}_{shift.Shift}_{shift.TeamLeaderDisplay.Replace(" ", "_")}.pdf";
+                return PdfResponse.File(this, bytes, filename);
+            }
+            catch (Exception)
+            {
+                return new ContentResult
+                {
+                    StatusCode = 500,
+                    ContentType = "text/plain",
+                    Content = "PDF generation failed. Please try again or contact support.",
+                };
+            }
         }
 
         // GET CSV export

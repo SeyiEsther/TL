@@ -96,7 +96,7 @@
                     <span class="rv @HandoverModel.Rc(r.SafetyStatus)" style="font-size:11px">@(r.SafetyStatus ?? "—")</span>
                     <span class="rv @HandoverModel.Rc(r.QualityStatus)" style="font-size:11px">@(r.QualityStatus ?? "—")</span>
                     <span class="rv @HandoverModel.Rc(r.PerfStatus)" style="font-size:11px">@(r.PerfStatus ?? "—")</span>
-                    <a href="/api/submissions/@r.Id/pdf" target="_blank" class="sbtn sm" style="margin-left:4px">&#8595; PDF</a>
+                    <a href="/api/submissions/@r.Id/pdf" target="_blank" rel="noopener" class="sbtn sm pdf-dl" data-filename="TLSW_Handover.pdf" style="margin-left:4px">&#8595; PDF</a>
                 </div>
             </div>
 

@@ -29,6 +29,7 @@ public class TodayModel : PageModel
             Area = s.Area,
             TeamLeaderDisplay = s.TeamLeaderDisplay,
             HoursCompleted = s.HoursCompleted,
+            ShiftDate = s.ShiftDate,
             SubmittedAt = s.SubmittedAt,
             LastEditedBy = s.LastEditedBy,
             LastEditedAt = s.LastEditedAt,
@@ -67,6 +68,7 @@ public class TodayModel : PageModel
         public string? Area { get; set; }
         public string TeamLeaderDisplay { get; set; } = "";
         public int HoursCompleted { get; set; }
+        public DateOnly ShiftDate { get; set; }
         public DateTime SubmittedAt { get; set; }
         public string? LastEditedBy { get; set; }
         public DateTime? LastEditedAt { get; set; }

@@ -251,7 +251,7 @@
                             <td><span class="rag @DashboardModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
                             <td><span class="rag @DashboardModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
                             <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
-                            <td><a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a></td>
+                            <td><a href="/api/submissions/@s.Id/pdf" class="dl-link pdf-dl" data-filename="@($"TLSW_{s.ShiftDate:yyyyMMdd}_{s.Shift}.pdf")">PDF</a></td>
                         </tr>
                     }
                 </tbody>

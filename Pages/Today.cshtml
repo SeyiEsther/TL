@@ -109,7 +109,7 @@
                     <div class="escl-banner">&#9888; @s.Escalations</div>
                 }
                 <div style="padding:10px 18px">
-                    <a href="/api/submissions/@s.Id/pdf" class="dl-link">&#8595; Download PDF</a>
+                    <a href="/api/submissions/@s.Id/pdf" class="dl-link pdf-dl" data-filename="@($"TLSW_{s.ShiftDate:yyyyMMdd}.pdf")">&#8595; Download PDF</a>
                 </div>
             </div>
         }
