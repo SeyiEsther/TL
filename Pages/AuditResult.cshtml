@@ -61,14 +61,15 @@
         <div class="card" style="margin-bottom:14px">
             <div class="card-head"><span class="card-title">TL form effectiveness</span></div>
             <div style="overflow-x:auto">
-                <table class="dash-table" style="min-width:700px">
+                <table class="dash-table" style="min-width:820px">
                     <thead>
-                        <tr><th>TL</th><th>Shift</th><th>Date</th><th>Form</th><th>Notes</th></tr>
+                        <tr><th>TL</th><th>Shift</th><th>Date</th><th>Form</th><th>Sign-off</th><th>Close status</th><th>Notes</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var f in Model.Effectiveness)
                         {
-                            <tr style="@(f.IsAuditFinding ? "background:#fef2f2" : null)">
+                            var rowStyle = f.IsAuditFinding || f.TlClaimMismatch ? "background:#fef2f2" : null;
+                            <tr style="@rowStyle">
                                 <td>@(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader)</td>
                                 <td>@(f.Shift ?? "—")</td>
                                 <td>@(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM"))</td>
@@ -86,7 +87,30 @@
                                         <span class="rag r">@f.HoursComplete/@f.HoursTotal hrs</span>
                                     }
                                 </td>
-                                <td style="font-size:11px">@string.Join(" · ", f.Issues)</td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(f.TeamLeader)) { <span>—</span> }
+                                    else if (f.OutgoingSignedOff) { <span class="rag g">Signed</span> }
+                                    else { <span class="rag r">Unsigned</span> }
+                                </td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(f.TeamLeader))
+                                    {
+                                        <span class="rag r">@f.CloseStatus</span>
+                                    }
+                                    else
+                                    {
+                                        var closeCls = f.CloseStatus == "Closed correctly" ? "g"
+                                            : f.CloseStatus == "Handover pending" ? "a" : "r";
+                                        <span class="rag @closeCls">@f.CloseStatus</span>
+                                    }
+                                </td>
+                                <td style="font-size:11px">
+                                    @string.Join(" · ", f.Issues)
+                                    @if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
+                                    {
+                                        <div style="color:#b91c1c;margin-top:4px">Mismatch: @string.Join("; ", f.LinkedAuditFailures)</div>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>

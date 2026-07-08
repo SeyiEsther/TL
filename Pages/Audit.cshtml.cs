@@ -154,6 +154,8 @@ public class AuditModel : PageModel
         (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
         var user = _users.GetCurrentUser();
         var effectiveness = await _effectiveness.GetFindingsAsync(Department, Area, auditD, AuditType);
+        effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
+        Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
         if (editingId.HasValue)
         {

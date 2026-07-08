@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "Head of Department / Shift Manager"; }
 
 <div class="welcome-wrap">
-    <div class="welcome-card" style="max-width:580px">
+    <div class="welcome-card" style="max-width:720px">
         <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px">
             <div style="width:32px;height:32px;background:#1e3a5f;border-radius:8px;display:flex;align-items:center;justify-content:center">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -23,7 +23,7 @@
             <div class="sf-row" style="margin-bottom:14px">
                 <div class="fl">
                     <label>Audit date</label>
-                    <input type="date" name="auditDate" value="@Model.AuditDate" required>
+                    <input type="date" name="auditDate" id="auditDateInput" value="@Model.AuditDate" required>
                 </div>
                 <div class="fl">
                     <label>Auditor name</label>
@@ -42,32 +42,53 @@
                 <div style="font-size:11px;color:var(--muted);margin-top:4px">Mon=6S &bull; Tue=TPM &bull; Wed=Parts ID/NC &bull; Thu=Quality &bull; Fri=catch-up</div>
             </div>
 
-            <div class="fl" style="margin-bottom:14px">
-                <label>Department <span style="color:var(--red)">*</span></label>
-                <select name="department" id="deptSelect" required>
-                    <option value="">Select department…</option>
-                    @foreach (var dept in AreaList.Departments)
-                    {
-                        <option value="@dept">@dept</option>
-                    }
-                </select>
+            <div class="sf-row" style="margin-bottom:14px">
+                <div class="fl">
+                    <label>Department <span style="color:var(--red)">*</span></label>
+                    <select name="department" id="deptSelect" required>
+                        <option value="">Select department…</option>
+                        @foreach (var dept in AreaList.Departments)
+                        {
+                            <option value="@dept">@dept</option>
+                        }
+                    </select>
+                </div>
+                <div class="fl">
+                    <label>Area to audit <span style="color:var(--red)">*</span></label>
+                    <select name="area" id="areaSelect" required>
+                        <option value="">Select area…</option>
+                        @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                        {
+                            <optgroup label="@grp.Key" data-dept="@grp.Key">
+                                @foreach (var a in grp)
+                                {
+                                    var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
+                                    <option value="@a.Label" data-dept="@grp.Key">@disp</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
             </div>
 
-            <div class="fl" style="margin-bottom:6px">
-                <label>Area to audit <span style="color:var(--red)">*</span></label>
-                <select name="area" id="areaSelect" required>
-                    <option value="">Select area…</option>
-                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
-                    {
-                        <optgroup label="@grp.Key" data-dept="@grp.Key">
-                            @foreach (var a in grp)
-                            {
-                                var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
-                                <option value="@a.Label" data-dept="@grp.Key">@disp</option>
-                            }
-                        </optgroup>
-                    }
-                </select>
+            <div id="compliancePanel" style="display:none;margin-bottom:16px">
+                <div id="complianceSummary" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;margin-bottom:10px"></div>
+                <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
+                    <table class="dash-table" style="min-width:640px;font-size:12px;margin:0">
+                        <thead>
+                            <tr>
+                                <th>Team leader</th>
+                                <th>Shift</th>
+                                <th>Date</th>
+                                <th>Form</th>
+                                <th>Sign-off</th>
+                                <th>Close status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complianceBody"></tbody>
+                    </table>
+                </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:6px" id="complianceWeek"></div>
             </div>
 
             @if (!string.IsNullOrEmpty(Model.Error))
@@ -85,21 +106,89 @@
 (function () {
     var dept = document.getElementById('deptSelect');
     var area = document.getElementById('areaSelect');
-    var dateInput = document.querySelector('input[name="auditDate"]');
+    var dateInput = document.getElementById('auditDateInput');
     var typeSelect = document.querySelector('select[name="auditType"]');
+    var panel = document.getElementById('compliancePanel');
+    var summary = document.getElementById('complianceSummary');
+    var body = document.getElementById('complianceBody');
+    var weekLabel = document.getElementById('complianceWeek');
     var rotation = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
         HodAuditTypes.All.ToDictionary(t => t.Value, t => t.Label)));
-
-  var dayMap = { 0: 'SixS', 1: 'Tpm', 2: 'PartsIdNc', 3: 'Quality', 4: 'SixS', 5: 'SixS', 6: 'SixS' };
 
     function suggestType() {
         if (!dateInput || !typeSelect) return;
         var d = new Date(dateInput.value + 'T12:00:00');
         if (isNaN(d.getTime())) return;
-        var dow = d.getDay();
         var map = { 1: 'SixS', 2: 'Tpm', 3: 'PartsIdNc', 4: 'Quality', 5: 'SixS' };
-        var suggested = map[dow] || 'SixS';
+        var suggested = map[d.getDay()] || 'SixS';
         if (rotation[suggested]) typeSelect.value = suggested;
+    }
+
+    function closeStatusClass(status) {
+        if (status === 'Closed correctly') return 'g';
+        if (status === 'Handover pending') return 'a';
+        return 'r';
+    }
+
+    function loadCompliance() {
+        if (!area || !dateInput || !area.value || !dateInput.value) {
+            if (panel) panel.style.display = 'none';
+            return;
+        }
+        var deptVal = dept ? dept.value : '';
+        var url = '?handler=Compliance&area=' + encodeURIComponent(area.value)
+            + '&date=' + encodeURIComponent(dateInput.value)
+            + (deptVal ? '&department=' + encodeURIComponent(deptVal) : '');
+        fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!panel || !body || !summary) return;
+                if (data.error) { panel.style.display = 'none'; return; }
+
+                var problems = data.notClosedCorrectly || 0;
+                if (data.totalShifts === 0) {
+                    summary.style.background = '#fef2f2';
+                    summary.style.borderColor = '#fecaca';
+                    summary.innerHTML = '<strong>No shift forms submitted</strong> for this area during the audit week. '
+                        + 'TLs must complete and sign off shift forms before the audit can verify effectiveness.';
+                } else if (problems > 0) {
+                    summary.style.background = '#fef2f2';
+                    summary.style.borderColor = '#fecaca';
+                    summary.innerHTML = '<strong>' + problems + ' of ' + data.totalShifts + ' shift(s) not closed correctly this week.</strong> '
+                        + (data.incompleteForms ? data.incompleteForms + ' incomplete form(s). ' : '')
+                        + (data.unsigned ? data.unsigned + ' unsigned. ' : '')
+                        + (data.handoverPending ? data.handoverPending + ' handover pending.' : '');
+                } else {
+                    summary.style.background = '#f0fdf4';
+                    summary.style.borderColor = '#bbf7d0';
+                    summary.innerHTML = '<strong>All ' + data.totalShifts + ' shift form(s) closed correctly</strong> for this area this week.';
+                }
+
+                body.innerHTML = '';
+                (data.findings || []).forEach(function (f) {
+                    if (!f.teamLeader) return;
+                    var tr = document.createElement('tr');
+                    if (f.isAuditFinding) tr.style.background = '#fef2f2';
+                    var formHtml = f.formComplete
+                        ? '<span class="rag g">Complete</span>'
+                        : '<span class="rag r">' + f.hoursComplete + '/' + f.hoursTotal + ' hrs</span>';
+                    var signHtml = f.outgoingSignedOff
+                        ? '<span class="rag g">Signed</span>'
+                        : '<span class="rag r">Unsigned</span>';
+                    var closeCls = closeStatusClass(f.closeStatus);
+                    tr.innerHTML = '<td style="font-weight:600">' + f.teamLeader + '</td>'
+                        + '<td>' + (f.shift || '—') + '</td>'
+                        + '<td>' + (f.shiftDate || '—') + '</td>'
+                        + '<td>' + formHtml + '</td>'
+                        + '<td>' + signHtml + '</td>'
+                        + '<td><span class="rag ' + closeCls + '">' + (f.closeStatus || '—') + '</span></td>';
+                    body.appendChild(tr);
+                });
+
+                if (weekLabel) weekLabel.textContent = 'Audit week: ' + data.weekStart + ' – ' + data.weekEnd;
+                panel.style.display = 'block';
+            })
+            .catch(function () { if (panel) panel.style.display = 'none'; });
     }
 
     if (dept && area) {
@@ -110,11 +199,15 @@
                 opt.hidden = d && opt.dataset.dept !== d;
             });
             if (area.selectedOptions[0]?.hidden) area.value = '';
+            loadCompliance();
         }
         dept.addEventListener('change', filterAreas);
         filterAreas();
     }
 
-    if (dateInput) dateInput.addEventListener('change', suggestType);
+    if (area) area.addEventListener('change', loadCompliance);
+    if (dateInput) {
+        dateInput.addEventListener('change', function () { suggestType(); loadCompliance(); });
+    }
 })();
 </script>

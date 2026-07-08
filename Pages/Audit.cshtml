@@ -53,6 +53,29 @@
         </div>
     }
 
+    @{
+        var complianceIssues = Model.EffectivenessFindings.Count(f => f.IsAuditFinding && !string.IsNullOrEmpty(f.TeamLeader));
+        var unsignedCount = Model.EffectivenessFindings.Count(f => !string.IsNullOrEmpty(f.TeamLeader) && !f.OutgoingSignedOff);
+        var handoverPending = Model.EffectivenessFindings.Count(f => !string.IsNullOrEmpty(f.TeamLeader) && f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged);
+    }
+    @if (complianceIssues > 0 || Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
+    {
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#991b1b;line-height:1.5">
+            <strong>Shift form compliance:</strong>
+            @if (Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
+            {
+                <span> No TL shift forms submitted for this area this week.</span>
+            }
+            else
+            {
+                <span> @complianceIssues shift(s) need attention this week.</span>
+                if (unsignedCount > 0) { <span> @unsignedCount unsigned.</span> }
+                if (handoverPending > 0) { <span> @handoverPending handover pending.</span> }
+            }
+            Review the TL effectiveness table below before scoring the walkaround.
+        </div>
+    }
+
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
         <strong>Effectiveness check:</strong> This audit verifies what TLs claimed on their shift forms.
         Score each item <strong>Pass (1)</strong> or <strong>Fail (0)</strong> — no ambiguity.
@@ -135,7 +158,8 @@
             <div class="audit-head quality"><div class="audit-acc"></div><span>TL Form Effectiveness Check</span></div>
             <div class="audit-body">
                 <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
-                    What each TL claimed on their shift forms this week. Incomplete forms are audit findings.
+                    Who submitted shift forms this week, whether they are signed off, and what still needs closing.
+                    Rows highlighted in red are audit findings. Fail answers that contradict TL claims are auto-linked on submit.
                 </p>
                 @if (Model.EffectivenessFindings.Count == 0)
                 {
@@ -146,20 +170,23 @@
                 else
                 {
                     <div style="overflow-x:auto">
-                        <table class="dash-table" style="min-width:680px;font-size:12px">
+                        <table class="dash-table" style="min-width:820px;font-size:12px">
                             <thead>
                                 <tr>
                                     <th>Team leader</th>
                                     <th>Shift</th>
                                     <th>Date</th>
                                     <th>Form status</th>
+                                    <th>Sign-off</th>
+                                    <th>Close status</th>
                                     <th>What to verify</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var f in Model.EffectivenessFindings)
                                 {
-                                    <tr style="@(f.IsAuditFinding ? "background:#fef2f2" : null)">
+                                    var rowStyle = f.IsAuditFinding || f.TlClaimMismatch ? "background:#fef2f2" : null;
+                                    <tr style="@rowStyle">
                                         <td style="font-weight:600">@(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader)</td>
                                         <td>@(string.IsNullOrEmpty(f.Shift) ? "—" : f.Shift)</td>
                                         <td>@(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM"))</td>
@@ -177,7 +204,41 @@
                                                 <span class="rag r">@f.HoursComplete/@f.HoursTotal hrs</span>
                                             }
                                         </td>
-                                        <td style="color:var(--muted)">@string.Join(" · ", f.Issues)</td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(f.TeamLeader))
+                                            {
+                                                <span>—</span>
+                                            }
+                                            else if (f.OutgoingSignedOff)
+                                            {
+                                                <span class="rag g">Signed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="rag r">Unsigned</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(f.TeamLeader))
+                                            {
+                                                <span class="rag r">@f.CloseStatus</span>
+                                            }
+                                            else
+                                            {
+                                                var closeCls = f.CloseStatus == "Closed correctly" ? "g"
+                                                    : f.CloseStatus == "Handover pending" ? "a" : "r";
+                                                <span class="rag @closeCls">@f.CloseStatus</span>
+                                            }
+                                        </td>
+                                        <td style="color:var(--muted)">
+                                            @string.Join(" · ", f.Issues)
+                                            @if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
+                                            {
+                                                <div style="color:#b91c1c;margin-top:4px;font-weight:600">
+                                                    Mismatch: @string.Join("; ", f.LinkedAuditFailures)
+                                                </div>
+                                            }
+                                        </td>
                                     </tr>
                                 }
                             </tbody>

@@ -24,6 +24,26 @@ public class HodEffectivenessService
         return (start, start.AddDays(6));
     }
 
+    public async Task<HodShiftComplianceSummary> GetComplianceSummaryAsync(
+        string department, string area, DateOnly auditDate, string? auditType = null)
+    {
+        var type = auditType ?? HodAuditTypes.SuggestedForDate(auditDate);
+        var (weekStart, weekEnd) = WeekRange(auditDate);
+        var findings = await GetFindingsAsync(department, area, auditDate, type);
+        var shifts = findings.Where(f => f.ShiftSubmissionId.HasValue).ToList();
+
+        return new HodShiftComplianceSummary(
+            weekStart,
+            weekEnd,
+            shifts.Count,
+            shifts.Count(f => f.CloseStatus != "Closed correctly"),
+            shifts.Count(f => !f.FormComplete),
+            shifts.Count(f => !f.OutgoingSignedOff),
+            shifts.Count(f => f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged),
+            shifts.Count(f => f.CloseStatus == "Closed correctly"),
+            findings);
+    }
+
     public async Task<List<HodEffectivenessFinding>> GetFindingsAsync(
         string department, string area, DateOnly auditDate, string auditType)
     {
@@ -52,6 +72,7 @@ public class HodEffectivenessService
                 new HodEffectivenessFinding
                 {
                     Area = area,
+                    CloseStatus = "No forms",
                     Issues = ["No TL shift forms submitted for this area/week"],
                     IsAuditFinding = true,
                 }
@@ -76,11 +97,83 @@ public class HodEffectivenessService
         var allQuality = hours.Count > 0 && hours.All(h => h.QualityChecksCompleted == true);
         var anyQualityFail = hours.Any(h => h.QualityChecksCompleted == false);
 
+        var outgoingSigned = completion.SignedOff;
+        var incomingAck = !string.IsNullOrWhiteSpace(shift.IncomingTLSignature);
+        var closeStatus = ResolveCloseStatus(completion, outgoingSigned, incomingAck);
+
+        var issues = BuildIssues(completion, outgoingSigned, incomingAck, auditType,
+            claimedSixS, claimedTpm, allPartsId, anyPartsIdFail, allNcStored, anyNcFail, allQuality, anyQualityFail, endHour);
+
+        return new HodEffectivenessFinding
+        {
+            ShiftSubmissionId = shift.Id,
+            TeamLeader = shift.TeamLeaderDisplay,
+            Shift = shift.Shift,
+            ShiftDate = shift.ShiftDate,
+            Area = shift.Area ?? "",
+            FormComplete = completion.IsComplete,
+            HoursComplete = completion.HoursComplete,
+            HoursTotal = completion.HoursTotal,
+            OutgoingSignedOff = outgoingSigned,
+            IncomingHandoverAcknowledged = incomingAck,
+            CloseStatus = closeStatus,
+            TlClaimedSixS = claimedSixS,
+            TlClaimedTpm = claimedTpm,
+            TlClaimedPartsId = hours.Count > 0 ? allPartsId : null,
+            TlClaimedNcStored = hours.Count > 0 ? allNcStored : null,
+            TlClaimedQuality = hours.Count > 0 ? allQuality : null,
+            Issues = issues.Distinct().ToList(),
+            IsAuditFinding = !completion.IsComplete
+                || (outgoingSigned && !incomingAck)
+                || (auditType == HodAuditTypes.SixS && !claimedSixS)
+                || (auditType == HodAuditTypes.Tpm && !claimedTpm),
+        };
+    }
+
+    static string ResolveCloseStatus(ShiftCompletionResult completion, bool outgoingSigned, bool incomingAck)
+    {
+        if (completion.IsComplete && outgoingSigned && incomingAck)
+            return "Closed correctly";
+        if (!outgoingSigned)
+            return "Not signed off";
+        if (outgoingSigned && !incomingAck)
+            return "Handover pending";
+        return "Incomplete form";
+    }
+
+    static List<string> BuildIssues(
+        ShiftCompletionResult completion,
+        bool outgoingSigned,
+        bool incomingAck,
+        string auditType,
+        bool claimedSixS,
+        bool claimedTpm,
+        bool allPartsId,
+        bool anyPartsIdFail,
+        bool allNcStored,
+        bool anyNcFail,
+        bool allQuality,
+        bool anyQualityFail,
+        HourlyCheck? endHour)
+    {
         var issues = new List<string>();
+
         if (!completion.IsComplete)
-            issues.AddRange(completion.MissingItems.Take(3));
-        if (!completion.IsComplete && completion.MissingItems.Count > 3)
-            issues.Add($"+{completion.MissingItems.Count - 3} more missing items");
+        {
+            var priority = completion.MissingItems
+                .Where(m => m.Contains("sign-off", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            var rest = completion.MissingItems.Except(priority).Take(3).ToList();
+            issues.AddRange(priority);
+            issues.AddRange(rest);
+            if (completion.MissingItems.Count > priority.Count + rest.Count)
+                issues.Add($"+{completion.MissingItems.Count - priority.Count - rest.Count} more missing items");
+        }
+
+        if (!outgoingSigned)
+            issues.Add("Outgoing TL sign-off missing — shift not closed");
+        else if (!incomingAck)
+            issues.Add("Incoming TL has not acknowledged handover");
 
         switch (auditType)
         {
@@ -121,24 +214,6 @@ public class HodEffectivenessService
                 break;
         }
 
-        return new HodEffectivenessFinding
-        {
-            TeamLeader = shift.TeamLeaderDisplay,
-            Shift = shift.Shift,
-            ShiftDate = shift.ShiftDate,
-            Area = shift.Area ?? "",
-            FormComplete = completion.IsComplete,
-            HoursComplete = completion.HoursComplete,
-            HoursTotal = completion.HoursTotal,
-            TlClaimedSixS = claimedSixS,
-            TlClaimedTpm = claimedTpm,
-            TlClaimedPartsId = hours.Count > 0 ? allPartsId : null,
-            TlClaimedNcStored = hours.Count > 0 ? allNcStored : null,
-            TlClaimedQuality = hours.Count > 0 ? allQuality : null,
-            Issues = issues.Distinct().ToList(),
-            IsAuditFinding = !completion.IsComplete
-                || (auditType == HodAuditTypes.SixS && !claimedSixS)
-                || (auditType == HodAuditTypes.Tpm && !claimedTpm),
-        };
+        return issues;
     }
 }

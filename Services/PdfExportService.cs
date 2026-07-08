@@ -304,14 +304,38 @@ namespace TL.Services
                                 inner.Item().Background("#1e3a5f").Padding(6).Text("TL FORM EFFECTIVENESS").FontSize(8).Bold().FontColor("#fff");
                                 inner.Item().Padding(8).Table(t =>
                                 {
-                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(2); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(3); });
+                                    t.ColumnsDefinition(cd =>
+                                    {
+                                        cd.RelativeColumn(2);
+                                        cd.RelativeColumn();
+                                        cd.RelativeColumn();
+                                        cd.RelativeColumn();
+                                        cd.RelativeColumn();
+                                        cd.RelativeColumn();
+                                        cd.RelativeColumn(3);
+                                    });
+                                    t.Header(h =>
+                                    {
+                                        h.Cell().Text("TL").FontSize(7).Bold();
+                                        h.Cell().Text("Shift").FontSize(7).Bold();
+                                        h.Cell().Text("Date").FontSize(7).Bold();
+                                        h.Cell().Text("Form").FontSize(7).Bold();
+                                        h.Cell().Text("Sign-off").FontSize(7).Bold();
+                                        h.Cell().Text("Close").FontSize(7).Bold();
+                                        h.Cell().Text("Notes").FontSize(7).Bold();
+                                    });
                                     foreach (var f in effectiveness)
                                     {
                                         t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader).FontSize(8);
                                         t.Cell().Text(f.Shift ?? "—").FontSize(8);
                                         t.Cell().Text(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM/yy")).FontSize(8);
                                         t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "No forms" : f.FormComplete ? "Complete" : $"{f.HoursComplete}/{f.HoursTotal} hrs").FontSize(8);
-                                        t.Cell().Text(string.Join(" · ", f.Issues)).FontSize(7).FontColor(MidGray);
+                                        t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.OutgoingSignedOff ? "Signed" : "Unsigned").FontSize(8);
+                                        t.Cell().Text(f.CloseStatus ?? "—").FontSize(8);
+                                        var notes = string.Join(" · ", f.Issues);
+                                        if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
+                                            notes += " · Mismatch: " + string.Join("; ", f.LinkedAuditFailures);
+                                        t.Cell().Text(notes).FontSize(7).FontColor(MidGray);
                                     }
                                 });
                             });

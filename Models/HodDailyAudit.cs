@@ -40,6 +40,7 @@ public class HodAuditAnswer
 
 public class HodEffectivenessFinding
 {
+    public int? ShiftSubmissionId { get; set; }
     public string TeamLeader { get; set; } = "";
     public string Shift { get; set; } = "";
     public DateOnly ShiftDate { get; set; }
@@ -47,6 +48,10 @@ public class HodEffectivenessFinding
     public bool FormComplete { get; set; }
     public int HoursComplete { get; set; }
     public int HoursTotal { get; set; }
+    public bool OutgoingSignedOff { get; set; }
+    public bool IncomingHandoverAcknowledged { get; set; }
+    /// <summary>Closed correctly, Incomplete form, Not signed off, Handover pending, or No forms.</summary>
+    public string CloseStatus { get; set; } = "";
     public List<string> Issues { get; set; } = new();
     public bool TlClaimedSixS { get; set; }
     public bool TlClaimedTpm { get; set; }
@@ -54,7 +59,20 @@ public class HodEffectivenessFinding
     public bool? TlClaimedNcStored { get; set; }
     public bool? TlClaimedQuality { get; set; }
     public bool IsAuditFinding { get; set; }
+    public bool TlClaimMismatch { get; set; }
+    public List<string> LinkedAuditFailures { get; set; } = new();
 }
+
+public record HodShiftComplianceSummary(
+    DateOnly WeekStart,
+    DateOnly WeekEnd,
+    int TotalShifts,
+    int NotClosedCorrectly,
+    int IncompleteForms,
+    int Unsigned,
+    int HandoverPending,
+    int ClosedCorrectly,
+    List<HodEffectivenessFinding> Findings);
 
 public record HodAuditQuestion(string Id, string Section, string Label, string? MachineName = null);
 
