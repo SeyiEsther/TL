@@ -1,13 +1,13 @@
 @page
 @model AuditModel
-@{ ViewData["Title"] = "Senior Audit";
+@{ ViewData["Title"] = "Head of Department / Shift Manager";
    var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate; }
 
 <div class="audit-wrap">
 
     <div class="page-head" style="margin-bottom:14px">
         <div>
-            <div class="page-title" style="font-size:18px;font-weight:700">Senior Management Audit</div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Head of Department / Shift Manager</div>
             <div class="page-sub">
                 @auditDateDisplay &bull; @Model.Area
                 @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; Auditor: <strong>@Model.AuditorName</strong></span> }

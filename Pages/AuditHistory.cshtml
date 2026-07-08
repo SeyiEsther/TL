@@ -7,7 +7,7 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title" style="font-size:18px;font-weight:700">Audit History</div>
-            <div class="page-sub">Senior management walkaround records</div>
+            <div class="page-sub">Head of Department / Shift Manager records</div>
         </div>
         <a asp-page="/AuditStart" class="sbtn primary sm">+ New audit</a>
     </div>
@@ -49,14 +49,12 @@
         else
         {
             <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-                <table class="dash-table" style="min-width:700px">
+                <table class="dash-table" style="min-width:640px">
                     <thead>
                         <tr>
                             <th>Date</th>
                             <th>Area</th>
                             <th>Auditor</th>
-                            <th>TL observed</th>
-                            <th>Shift</th>
                             <th>Safety</th>
                             <th>Quality</th>
                             <th>Perf</th>
@@ -71,13 +69,11 @@
                                 <td>@a.AuditDate.ToString("dd/MM/yyyy")</td>
                                 <td style="font-weight:600">@a.Area</td>
                                 <td>@a.AuditorName</td>
-                                <td>@(a.TLOnShift ?? "—")</td>
-                                <td>@(a.ShiftObserved ?? "—")</td>
-                                <td><span class="rag @AuditHistoryModel.Rc(a.OverallSafetyStatus)">@(a.OverallSafetyStatus ?? "—")</span></td>
-                                <td><span class="rag @AuditHistoryModel.Rc(a.OverallQualityStatus)">@(a.OverallQualityStatus ?? "—")</span></td>
-                                <td><span class="rag @AuditHistoryModel.Rc(a.OverallPerfStatus)">@(a.OverallPerfStatus ?? "—")</span></td>
+                                <td><span class="rag @AuditHistoryModel.Rc(a.SafetyStatus)">@(a.SafetyStatus ?? "—")</span></td>
+                                <td><span class="rag @AuditHistoryModel.Rc(a.QualityStatus)">@(a.QualityStatus ?? "—")</span></td>
+                                <td><span class="rag @AuditHistoryModel.Rc(a.PerfStatus)">@(a.PerfStatus ?? "—")</span></td>
                                 <td>
-                                    @if (!string.IsNullOrEmpty(a.ActionsRaised))
+                                    @if (a.HasActions)
                                     {
                                         <span style="color:#b45309;font-weight:600;font-size:11px">&#9888; Yes</span>
                                     }
@@ -87,9 +83,11 @@
                                     }
                                 </td>
                                 <td style="white-space:nowrap">
+                                    <a asp-page="/AuditResult" asp-route-id="@a.Id" class="dl-link">View</a>
+                                    &nbsp;
                                     <a asp-page="/Audit" asp-route-id="@a.Id" class="dl-link">Edit</a>
                                     &nbsp;
-                                    <a href="/api/audits/@a.Id/pdf" class="dl-link">PDF</a>
+                                    <a href="/api/submissions/@a.Id/pdf" class="dl-link">PDF</a>
                                 </td>
                             </tr>
                         }

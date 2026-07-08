@@ -1,0 +1,224 @@
+@page
+@model SeniorDashboardModel
+@using TL.Models
+@using TL.Services
+@{ ViewData["Title"] = "Senior Dashboard"; }
+
+<div class="cd-dash">
+    <div class="cd-inner">
+        <div class="cd-header">
+            <div>
+                <div class="cd-title">Senior Team Instrument Panel</div>
+                <div class="cd-sub">@Model.TotalAudits audit@(Model.TotalAudits == 1 ? "" : "s") in view</div>
+            </div>
+            <div class="cd-header-actions">
+                <a asp-page="/SeniorStart" class="cd-btn cd-btn-accent">+ New audit</a>
+            </div>
+        </div>
+
+        <form method="get" class="cd-filters">
+            <input type="date" name="from" value="@Model.From" placeholder="From">
+            <input type="date" name="to" value="@Model.To" placeholder="To">
+            <select name="area">
+                <option value="">All areas</option>
+                @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                {
+                    <optgroup label="@grp.Key">
+                        @foreach (var a in grp)
+                        {
+                            <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
+                        }
+                    </optgroup>
+                }
+            </select>
+            <button type="submit" class="cd-btn">Apply</button>
+            <a asp-page="/SeniorDashboard" class="cd-btn cd-btn-ghost">Clear</a>
+        </form>
+
+        <div class="cd-tab-bar" role="tablist">
+            <button type="button" class="cd-tab active" data-tab="overview">Overview</button>
+            <button type="button" class="cd-tab" data-tab="leadership">Leadership</button>
+            <button type="button" class="cd-tab" data-tab="safety">Safety</button>
+            <button type="button" class="cd-tab" data-tab="quality">Quality</button>
+            <button type="button" class="cd-tab" data-tab="people">People</button>
+            <button type="button" class="cd-tab" data-tab="standards">Standards</button>
+            <button type="button" class="cd-tab" data-tab="performance">Performance</button>
+            <button type="button" class="cd-tab" data-tab="records">Records</button>
+        </div>
+
+        @if (Model.TotalAudits == 0)
+        {
+            <div class="cd-empty">
+                <div class="cd-empty-icon">—</div>
+                <div>No senior audits in this period.</div>
+                <a asp-page="/SeniorStart" class="cd-btn cd-btn-accent" style="margin-top:14px">Start first audit</a>
+            </div>
+        }
+        else
+        {
+            <!-- OVERVIEW -->
+            <div class="cd-panel active" id="panel-overview">
+                <div class="cd-cluster">
+                    <div class="cd-cluster-main">
+                        @{ RenderGauge(Model.AvgScore, "Overall", "cd-gauge-xl"); }
+                    </div>
+                    <div class="cd-cluster-side">
+                        <div class="cd-verdict-row">
+                            <span class="cd-verdict-pill g">@Model.VerdictGreen Green</span>
+                            <span class="cd-verdict-pill a">@Model.VerdictAmber Amber</span>
+                            <span class="cd-verdict-pill r">@Model.VerdictRed Red</span>
+                        </div>
+                        @if (Model.Latest != null)
+                        {
+                            <div class="cd-latest">
+                                <div class="cd-latest-label">Latest audit</div>
+                                <div class="cd-latest-area">@Model.Latest.Area</div>
+                                <div class="cd-latest-meta">
+                                    @Model.Latest.AuditDate.ToString("dd/MM/yyyy") &bull; @Model.Latest.AuditorName
+                                </div>
+                                @if (!string.IsNullOrEmpty(Model.Latest.OverallVerdict))
+                                {
+                                    <span class="rag @SeniorDashboardModel.Rc(Model.Latest.OverallVerdict)">@Model.Latest.OverallVerdict</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="cd-gauge-grid">
+                    @{ RenderGauge(Model.GovScore, "Governance", "cd-gauge-md"); }
+                    @{ RenderGauge(Model.SafetyScore, "Safety", "cd-gauge-md"); }
+                    @{ RenderGauge(Model.QualityScore, "Quality", "cd-gauge-md"); }
+                    @{ RenderGauge(Model.PeopleScore, "People", "cd-gauge-md"); }
+                    @{ RenderGauge(Model.StandardsScore, "Standards", "cd-gauge-md"); }
+                    @{ RenderGauge(Model.PerfScore, "Performance", "cd-gauge-md"); }
+                </div>
+            </div>
+
+            <!-- CATEGORY PANELS -->
+            RenderCategoryPanelSimple("leadership", "Leadership & Governance", Model.GovScore, "#3b82f6",
+                ("Handover standards", a => a.HandoverStandardsFollowed),
+                ("Visual management", a => a.VisualManagementCurrent),
+                ("Escalation paths", a => a.EscalationPathsUsed));
+
+            RenderCategoryPanelSimple("safety", "Safety Culture", Model.SafetyScore, "#22c55e",
+                ("PPE compliance", a => a.PpeComplianceFull),
+                ("Near-misses reported", a => a.NearMissesReported),
+                ("Safety action log", a => a.SafetyActionLogCurrent));
+
+            RenderCategoryPanelSimple("quality", "Quality Governance", Model.QualityScore, "#6366f1",
+                ("First-off records", a => a.FirstOffRecordsComplete),
+                ("NC capture trended", a => a.NcCaptureTrended),
+                ("Quality gates", a => a.QualityGatesMaintained));
+
+            RenderCategoryPanelSimple("people", "People & Wellbeing", Model.PeopleScore, "#a855f7",
+                ("Absence managed", a => a.AbsenceManagedProactively),
+                ("TLs coaching", a => a.TlsCoachingTeams),
+                ("Training matrix", a => a.TrainingMatrixCurrent));
+
+            RenderCategoryPanelSimple("standards", "Standards & Housekeeping", Model.StandardsScore, "#f59e0b",
+                ("6S standard", a => a.SixSStandardMaintained),
+                ("TPM schedule", a => a.TpmScheduleFollowed),
+                ("Standard work visible", a => a.StandardWorkVisible));
+
+            RenderCategoryPanelSimple("performance", "Performance", Model.PerfScore, "#ef4444",
+                ("Weekly plan tracking", a => a.TrackingAgainstWeeklyPlan),
+                ("Metrics owned", a => a.MetricsVisibleAndOwned),
+                ("CI actions progressing", a => a.ImprovementActionsProgressing));
+
+            <!-- RECORDS -->
+            <div class="cd-panel" id="panel-records">
+                <div class="cd-records-wrap">
+                    <table class="cd-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Area</th>
+                                <th>Auditor</th>
+                                <th>Score</th>
+                                <th>Verdict</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.Audits)
+                            {
+                                var score = SeniorAuditScoring.OverallScore(a);
+                                <tr>
+                                    <td>@a.AuditDate.ToString("dd/MM/yyyy")</td>
+                                    <td style="font-weight:600">@a.Area</td>
+                                    <td>@a.AuditorName</td>
+                                    <td><span style="color:@SeniorDashboardModel.GaugeColor(score);font-weight:700">@score%</span></td>
+                                    <td><span class="rag @SeniorDashboardModel.Rc(a.OverallVerdict)">@(a.OverallVerdict ?? "—")</span></td>
+                                    <td><a asp-page="/SeniorAudit" asp-route-id="@a.Id" class="cd-link">View</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+(function () {
+    const tabs = document.querySelectorAll('.cd-tab');
+    const panels = document.querySelectorAll('.cd-panel');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const id = tab.dataset.tab;
+            tabs.forEach(t => t.classList.toggle('active', t === tab));
+            panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
+        });
+    });
+})();
+</script>
+
+@functions {
+    void RenderGauge(int pct, string label, string sizeClass)
+    {
+        var color = SeniorDashboardModel.GaugeColor(pct);
+        var angle = (int)(pct * 2.7 - 135); // map 0-100 to gauge arc
+        <div class="@sizeClass">
+            <div class="cd-gauge-face">
+                <svg viewBox="0 0 120 80" class="cd-gauge-svg">
+                    <path d="M 15 70 A 45 45 0 1 1 105 70" fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M 15 70 A 45 45 0 1 1 105 70" fill="none" stroke="@color" stroke-width="8" stroke-linecap="round"
+                          stroke-dasharray="@(pct * 1.41) 200" opacity="0.95"/>
+                    <line x1="60" y1="70" x2="60" y2="32" stroke="@color" stroke-width="2.5" stroke-linecap="round"
+                          transform="rotate(@angle 60 70)"/>
+                    <circle cx="60" cy="70" r="4" fill="@color"/>
+                </svg>
+                <div class="cd-gauge-val" style="color:@color">@pct%</div>
+            </div>
+            <div class="cd-gauge-lbl">@label</div>
+        </div>
+    }
+
+    void RenderCategoryPanelSimple(string tabId, string title, int score, string accent,
+        params (string Label, Func<SeniorWeeklyAudit, bool?> Field)[] fields)
+    {
+        <div class="cd-panel" id="panel-@tabId">
+            <div class="cd-cat-head" style="border-left-color:@accent">
+                <div class="cd-cat-title">@title</div>
+                <div class="cd-cat-score" style="color:@SeniorDashboardModel.GaugeColor(score)">@score% avg</div>
+            </div>
+            <div class="cd-cat-grid">
+                @{ RenderGauge(score, "Category", "cd-gauge-lg"); }
+                <div class="cd-checklist">
+                    @foreach (var f in fields)
+                    {
+                        var answered = Model.Audits.Where(a => f.Field(a).HasValue).ToList();
+                        var pass = answered.Count(a => f.Field(a) == true);
+                        var pct = answered.Count > 0 ? pass * 100 / answered.Count : 0;
+                        <div class="cd-check-row">
+                            <span>@f.Label</span>
+                            <span class="cd-check-pct" style="color:@SeniorDashboardModel.GaugeColor(pct)">@pct%</span>
+                            <div class="cd-check-bar"><div class="cd-check-fill" style="width:@(pct)%;background:@SeniorDashboardModel.GaugeColor(pct)"></div></div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}

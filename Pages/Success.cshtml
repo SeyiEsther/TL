@@ -5,13 +5,14 @@
 <div class="success-wrap">
     <div class="success-card">
         <div class="success-icon">&#10003;</div>
-        <div class="success-title">@(Model.IsAudit ? "Audit submitted!" : "Shift submitted!")</div>
+        <div class="success-title">@(Model.IsAudit ? "Head of Department / Shift Manager audit submitted!" : "Shift submitted!")</div>
         <div class="success-sub">Saved successfully.</div>
         <div class="success-ref">Ref #@Model.SubmissionId</div>
         @if (Model.IsAudit)
         {
-            <a asp-page="/AuditStart" class="welcome-btn primary">New audit</a>
-            <a asp-page="/Dashboard" class="welcome-btn secondary">View dashboard</a>
+            <a asp-page="/AuditResult" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">View result</a>
+            <a asp-page="/AuditStart" class="welcome-btn secondary">New audit</a>
+            <a asp-page="/AuditHistory" class="welcome-btn secondary">Audit history</a>
         }
         else
         {
