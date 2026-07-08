@@ -334,7 +334,7 @@ thead th.hcol { width: 82px; }
 
 /* ── SENIOR DASHBOARD (light, matches app) ── */
 .sd-tab-bar { display: flex; gap: 4px; flex-wrap: wrap; }
-.sd-tab { padding: 8px 14px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; }
+.sd-tab { padding: 8px 14px; border-radius: 6px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; font-family: inherit; transition: background .15s, color .15s; display: inline-flex; align-items: center; }
 .sd-tab:hover { color: var(--ink); background: var(--surface); }
 .sd-tab.active { background: var(--white); border-color: var(--border); color: var(--red); font-weight: 700; }
 .sd-panel { display: none; animation: sdFade .2s ease; }

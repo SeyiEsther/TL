@@ -26,11 +26,14 @@ namespace TL.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var user = _users.GetCurrentUser();
 
+            if (!DateOnly.TryParse(req.ShiftDate, out var shiftDate))
+                return BadRequest("Invalid date");
+
             var shift = new ShiftSubmission
             {
                 SubmittedBy = user.Username,
                 TeamLeaderDisplay = req.TeamLeader ?? user.DisplayName,
-                ShiftDate = DateOnly.Parse(req.ShiftDate),
+                ShiftDate = shiftDate,
                 Shift = req.Shift,
                 Area = req.Area,
                 HoursCompleted = (byte)req.Hours.Count,

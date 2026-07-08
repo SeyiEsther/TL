@@ -1,58 +1,147 @@
 @page
 @model HistoryModel
-@{ ViewData["Title"] = "History"; }
+@using TL.Models
+@{ ViewData["Title"] = "History";
+   var tabs = new[] { "all", "shifts", "hod", "senior", "handovers" }; }
 
 <div class="dwrap">
-    <div class="page-head">
-        <div class="page-title">Shift history</div>
-        <a asp-page="/Handover" class="sbtn sm">&#128203; Handover history</a>
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">History</div>
+            <div class="page-sub">@Model.Rows.Count record@(Model.Rows.Count == 1 ? "" : "s") &bull; @Model.TabLabel(Model.Tab)</div>
+        </div>
     </div>
 
     <div class="card" style="margin-bottom:14px">
         <form method="get" class="filters">
+            <input type="hidden" name="tab" value="@Model.Tab">
             <div class="sf"><label>From</label><input type="date" name="from" value="@Model.From"></div>
             <div class="sf"><label>To</label><input type="date" name="to" value="@Model.To"></div>
+            <div class="sf">
+                <label>Area</label>
+                <select name="area" style="max-width:200px">
+                    <option value="">All areas</option>
+                    @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
+                    {
+                        <optgroup label="@grp.Key">
+                            @foreach (var a in grp)
+                            {
+                                <option value="@a.Label" selected="@(Model.AreaFilter == a.Label)">@a.Label</option>
+                            }
+                        </optgroup>
+                    }
+                </select>
+            </div>
+            <div class="sf"><label>Name</label><input type="text" name="q" value="@Model.PersonFilter" placeholder="Team leader or auditor…" style="min-width:160px"></div>
             <button type="submit" class="sbtn sm">Filter</button>
-            <a asp-page="/History" class="sbtn sm">Clear</a>
+            <a asp-page="/History" asp-route-tab="@Model.Tab" class="sbtn sm">Clear</a>
         </form>
+    </div>
+
+    <div class="sd-tab-bar card" style="margin-bottom:14px;padding:8px 12px">
+        @foreach (var t in tabs)
+        {
+            <a asp-page="/History"
+               asp-route-tab="@t"
+               asp-route-from="@Model.From"
+               asp-route-to="@Model.To"
+               asp-route-area="@Model.AreaFilter"
+               asp-route-q="@Model.PersonFilter"
+               class="sd-tab @(Model.Tab == t ? "active" : "")"
+               style="text-decoration:none">@Model.TabLabel(t)</a>
+        }
     </div>
 
     <div class="card">
         <div class="card-head">
-            <span class="card-title">All shifts</span>
-            <span class="card-sub">@Model.Shifts.Count shifts</span>
+            <span class="card-title">@Model.TabLabel(Model.Tab)</span>
+            <span class="card-sub">@Model.Rows.Count record@(Model.Rows.Count == 1 ? "" : "s")</span>
         </div>
-        @if (!Model.Shifts.Any())
+        @if (!Model.Rows.Any())
         {
-            <div class="empty">No shifts found for the selected period.</div>
+            <div class="empty">No records found for the selected filters.</div>
         }
         else
         {
-            <table class="dash-table">
-                <thead>
-                    <tr><th>Date</th><th>Shift</th><th>Area</th><th>Team leader</th><th>Safety</th><th>Quality</th><th>Perf</th><th>Submitted</th><th></th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var s in Model.Shifts)
-                    {
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                <table class="dash-table" style="min-width:900px">
+                    <thead>
                         <tr>
-                            <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
-                            <td>@s.Shift</td>
-                            <td>@(s.Area ?? "—")</td>
-                            <td>@s.TeamLeaderDisplay</td>
-                            <td><span class="rag @HistoryModel.Rc(s.OverallSafetyStatus)">@(s.OverallSafetyStatus ?? "—")</span></td>
-                            <td><span class="rag @HistoryModel.Rc(s.OverallQualityStatus)">@(s.OverallQualityStatus ?? "—")</span></td>
-                            <td><span class="rag @HistoryModel.Rc(s.OverallPerfStatus)">@(s.OverallPerfStatus ?? "—")</span></td>
-                            <td>@s.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
-                            <td>
-                                <a asp-page="/Form" asp-route-id="@s.Id" class="dl-link">Edit</a>
-                                &nbsp;
-                                <a href="/api/submissions/@s.Id/pdf" class="dl-link">PDF</a>
-                            </td>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Shift</th>
+                            <th>Area</th>
+                            <th>Person</th>
+                            <th>Safety</th>
+                            <th>Quality</th>
+                            <th>Perf</th>
+                            <th>Verdict / Score</th>
+                            <th>Flags</th>
+                            <th>Submitted</th>
+                            <th></th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Rows)
+                        {
+                            <tr>
+                                <td><span style="font-size:11px;font-weight:600;color:var(--muted)">@r.TypeLabel</span></td>
+                                <td>@r.Date.ToString("dd/MM/yyyy")</td>
+                                <td>@(r.ShiftOrExtra ?? "—")</td>
+                                <td style="font-weight:600">@r.Area</td>
+                                <td>@r.Person</td>
+                                <td><span class="rag @HistoryModel.Rc(r.Safety)">@(r.Safety ?? "—")</span></td>
+                                <td><span class="rag @HistoryModel.Rc(r.Quality)">@(r.Quality ?? "—")</span></td>
+                                <td><span class="rag @HistoryModel.Rc(r.Perf)">@(r.Perf ?? "—")</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(r.Verdict))
+                                    {
+                                        <span class="rag @HistoryModel.Rc(r.Verdict)">@r.Verdict</span>
+                                    }
+                                    else if (r.Score.HasValue)
+                                    {
+                                        <span style="font-weight:700">@r.Score%</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--muted)">—</span>
+                                    }
+                                </td>
+                                <td style="font-size:11px;white-space:nowrap">
+                                    @if (r.HasActions) { <span style="color:#b45309;font-weight:600">&#9888; Actions</span> }
+                                    @if (r.HandoverPending) { <span style="color:#b45309;font-weight:600">&#9203; Pending ack</span> }
+                                    @if (!r.HasActions && !r.HandoverPending) { <span style="color:var(--muted)">—</span> }
+                                </td>
+                                <td>@r.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                <td style="white-space:nowrap">
+                                    @switch (r.TabKey)
+                                    {
+                                        case "shifts":
+                                            <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">Edit</a>
+                                            <a href="/api/submissions/@r.Id/pdf" class="dl-link">PDF</a>
+                                            break;
+                                        case "hod":
+                                            <a asp-page="/AuditResult" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            <a asp-page="/Audit" asp-route-id="@r.Id" class="dl-link">Edit</a>
+                                            <a href="/api/submissions/@r.Id/pdf" class="dl-link">PDF</a>
+                                            break;
+                                        case "senior":
+                                            <a asp-page="/SeniorAudit" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            break;
+                                        case "handovers":
+                                            <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            @if (r.HandoverPending)
+                                            {
+                                                <a asp-page="/Handover" asp-route-area="@r.Area" class="dl-link">Ack</a>
+                                            }
+                                            break;
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </div>
 </div>
