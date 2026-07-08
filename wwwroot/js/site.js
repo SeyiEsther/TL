@@ -1,8 +1,10 @@
 ﻿(function () {
     'use strict';
 
-    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
+
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -33,6 +35,74 @@
             && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
 
+    /* ── Staggered page reveals ── */
+    function initReveals() {
+        if (reducedMotion) return;
+        var sel = '.card, .kpi, .page-head, .welcome-card, .success-card, .chart-card, .session-bar, .grid-wrap, .audit-card, .kpi-row, .chart-grid-4, .chart-grid-act, .summary-grid, .submit-bar, .shift-once-card';
+        var els = document.querySelectorAll(sel);
+        els.forEach(function (el, i) {
+            el.classList.add('reveal');
+            el.style.transitionDelay = (i % 10) * 0.05 + 's';
+        });
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                els.forEach(function (el) { el.classList.add('visible'); });
+            });
+        });
+    }
+
+    /* ── Tab bar sliding indicator ── */
+    function initTabBars() {
+        document.querySelectorAll('.sd-tab-bar').forEach(function (bar) {
+            var tabs = bar.querySelectorAll('.sd-tab');
+            if (!tabs.length) return;
+
+            var indicator = document.createElement('span');
+            indicator.className = 'sd-tab-indicator';
+            bar.insertBefore(indicator, bar.firstChild);
+
+            function moveTo(tab) {
+                if (!tab) return;
+                var barRect = bar.getBoundingClientRect();
+                var tabRect = tab.getBoundingClientRect();
+                indicator.style.left = (tabRect.left - barRect.left + bar.scrollLeft) + 'px';
+                indicator.style.width = tabRect.width + 'px';
+            }
+
+            var active = bar.querySelector('.sd-tab.active') || tabs[0];
+            if (active) moveTo(active);
+
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    requestAnimationFrame(function () { moveTo(tab); });
+                });
+            });
+
+            window.addEventListener('resize', function () {
+                moveTo(bar.querySelector('.sd-tab.active'));
+            });
+        });
+    }
+
+    /* ── Senior dashboard panels ── */
+    function initSdPanels() {
+        var tabs = document.querySelectorAll('.sd-tab[data-tab]');
+        var panels = document.querySelectorAll('.sd-panel');
+        if (!tabs.length || !panels.length) return;
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                var id = tab.dataset.tab;
+                tabs.forEach(function (t) { t.classList.toggle('active', t === tab); });
+                panels.forEach(function (p) {
+                    var on = p.id === 'panel-' + id;
+                    p.classList.toggle('active', on);
+                });
+            });
+        });
+    }
+
+    /* ── Date picker ── */
     function closeAll(except) {
         document.querySelectorAll('.dp.open').forEach(function (dp) {
             if (dp !== except) closePicker(dp);
@@ -42,22 +112,24 @@
     function closePicker(dp) {
         dp.classList.remove('open');
         dp.querySelector('.dp-trigger').setAttribute('aria-expanded', 'false');
-        var pop = dp.querySelector('.dp-popover');
-        pop.hidden = true;
+        dp.querySelector('.dp-popover').setAttribute('aria-hidden', 'true');
         hideCalendar(dp);
     }
 
     function hideCalendar(dp) {
         var cal = dp.querySelector('.dp-calendar');
-        cal.hidden = true;
-        dp.querySelector('.dp-quick').hidden = false;
-        dp.querySelector('.dp-custom-btn').hidden = false;
+        cal.setAttribute('aria-hidden', 'true');
+        cal.style.display = 'none';
+        dp.querySelector('.dp-quick').style.display = '';
+        dp.querySelector('.dp-custom-btn').style.display = '';
     }
 
     function showCalendar(dp) {
-        dp.querySelector('.dp-quick').hidden = true;
-        dp.querySelector('.dp-custom-btn').hidden = true;
-        dp.querySelector('.dp-calendar').hidden = false;
+        dp.querySelector('.dp-quick').style.display = 'none';
+        dp.querySelector('.dp-custom-btn').style.display = 'none';
+        var cal = dp.querySelector('.dp-calendar');
+        cal.style.display = '';
+        cal.setAttribute('aria-hidden', 'false');
     }
 
     function getValue(dp) {
@@ -112,18 +184,20 @@
             daysEl.appendChild(ghost);
         }
         for (var d = 1; d <= daysInMonth; d++) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'dp-day';
-            btn.textContent = d;
-            var cellDate = new Date(y, m, d);
-            if (draft && sameDay(cellDate, draft)) btn.classList.add('selected');
-            btn.addEventListener('click', function (ev) {
-                dp.querySelectorAll('.dp-day.selected').forEach(function (el) { el.classList.remove('selected'); });
-                ev.currentTarget.classList.add('selected');
-                dp._draft = new Date(y, m, +ev.currentTarget.textContent);
-            });
-            daysEl.appendChild(btn);
+            (function (dayNum) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'dp-day';
+                btn.textContent = dayNum;
+                var cellDate = new Date(y, m, dayNum);
+                if (draft && sameDay(cellDate, draft)) btn.classList.add('selected');
+                btn.addEventListener('click', function () {
+                    dp.querySelectorAll('.dp-day.selected').forEach(function (el) { el.classList.remove('selected'); });
+                    btn.classList.add('selected');
+                    dp._draft = new Date(y, m, dayNum);
+                });
+                daysEl.appendChild(btn);
+            })(d);
         }
         dp._viewDate = new Date(y, m, 1);
         dp._draft = draft;
@@ -132,12 +206,12 @@
     function initPicker(dp) {
         var trigger = dp.querySelector('.dp-trigger');
         var pop = dp.querySelector('.dp-popover');
-        var cal = dp.querySelector('.dp-calendar');
 
         if (!getValue(dp)) {
             dp.querySelector('.dp-display').classList.add('dp-placeholder');
         }
         updateQuickActive(dp);
+        hideCalendar(dp);
 
         trigger.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -147,7 +221,7 @@
                 closeAll(dp);
                 dp.classList.add('open');
                 trigger.setAttribute('aria-expanded', 'true');
-                pop.hidden = false;
+                pop.setAttribute('aria-hidden', 'false');
                 hideCalendar(dp);
                 updateQuickActive(dp);
             }
@@ -189,7 +263,11 @@
     }
 
     document.addEventListener('click', function () { closeAll(null); });
+
     document.addEventListener('DOMContentLoaded', function () {
+        initReveals();
+        initTabBars();
+        initSdPanels();
         document.querySelectorAll('.dp').forEach(initPicker);
     });
 })();

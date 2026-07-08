@@ -198,20 +198,6 @@
     }
 </div>
 
-<script>
-(function () {
-    const tabs = document.querySelectorAll('.sd-tab');
-    const panels = document.querySelectorAll('.sd-panel');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const id = tab.dataset.tab;
-            tabs.forEach(t => t.classList.toggle('active', t === tab));
-            panels.forEach(p => p.classList.toggle('active', p.id === 'panel-' + id));
-        });
-    });
-})();
-</script>
-
 @functions {
     void RenderGaugeCard(int pct, string label)
     {
