@@ -666,11 +666,40 @@ namespace TL.Services
             {
                 if (string.IsNullOrWhiteSpace(text)) return;
                 col.Item().PaddingTop(6).Text(label).FontSize(10).Bold().FontColor(DarkGray);
+
+                var lines = text.Replace("\r\n", "\n").Split('\n')
+                    .Select(l => l.Trim())
+                    .Where(l => l.Length > 0)
+                    .ToList();
+                var isList = lines.Count > 1;
+
                 col.Item().PaddingTop(6)
                     .Background(background ?? LightGray)
                     .Border(0.5f).BorderColor(BorderGray)
                     .Padding(14)
-                    .Text(text).FontSize(10).LineHeight(1.45f).FontColor(DarkGray);
+                    .Column(lc =>
+                    {
+                        lc.Spacing(6);
+                        foreach (var line in lines)
+                        {
+                            if (line.StartsWith("---") && line.EndsWith("---"))
+                            {
+                                lc.Item().PaddingTop(4).Text(line.Trim('-', ' ')).FontSize(8).Italic().FontColor(MidGray);
+                            }
+                            else if (isList)
+                            {
+                                lc.Item().Text(t =>
+                                {
+                                    t.Span("•  ").FontSize(10).FontColor(MidGray);
+                                    t.Span(line).FontSize(10).LineHeight(1.35f).FontColor(DarkGray);
+                                });
+                            }
+                            else
+                            {
+                                lc.Item().Text(line).FontSize(10).LineHeight(1.45f).FontColor(DarkGray);
+                            }
+                        }
+                    });
                 col.Item().Height(14);
             }
 
