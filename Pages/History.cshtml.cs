@@ -34,9 +34,9 @@ public class HistoryModel : PageModel
         if (Tab is "all" or "shifts")
             rows.AddRange(await LoadShiftsAsync());
         if (Tab is "all" or "hod")
-            rows.AddRange(await LoadHodAuditsAsync());
+            rows.AddRange(await LoadHodAuditsSafeAsync());
         if (Tab is "all" or "senior")
-            rows.AddRange(await LoadSeniorAuditsAsync());
+            rows.AddRange(await LoadSeniorAuditsSafeAsync());
         if (Tab is "all" or "handovers")
             rows.AddRange(await LoadHandoversAsync());
 
@@ -75,6 +75,18 @@ public class HistoryModel : PageModel
             "Shift", "shifts", s.Id, s.ShiftDate, s.Shift, s.Area ?? "—", s.TeamLeaderDisplay,
             s.Safety, s.Quality, s.Perf, null,
             !string.IsNullOrEmpty(s.Escalations), false, s.SubmittedAt)).ToList();
+    }
+
+    async Task<List<HistoryRow>> LoadHodAuditsSafeAsync()
+    {
+        try { return await LoadHodAuditsAsync(); }
+        catch { return []; }
+    }
+
+    async Task<List<HistoryRow>> LoadSeniorAuditsSafeAsync()
+    {
+        try { return await LoadSeniorAuditsAsync(); }
+        catch { return []; }
     }
 
     async Task<List<HistoryRow>> LoadHodAuditsAsync()
