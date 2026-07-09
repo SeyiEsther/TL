@@ -15,11 +15,15 @@
             <div>
                 <div class="audit-sticky-title">@Model.AuditTypeLabel</div>
                 <div class="audit-sticky-sub">
-                    @auditDateDisplay &bull; Audit: <strong>@Model.Department</strong> &bull; TL check: <strong>@Model.EffectivenessArea</strong>
+                    @auditDateDisplay &bull; Area to audit: <strong>@Model.Department</strong> &bull; Effectiveness check: <strong>@Model.EffectivenessArea</strong>
                     @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
                 </div>
             </div>
             @if (Model.EditingId.HasValue) { <span class="audit-badge-editing">Editing</span> }
+            @if (Model.EditingId.HasValue)
+            {
+                <a href="/api/audits/@Model.EditingId/pdf" class="sbtn sm pdf-dl" data-filename="HoD_Audit.pdf" style="margin-left:8px">&#8595; PDF</a>
+            }
             <div class="audit-progress-meta">
                 <div class="audit-progress-track"><div class="audit-progress-fill"></div></div>
                 <span class="audit-progress-text">0/0</span>
@@ -31,7 +35,7 @@
                 var sid = "sec-" + sec.Key.Replace(" ", "-").Replace("—", "").ToLowerInvariant();
                 <a href="#@sid" class="audit-sec-link">@sec.Key.Split('—').First().Trim()</a>
             }
-            <a href="#sec-effectiveness" class="audit-sec-link">TL Check</a>
+            <a href="#sec-effectiveness" class="audit-sec-link">Effectiveness</a>
             <a href="#sec-findings" class="audit-sec-link">Findings</a>
         </nav>
     </div>
@@ -77,14 +81,14 @@
     }
 
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
-        <strong>Walkaround audit:</strong> Score the whole <strong>@Model.Department</strong> department — Pass (1) or Fail (0) for each item.
+        <strong>Area to audit:</strong> Score the whole <strong>@Model.Department</strong> department — Pass (1) or Fail (0) for each walkaround item.
         @if (Model.AuditType == HodAuditTypes.Tpm)
         {
             <span> Includes every TPM board across @Model.Department@(tpmBoardCount > 1 ? $" ({tpmBoardCount} boards)" : "").</span>
         }
     </div>
     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.5">
-        <strong>Effectiveness check:</strong> Verifies what TLs claimed on shift forms for zone <strong>@Model.EffectivenessArea</strong> only — see the table below.
+        <strong>Effectiveness check:</strong> Verifies TL shift forms for <strong>@Model.EffectivenessArea</strong> — see the table below.
     </div>
 
     <form method="post">
@@ -155,9 +159,9 @@
             </div>
         </div>
 
-        <!-- TL Effectiveness -->
+        <!-- Effectiveness check -->
         <div class="audit-card" id="sec-effectiveness">
-            <div class="audit-head quality"><div class="audit-acc"></div><span>TL Form Effectiveness Check</span></div>
+            <div class="audit-head quality"><div class="audit-acc"></div><span>Effectiveness check</span></div>
             <div class="audit-body">
                 <p style="font-size:12px;color:var(--muted);margin:0 0 12px">
                     Who submitted shift forms this week, whether they are signed off, and what still needs closing.

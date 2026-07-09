@@ -12,7 +12,7 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title" style="font-size:18px;font-weight:700">@HodAuditTypes.LabelFor(a.AuditType)</div>
-            <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; Audit: <strong>@a.Department</strong> &bull; TL check: <strong>@a.ResolveEffectivenessArea()</strong></div>
+            <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; Area to audit: <strong>@a.Department</strong> &bull; Effectiveness check: <strong>@a.ResolveEffectivenessArea()</strong></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
@@ -59,7 +59,7 @@
     @if (Model.Effectiveness.Count > 0)
     {
         <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">TL form effectiveness</span></div>
+            <div class="card-head"><span class="card-title">Effectiveness check</span></div>
             <div style="overflow-x:auto">
                 <table class="dash-table" style="min-width:820px">
                     <thead>

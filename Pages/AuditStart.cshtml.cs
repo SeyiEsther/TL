@@ -87,7 +87,7 @@ public class AuditStartModel : PageModel
 
         if (!AreaList.IsInDepartment(effectivenessArea, department))
         {
-            Error = "The effectiveness zone must belong to the selected department.";
+            Error = "The effectiveness check zone must belong to the selected area.";
             return Page();
         }
 

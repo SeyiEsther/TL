@@ -13,8 +13,8 @@
         </div>
         <div class="welcome-time">Daily effectiveness audit &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
         <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;line-height:1.5">
-            Walkaround audit covers the <strong>whole department</strong>.
-            The effectiveness check verifies TL shift forms for <strong>one zone/line</strong>.
+            <strong>Area to audit</strong> = whole department (e.g. all of Assembly).
+            <strong>Effectiveness check</strong> = one specific zone/line within that area.
             <br>Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
         </div>
 
@@ -45,18 +45,18 @@
 
             <div class="sf-row" style="margin-bottom:14px">
                 <div class="fl">
-                    <label>Department to audit <span style="color:var(--red)">*</span></label>
+                    <label>Area to audit <span style="color:var(--red)">*</span></label>
                     <select name="department" id="deptSelect" required>
-                        <option value="">Select department…</option>
+                        <option value="">Select area…</option>
                         @foreach (var dept in AreaList.Departments)
                         {
                             <option value="@dept">@dept</option>
                         }
                     </select>
-                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Walkaround covers the whole department (e.g. all of Assembly)</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Whole department walkaround (e.g. Assembly, Sheet Metal)</div>
                 </div>
                 <div class="fl">
-                    <label>Zone for TL effectiveness check <span style="color:var(--red)">*</span></label>
+                    <label>Effectiveness check <span style="color:var(--red)">*</span></label>
                     <select name="effectivenessArea" id="areaSelect" required>
                         <option value="">Select zone…</option>
                         @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
@@ -70,11 +70,12 @@
                             </optgroup>
                         }
                     </select>
-                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Checks shift forms for this specific line/zone only</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Specific zone/line — verifies TL shift forms for this area only</div>
                 </div>
             </div>
 
             <div id="compliancePanel" style="display:none;margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Effectiveness check preview</div>
                 <div id="complianceSummary" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;margin-bottom:10px"></div>
                 <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
                     <table class="dash-table" style="min-width:640px;font-size:12px;margin:0">

@@ -266,9 +266,9 @@ namespace TL.Services
                                 t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); });
                                 t.Cell().Element(LabelCell).Text("Date");
                                 t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
-                                t.Cell().Element(LabelCell).Text("Audit scope");
+                                t.Cell().Element(LabelCell).Text("Area to audit");
                                 t.Cell().Element(ValueCell).Text(a.Department);
-                                t.Cell().Element(LabelCell).Text("TL effectiveness zone");
+                                t.Cell().Element(LabelCell).Text("Effectiveness check");
                                 t.Cell().Element(ValueCell).Text(a.ResolveEffectivenessArea());
                                 t.Cell().Element(LabelCell).Text("Auditor");
                                 t.Cell().Element(ValueCell).Text(a.AuditorName);
@@ -301,7 +301,7 @@ namespace TL.Services
                         {
                             col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                             {
-                                inner.Item().Background("#1e3a5f").Padding(6).Text("TL FORM EFFECTIVENESS").FontSize(8).Bold().FontColor("#fff");
+                                inner.Item().Background("#1e3a5f").Padding(6).Text("EFFECTIVENESS CHECK").FontSize(8).Bold().FontColor("#fff");
                                 inner.Item().Padding(8).Table(t =>
                                 {
                                     t.ColumnsDefinition(cd =>
@@ -380,6 +380,159 @@ namespace TL.Services
                 var fg = pass == true ? GreenText : pass == false ? RedText : MidGray;
                 var lbl = pass == true ? "Pass (1)" : pass == false ? "Fail (0)" : "—";
                 c.Background(bg).Padding(2).AlignCenter().Text(lbl).FontColor(fg).Bold().FontSize(8);
+            });
+        }
+
+        public byte[] GenerateSeniorWeekly(SeniorWeeklyAudit a)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+            var overall = SeniorAuditScoring.OverallScore(a);
+
+            void Section(ColumnDescriptor col, string title, string headerColor,
+                (string Label, byte? Score)[] rows, string? notes)
+            {
+                col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                {
+                    inner.Item().Background(headerColor).Padding(6)
+                        .Text(title).FontSize(8).Bold().FontColor("#fff");
+                    inner.Item().Padding(8).Table(t =>
+                    {
+                        t.ColumnsDefinition(cd => { cd.RelativeColumn(4); cd.RelativeColumn(); });
+                        foreach (var row in rows)
+                        {
+                            t.Cell().PaddingVertical(2).Text(row.Label).FontColor(MidGray).FontSize(8);
+                            ScoreRow(t, row.Score);
+                        }
+                    });
+                    if (!string.IsNullOrWhiteSpace(notes))
+                        inner.Item().PaddingHorizontal(8).PaddingBottom(8)
+                            .Background(LightGray).Padding(4).Text(notes).FontSize(8);
+                });
+            }
+
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(36);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("RITTAL CSM Plymouth").FontSize(20).Bold().FontColor(DarkGray);
+                                c.Item().Text("Senior Team Weekly Audit").FontSize(11).FontColor(MidGray);
+                            });
+                            row.ConstantItem(6).Background(Red);
+                        });
+                        col.Item().Height(10);
+                    });
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(8);
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(LightGray).Padding(6).Text("AUDIT DETAILS").FontSize(8).Bold();
+                            inner.Item().Padding(8).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); });
+                                t.Cell().Element(LabelCell).Text("Date");
+                                t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
+                                t.Cell().Element(LabelCell).Text("Area");
+                                t.Cell().Element(ValueCell).Text(a.Area);
+                                t.Cell().Element(LabelCell).Text("Auditor");
+                                t.Cell().Element(ValueCell).Text(a.AuditorName);
+                                t.Cell().Element(LabelCell).Text("Overall score");
+                                t.Cell().Element(ValueCell).Text($"{overall}%");
+                                t.Cell().Element(LabelCell).Text("Verdict");
+                                t.Cell().Element(ValueCell).Text(a.OverallVerdict ?? "—");
+                                t.Cell().Element(LabelCell).Text("Submitted");
+                                t.Cell().Element(ValueCell).Text(a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
+                            });
+                        });
+
+                        Section(col, "LEADERSHIP & GOVERNANCE", "#1e3a5f",
+                        [
+                            ("Shift handover standards being followed?", a.HandoverStandardsFollowed),
+                            ("Visual management board up to date?", a.VisualManagementCurrent),
+                            ("Escalation paths being used correctly?", a.EscalationPathsUsed),
+                        ], a.GovernanceNotes);
+
+                        Section(col, "SAFETY CULTURE", "#14532d",
+                        [
+                            ("PPE compliance 100% across the area?", a.PpeComplianceFull),
+                            ("Near-misses being reported?", a.NearMissesReported),
+                            ("Safety action log current?", a.SafetyActionLogCurrent),
+                        ], a.SafetyNotes);
+
+                        Section(col, "QUALITY GOVERNANCE", "#1e3a5f",
+                        [
+                            ("First-off records complete?", a.FirstOffRecordsComplete),
+                            ("NC capture trended?", a.NcCaptureTrended),
+                            ("Quality gates maintained?", a.QualityGatesMaintained),
+                        ], a.QualityNotes);
+
+                        Section(col, "PEOPLE & WELLBEING", "#4a1d1d",
+                        [
+                            ("Absence managed proactively?", a.AbsenceManagedProactively),
+                            ("TLs coaching their teams?", a.TlsCoachingTeams),
+                            ("Training matrix current?", a.TrainingMatrixCurrent),
+                        ], a.PeopleNotes);
+
+                        Section(col, "STANDARDS & HOUSEKEEPING", "#1e1b4b",
+                        [
+                            ("6S standard maintained?", a.SixSStandardMaintained),
+                            ("TPM schedule followed?", a.TpmScheduleFollowed),
+                            ("Standard work visible?", a.StandardWorkVisible),
+                        ], a.StandardsNotes);
+
+                        Section(col, "PERFORMANCE", "#1e1b4b",
+                        [
+                            ("Tracking against weekly plan?", a.TrackingAgainstWeeklyPlan),
+                            ("Performance metrics visible and owned?", a.MetricsVisibleAndOwned),
+                            ("Improvement actions progressing?", a.ImprovementActionsProgressing),
+                        ], a.PerformanceNotes);
+
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background("#78350f").Padding(6).Text("FINDINGS & SIGN-OFF").FontSize(8).Bold().FontColor("#fff");
+                            inner.Item().Padding(8).Column(sc =>
+                            {
+                                void Note(string label, string? text)
+                                {
+                                    if (string.IsNullOrWhiteSpace(text)) return;
+                                    sc.Item().Text(label).FontSize(8).Bold();
+                                    sc.Item().Background(LightGray).Padding(4).Text(text).FontSize(8);
+                                    sc.Item().Height(4);
+                                }
+                                Note("Good practice observed", a.GoodPracticeObserved);
+                                Note("Areas for improvement", a.AreasForImprovement);
+                                Note("Actions raised", a.ActionsRaised);
+                                sc.Item().Table(t =>
+                                {
+                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(); });
+                                    t.Cell().Element(LabelCell).Text("Auditor signature");
+                                    t.Cell().Element(ValueCell).Text(a.AuditorSignature ?? "—");
+                                });
+                            });
+                        });
+                    });
+                    page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
+                });
+            }).GeneratePdf();
+        }
+
+        static void ScoreRow(TableDescriptor t, byte? score)
+        {
+            t.Cell().Element(c =>
+            {
+                var bg = score == 2 ? GreenBg : score == 1 ? AmberBg : score == 0 ? RedBg : LightGray;
+                var fg = score == 2 ? GreenText : score == 1 ? AmberText : score == 0 ? RedText : MidGray;
+                c.Background(bg).Padding(2).AlignCenter()
+                    .Text(SeniorAuditScoring.ScoreLabel(score)).FontColor(fg).Bold().FontSize(8);
             });
         }
 

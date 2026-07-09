@@ -16,6 +16,10 @@
                 </div>
             </div>
             @if (Model.EditingId.HasValue) { <span class="audit-badge-editing">Editing</span> }
+            @if (Model.EditingId.HasValue)
+            {
+                <a href="/api/audits/@Model.EditingId/pdf" class="sbtn sm pdf-dl" data-filename="Senior_Audit.pdf" style="margin-left:auto">&#8595; PDF</a>
+            }
             <div class="audit-progress-meta">
                 <div class="audit-progress-track"><div class="audit-progress-fill"></div></div>
                 <span class="audit-progress-text">0/0</span>

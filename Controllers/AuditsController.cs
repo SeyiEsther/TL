@@ -41,6 +41,21 @@ public class AuditsController : ControllerBase
             }
         }
 
+        var senior = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(a => a.Id == id);
+        if (senior != null)
+        {
+            try
+            {
+                var bytes = _pdf.GenerateSeniorWeekly(senior);
+                var filename = $"Senior_{senior.AuditDate:yyyyMMdd}_{senior.Area.Replace(" ", "_")}.pdf";
+                return PdfResponse.File(this, bytes, filename);
+            }
+            catch (Exception)
+            {
+                return PdfError();
+            }
+        }
+
         var audit = await _db.AuditSubmissions.FirstOrDefaultAsync(a => a.Id == id);
         if (audit == null) return NotFound();
 

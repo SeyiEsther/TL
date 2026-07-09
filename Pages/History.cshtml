@@ -129,6 +129,7 @@
                                             break;
                                         case "senior":
                                             <a asp-page="/SeniorAudit" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            <a href="/api/audits/@r.Id/pdf" class="dl-link pdf-dl" data-filename="Senior_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             break;
                                         case "handovers":
                                             <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">View</a>

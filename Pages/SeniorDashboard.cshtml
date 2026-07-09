@@ -171,7 +171,8 @@
                                     <td>@a.AuditorName</td>
                                     <td><span style="color:@SeniorDashboardModel.GaugeColor(score);font-weight:700">@score%</span></td>
                                     <td><span class="rag @SeniorDashboardModel.Rc(a.OverallVerdict)">@(a.OverallVerdict ?? "—")</span></td>
-                                    <td><a asp-page="/SeniorAudit" asp-route-id="@a.Id" class="dl-link">View</a></td>
+                                    <td><a asp-page="/SeniorAudit" asp-route-id="@a.Id" class="dl-link">View</a>
+                                        <a href="/api/audits/@a.Id/pdf" class="dl-link pdf-dl" data-filename="Senior_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.Area.Replace(" ", "_")).pdf">PDF</a></td>
                                 </tr>
                             }
                         </tbody>
