@@ -5,7 +5,6 @@
 @{ ViewData["Title"] = Model.AuditTypeLabel;
    var auditDateDisplay = DateOnly.TryParse(Model.AuditDate, out var ad) ? ad.ToString("dd/MM/yyyy") : Model.AuditDate;
    var sections = Model.Questions.GroupBy(q => q.Section).ToList();
-   var tpmBoardCount = Model.Questions.Select(q => q.MachineName).Where(m => m != null).Distinct().Count();
    int qIndex = 0; }
 
 <div class="audit-wrap" data-audit-form data-binary-audit>
@@ -33,7 +32,9 @@
             @foreach (var sec in sections)
             {
                 var sid = "sec-" + sec.Key.Replace(" ", "-").Replace("—", "").ToLowerInvariant();
-                <a href="#@sid" class="audit-sec-link">@sec.Key.Split('—').First().Trim()</a>
+                var secParts = sec.Key.Split('—').Select(p => p.Trim()).ToArray();
+                var navLabel = secParts.Length >= 3 ? secParts[1] : secParts[0];
+                <a href="#@sid" class="audit-sec-link">@navLabel</a>
             }
             <a href="#sec-effectiveness" class="audit-sec-link">Effectiveness</a>
             <a href="#sec-findings" class="audit-sec-link">Findings</a>
@@ -64,32 +65,19 @@
     }
     @if (complianceIssues > 0 || Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
     {
-        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#991b1b;line-height:1.5">
-            <strong>Shift form compliance:</strong>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:8px 16px;margin-bottom:14px;font-size:12px;color:#991b1b">
             @if (Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
             {
-                <span> No TL shift forms submitted for <strong>@Model.EffectivenessArea</strong> this week.</span>
+                <span>No TL shift forms submitted for <strong>@Model.EffectivenessArea</strong> this week.</span>
             }
             else
             {
-                <span> @complianceIssues shift(s) need attention this week.</span>
-                if (unsignedCount > 0) { <span> @unsignedCount unsigned.</span> }
-                if (handoverPending > 0) { <span> @handoverPending handover pending.</span> }
+                <span>@complianceIssues shift(s) need attention this week</span>
+                if (unsignedCount > 0) { <span> · @unsignedCount unsigned</span> }
+                if (handoverPending > 0) { <span> · @handoverPending handover pending</span> }
             }
-            Review the TL effectiveness table below before scoring the walkaround.
         </div>
     }
-
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
-        <strong>Area to audit:</strong> Score the whole <strong>@Model.Department</strong> department — Pass (1) or Fail (0) for each walkaround item.
-        @if (Model.AuditType == HodAuditTypes.Tpm)
-        {
-            <span> Includes every TPM board across @Model.Department@(tpmBoardCount > 1 ? $" ({tpmBoardCount} boards)" : "").</span>
-        }
-    </div>
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.5">
-        <strong>Effectiveness check:</strong> Verifies TL shift forms for <strong>@Model.EffectivenessArea</strong> — see the table below.
-    </div>
 
     <form method="post">
         @Html.AntiForgeryToken()
