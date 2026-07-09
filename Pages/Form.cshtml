@@ -249,11 +249,29 @@
             if (radios.length && !Array.from(radios).some(r => r.checked)) return false;
         }
         for (const f of statusFields) {
-            const sel = form.querySelector(`select[name="H[${h}].${f}"]`);
-            if (sel && !sel.value) return false;
+            const radios = form.querySelectorAll(`input[name="H[${h}].${f}"]`);
+            if (radios.length && !Array.from(radios).some(r => r.checked)) return false;
         }
         return true;
     }
+
+    function initRadioDeselect(root) {
+        root.querySelectorAll('.yn-group label, .status-group label, .shift-once-body .audit-yn label').forEach(function (label) {
+            label.addEventListener('mousedown', function (e) {
+                var id = label.getAttribute('for');
+                var input = id ? document.getElementById(id) : null;
+                if (input && input.type === 'radio' && input.checked) {
+                    e.preventDefault();
+                    setTimeout(function () {
+                        input.checked = false;
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }, 0);
+                }
+            });
+        });
+    }
+
+    initRadioDeselect(form);
 
     function updateCompletion() {
         let complete = 0;
@@ -484,15 +502,19 @@
             @for (int h = 0; h < Model.Hours; h++)
             {
                 var v = val(h) ?? "";
-                var cls = v == "Green" ? "g" : v == "Amber" ? "a" : v == "Red" ? "r" : "";
                 var name = $"H[{h}].{field}";
+                var gId = $"h{h}_{field}_g";
+                var aId = $"h{h}_{field}_a";
+                var rId = $"h{h}_{field}_r";
                 <td class="cell">
-                    <select name="@name" class="ssel @cls">
-                        <option value="" selected="@(v == "" ? "selected" : null)">—</option>
-                        <option value="Green" selected="@(v == "Green" ? "selected" : null)">Green</option>
-                        <option value="Amber" selected="@(v == "Amber" ? "selected" : null)">Amber</option>
-                        <option value="Red" selected="@(v == "Red" ? "selected" : null)">Red</option>
-                    </select>
+                    <div class="status-group">
+                        <input type="radio" class="st-g" name="@name" id="@gId" value="Green" checked="@(v == "Green" ? "checked" : null)">
+                        <label for="@gId">G</label>
+                        <input type="radio" class="st-a" name="@name" id="@aId" value="Amber" checked="@(v == "Amber" ? "checked" : null)">
+                        <label for="@aId">A</label>
+                        <input type="radio" class="st-r" name="@name" id="@rId" value="Red" checked="@(v == "Red" ? "checked" : null)">
+                        <label for="@rId">R</label>
+                    </div>
                 </td>
             }
         </tr>
