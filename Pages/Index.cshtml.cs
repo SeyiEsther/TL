@@ -46,11 +46,13 @@ public class IndexModel : PageModel
             return Page();
         }
 
-        // Check if a submission already exists for this date/shift/area
+        // Check if this team leader already has a submission for this date/shift/area
         if (DateOnly.TryParse(shiftDate, out var d))
         {
             var existing = await _db.ShiftSubmissions
-                .FirstOrDefaultAsync(s => s.ShiftDate == d && s.Shift == shift && s.Area == area);
+                .ExcludeAudits()
+                .FirstOrDefaultAsync(s =>
+                    s.ShiftDate == d && s.Shift == shift && s.Area == area && s.TeamLeaderDisplay == teamLeader);
             if (existing != null)
                 return RedirectToPage("/Form", new { id = existing.Id, tl = teamLeader });
         }

@@ -47,6 +47,13 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.SaveMessage))
+    {
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#166534">
+            @Model.SaveMessage
+        </div>
+    }
+
     @if (!string.IsNullOrEmpty(Model.ValidationError))
     {
         <div class="err" style="margin-bottom:14px">@Model.ValidationError</div>
@@ -59,7 +66,7 @@
         </div>
     }
 
-    <div class="hint">scroll right for all hours &rarr;</div>
+    <div class="hint">Fill in each hour as you go — use <strong>Save progress</strong> or it auto-saves when an hour is complete. Previous hours are kept on the server.</div>
 
     <div id="shift-progress-bar" style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -222,8 +229,11 @@
         </div>
 
         <div class="submit-bar">
-            <button type="submit" class="sbtn primary" id="shift-submit-btn">
-                @(Model.EditingId.HasValue ? "Save changes" : "Submit & save shift")
+            <button type="submit" class="sbtn primary" id="shift-submit-btn" formaction="?handler=SaveProgress" formmethod="post">
+                Save progress
+            </button>
+            <button type="submit" class="sbtn primary" id="shift-final-btn">
+                Submit &amp; close shift
             </button>
             <a asp-page="/Index" class="sbtn">Cancel</a>
             <span id="draft-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
@@ -239,11 +249,12 @@
 
 <script>
 (function () {
-    const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))';
+    const DRAFT_KEY = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))_@(Uri.EscapeDataString(Model.TeamLeader))';
     const form = document.getElementById('shift-form') || document.querySelector('form[method="post"]');
     const statusEl = document.getElementById('draft-status');
     const banner = document.getElementById('draft-restore-banner');
-    const submitBtn = document.getElementById('shift-submit-btn');
+    const submitBtn = document.getElementById('shift-final-btn');
+    const progressBtn = document.getElementById('shift-submit-btn');
     const progressText = document.getElementById('shift-progress-text');
     const progressFill = document.getElementById('shift-progress-fill');
     const submitHint = document.getElementById('shift-submit-hint');
@@ -304,6 +315,10 @@
             submitBtn.disabled = !canSubmit;
             submitBtn.style.opacity = canSubmit ? '1' : '0.5';
         }
+        if (progressBtn) {
+            progressBtn.disabled = false;
+            progressBtn.style.opacity = '1';
+        }
         if (submitHint) {
             if (canSubmit) {
                 submitHint.style.display = 'none';
@@ -314,9 +329,64 @@
         }
     }
 
-    form?.addEventListener('change', updateCompletion);
+    form?.addEventListener('change', function (e) {
+        updateCompletion();
+        const hourMatch = e.target?.name?.match(/^H\[(\d+)\]/);
+        if (hourMatch) {
+            const h = parseInt(hourMatch[1], 10);
+            if (hourComplete(h)) saveToServer('hour');
+        }
+    });
     form?.addEventListener('input', updateCompletion);
     updateCompletion();
+
+    let serverSaveTimer = null;
+    let serverSaveInFlight = false;
+
+    async function saveToServer(reason) {
+        if (!form || serverSaveInFlight) return;
+        serverSaveInFlight = true;
+        try {
+            const formData = new FormData(form);
+            const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
+            const resp = await fetch('?handler=SaveProgress', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'RequestVerificationToken': token || ''
+                }
+            });
+            if (!resp.ok) throw new Error('Save failed');
+            const data = await resp.json();
+            if (data.id) {
+                let idInput = form.querySelector('input[name="EditingId"]');
+                if (!idInput) {
+                    idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'EditingId';
+                    form.appendChild(idInput);
+                }
+                idInput.value = data.id;
+            }
+            const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            statusEl.textContent = (reason === 'hour' ? 'Hour saved' : 'Saved') + ' to server at ' + t;
+            try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        } catch (e) {
+            statusEl.textContent = 'Could not save to server — use Save progress';
+        } finally {
+            serverSaveInFlight = false;
+        }
+    }
+
+    function scheduleServerSave() {
+        clearTimeout(serverSaveTimer);
+        serverSaveTimer = setTimeout(() => saveToServer('auto'), 3000);
+    }
+
+    form?.addEventListener('input', scheduleServerSave);
+    form?.addEventListener('change', scheduleServerSave);
 
     // --- Session keepalive: ping every 10 minutes ---
     setInterval(() => {
@@ -348,9 +418,16 @@
 
     setInterval(saveDraft, 60 * 1000);
 
-    // clear draft on successful submit
-    form.addEventListener('submit', () => {
-        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    // clear draft on successful final submit
+    form.addEventListener('submit', function (e) {
+        const submitter = e.submitter;
+        if (submitter && submitter.id === 'shift-final-btn') {
+            try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+            return;
+        }
+        if (submitter && submitter.id === 'shift-submit-btn') {
+            return;
+        }
     });
 
     // --- On load: check for saved draft ---

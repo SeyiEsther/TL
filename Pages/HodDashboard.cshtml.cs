@@ -48,6 +48,11 @@ public class HodDashboardModel : PageModel
     public int TlHandoverPending { get; set; }
     public List<HodAreaComplianceRow> AreaCompliance { get; set; } = [];
     public List<HodAreaAuditRow> AreaAuditScores { get; set; } = [];
+    public List<HodTlAccountabilityRow> TlAccountability { get; set; } = [];
+    public List<HodTlShiftIssueRow> TlShiftIssues { get; set; } = [];
+    public List<HodTlAuditCatchRow> TlAuditCatches { get; set; } = [];
+    public int TlWithIssues { get; set; }
+    public string CompliancePeriodLabel { get; set; } = "";
 
     public string[] ActivityLabels { get; set; } = [];
     public int[] ActivityData { get; set; } = [];
@@ -116,7 +121,15 @@ public class HodDashboardModel : PageModel
         }
 
         BuildWeekRotation(weekStart, weekEnd);
-        await LoadTlComplianceAsync(weekStart, weekEnd, area, department);
+
+        var complianceStart = !string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var cf) ? cf : weekStart;
+        var complianceEnd = !string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var ct) ? ct : weekEnd;
+        CompliancePeriodLabel = complianceStart == complianceEnd
+            ? complianceStart.ToString("dd/MM/yyyy")
+            : $"{complianceStart:dd/MM/yyyy} – {complianceEnd:dd/MM/yyyy}";
+
+        await LoadTlComplianceAsync(complianceStart, complianceEnd, area, department);
+        BuildTlAuditCatches();
         BuildAreaAuditScores();
         BuildActivityCharts();
     }
@@ -138,7 +151,7 @@ public class HodDashboardModel : PageModel
         }
     }
 
-    async Task LoadTlComplianceAsync(DateOnly weekStart, DateOnly weekEnd, string? area, string? department)
+    async Task LoadTlComplianceAsync(DateOnly rangeStart, DateOnly rangeEnd, string? area, string? department)
     {
         var deptAreas = AreaList.All
             .Where(a => a.Group == department)
@@ -148,49 +161,164 @@ public class HodDashboardModel : PageModel
         var q = _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
-            .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd);
+            .Where(s => s.ShiftDate >= rangeStart && s.ShiftDate <= rangeEnd);
 
         if (!string.IsNullOrEmpty(area))
             q = q.Where(s => s.Area == area);
         else if (!string.IsNullOrEmpty(department))
             q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));
 
-        var shifts = await q.ToListAsync();
+        var shifts = await q.OrderByDescending(s => s.ShiftDate).ThenBy(s => s.Shift).ToListAsync();
         TlShiftCount = shifts.Count;
 
-        var rows = new List<(string Area, bool Complete, bool Signed, bool HandoverPending)>();
+        var issueRows = new List<HodTlShiftIssueRow>();
+        var tlStats = new Dictionary<string, (int Total, int Problems, int Incomplete, int Unsigned, int Handover, HashSet<string> Areas, List<string> Summaries)>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var shift in shifts)
         {
             var comp = _completion.Evaluate(shift);
             var signed = comp.SignedOff;
             var handoverPending = signed && string.IsNullOrWhiteSpace(shift.IncomingTLSignature);
-            rows.Add((shift.Area ?? "Unknown", comp.IsComplete, signed, handoverPending));
+            var closeStatus = ResolveCloseStatus(comp, signed, handoverPending);
+            var hasProblem = !comp.IsComplete || !signed || handoverPending;
 
             if (!comp.IsComplete) TlIncomplete++;
             if (!signed) TlUnsigned++;
             if (handoverPending) TlHandoverPending++;
+
+            var tl = string.IsNullOrWhiteSpace(shift.TeamLeaderDisplay) ? "Unknown TL" : shift.TeamLeaderDisplay.Trim();
+            if (!tlStats.TryGetValue(tl, out var stat))
+                stat = (0, 0, 0, 0, 0, new HashSet<string>(), new List<string>());
+            stat.Total++;
+            stat.Areas.Add(shift.Area ?? "Unknown");
+            if (hasProblem)
+            {
+                stat.Problems++;
+                if (!comp.IsComplete) stat.Incomplete++;
+                if (!signed) stat.Unsigned++;
+                if (handoverPending) stat.Handover++;
+
+                var issues = BuildShiftIssues(comp, signed, handoverPending);
+                issueRows.Add(new HodTlShiftIssueRow(
+                    shift.Id,
+                    tl,
+                    shift.ShiftDate,
+                    shift.Shift,
+                    shift.Area ?? "—",
+                    closeStatus,
+                    comp.HoursComplete,
+                    comp.HoursTotal,
+                    issues));
+
+                var headline = $"{shift.ShiftDate:dd/MM} {shift.Shift}: {closeStatus}";
+                if (!stat.Summaries.Contains(headline))
+                    stat.Summaries.Add(headline);
+            }
+            tlStats[tl] = stat;
         }
 
-        TlNotClosed = shifts.Count(s =>
-        {
-            var comp = _completion.Evaluate(s);
-            var signed = comp.SignedOff;
-            var handover = signed && string.IsNullOrWhiteSpace(s.IncomingTLSignature);
-            return !comp.IsComplete || !signed || handover;
-        });
+        TlNotClosed = issueRows.Count;
+        TlShiftIssues = issueRows;
+        TlWithIssues = tlStats.Count(kv => kv.Value.Problems > 0);
 
-        AreaCompliance = rows
-            .GroupBy(r => r.Area)
-            .Select(g => new HodAreaComplianceRow(
-                g.Key,
-                g.Count(),
-                g.Count(x => !x.Complete),
-                g.Count(x => !x.Signed),
-                g.Count(x => x.HandoverPending)))
-            .Where(r => r.Problems > 0)
+        TlAccountability = tlStats
+            .Where(kv => kv.Value.Problems > 0)
+            .Select(kv => new HodTlAccountabilityRow(
+                kv.Key,
+                kv.Value.Areas.Count == 1 ? kv.Value.Areas.First() : $"{kv.Value.Areas.Count} areas",
+                kv.Value.Total,
+                kv.Value.Problems,
+                kv.Value.Incomplete,
+                kv.Value.Unsigned,
+                kv.Value.Handover,
+                kv.Value.Summaries.Take(5).ToList()))
+            .OrderByDescending(r => r.ProblemShifts)
+            .ThenByDescending(r => r.Incomplete)
+            .ThenBy(r => r.TeamLeader)
+            .ToList();
+
+        AreaCompliance = shifts
+            .GroupBy(s => s.Area ?? "Unknown")
+            .Select(g =>
+            {
+                var areaIssues = issueRows.Where(r => r.Area == (g.Key == "Unknown" ? "—" : g.Key) || r.Area == g.Key).ToList();
+                if (areaIssues.Count == 0) return null;
+                return new HodAreaComplianceRow(
+                    g.Key,
+                    g.Count(),
+                    areaIssues.Count(x => x.CloseStatus == "Incomplete form"),
+                    areaIssues.Count(x => x.CloseStatus == "Not signed off"),
+                    areaIssues.Count(x => x.CloseStatus == "Handover pending"));
+            })
+            .Where(r => r != null)
+            .Cast<HodAreaComplianceRow>()
             .OrderByDescending(r => r.Problems)
             .ThenBy(r => r.Area)
             .Take(12)
+            .ToList();
+    }
+
+    static string ResolveCloseStatus(ShiftCompletionResult comp, bool signed, bool handoverPending)
+    {
+        if (comp.IsComplete && signed && !handoverPending) return "Closed correctly";
+        if (!signed) return "Not signed off";
+        if (handoverPending) return "Handover pending";
+        return "Incomplete form";
+    }
+
+    static List<string> BuildShiftIssues(ShiftCompletionResult comp, bool signed, bool handoverPending)
+    {
+        var issues = new List<string>();
+        if (!comp.IsComplete)
+        {
+            issues.AddRange(comp.MissingItems.Take(4));
+            if (comp.MissingItems.Count > 4)
+                issues.Add($"+{comp.MissingItems.Count - 4} more");
+        }
+        if (!signed)
+            issues.Add("Outgoing TL sign-off missing");
+        if (handoverPending)
+            issues.Add("Incoming TL has not acknowledged handover");
+        return issues;
+    }
+
+    void BuildTlAuditCatches()
+    {
+        var catches = new List<HodTlAuditCatchRow>();
+        foreach (var audit in Audits)
+        {
+            var findings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
+            foreach (var f in findings.Where(f => !string.IsNullOrEmpty(f.TeamLeader) && (f.TlClaimMismatch || f.IsAuditFinding)))
+            {
+                var issues = new List<string>();
+                if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
+                    issues.AddRange(f.LinkedAuditFailures.Select(x => $"Audit caught: {x}"));
+                else if (f.TlClaimMismatch)
+                    issues.Add("HoD audit failed — contradicts what TL claimed on shift form");
+                if (!f.FormComplete)
+                    issues.Add("Shift form incomplete when audited");
+                if (!f.OutgoingSignedOff)
+                    issues.Add("Not signed off");
+                if (f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged)
+                    issues.Add("Handover not acknowledged");
+                issues.AddRange(f.Issues.Where(i => i.StartsWith("Audit FAIL", StringComparison.OrdinalIgnoreCase)));
+
+                if (issues.Count == 0) continue;
+
+                catches.Add(new HodTlAuditCatchRow(
+                    f.TeamLeader,
+                    f.ShiftDate,
+                    f.Shift,
+                    f.Area,
+                    audit.AuditDate,
+                    HodAuditTypes.LabelFor(audit.AuditType),
+                    issues.Distinct().ToList()));
+            }
+        }
+
+        TlAuditCatches = catches
+            .OrderByDescending(c => c.AuditDate)
+            .ThenBy(c => c.TeamLeader)
             .ToList();
     }
 
@@ -254,3 +382,33 @@ public record HodAreaComplianceRow(string Area, int TotalShifts, int Incomplete,
 }
 
 public record HodAreaAuditRow(string Area, int AuditCount, int AvgScorePct, int PoorCount);
+
+public record HodTlAccountabilityRow(
+    string TeamLeader,
+    string Area,
+    int TotalShifts,
+    int ProblemShifts,
+    int Incomplete,
+    int Unsigned,
+    int HandoverPending,
+    List<string> IssueSummary);
+
+public record HodTlShiftIssueRow(
+    int ShiftId,
+    string TeamLeader,
+    DateOnly ShiftDate,
+    string Shift,
+    string Area,
+    string CloseStatus,
+    int HoursComplete,
+    int HoursTotal,
+    List<string> Issues);
+
+public record HodTlAuditCatchRow(
+    string TeamLeader,
+    DateOnly ShiftDate,
+    string Shift,
+    string Area,
+    DateOnly AuditDate,
+    string AuditType,
+    List<string> Issues);

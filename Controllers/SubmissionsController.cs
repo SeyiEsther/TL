@@ -98,12 +98,17 @@ namespace TL.Controllers
             shift.Escalations = req.Escalations;
             shift.KeyRisks = req.KeyRisks;
             shift.Priorities = req.Priorities;
-            shift.HoursCompleted = (byte)req.Hours.Count;
+            var maxHour = Math.Max(
+                shift.Hours.Select(h => (int)h.HourNumber).DefaultIfEmpty(0).Max(),
+                req.Hours.Count > 0 ? req.Hours.Max(h => h.Hour) : 0);
+            shift.HoursCompleted = (byte)Math.Clamp(maxHour > 0 ? maxHour : shift.HoursCompleted, 1, 8);
             shift.LastEditedBy = editorName;
             shift.LastEditedAt = DateTime.UtcNow;
 
             foreach (var hReq in req.Hours)
             {
+                if (!HourRequestHasData(hReq)) continue;
+
                 var existing = shift.Hours.FirstOrDefault(h => h.HourNumber == hReq.Hour);
                 if (existing == null)
                 {
@@ -308,6 +313,15 @@ namespace TL.Controllers
         }
 
         static string Q(string? s) => $"\"{(s ?? "").Replace("\"", "\"\"")}\"";
+
+        static bool HourRequestHasData(HourRequest h) =>
+            h.Haz.HasValue || h.Uns.HasValue || h.Pos.HasValue || h.Qchk.HasValue || h.Dev.HasValue || h.Nc.HasValue
+            || h.Tgt.HasValue || h.Maint.HasValue || h.Mat.HasValue || h.Tools.HasValue || h.Escl.HasValue
+            || h.Pconf.HasValue || h.Pid.HasValue || h.Ncp.HasValue || h.Sixs.HasValue || h.Tpm.HasValue
+            || h.Wb.HasValue || h.Sup.HasValue || h.Acc.HasValue
+            || !string.IsNullOrWhiteSpace(h.Snote) || !string.IsNullOrWhiteSpace(h.Qnote)
+            || !string.IsNullOrWhiteSpace(h.Pnote) || !string.IsNullOrWhiteSpace(h.Mnote)
+            || !string.IsNullOrWhiteSpace(h.Ss) || !string.IsNullOrWhiteSpace(h.Qs) || !string.IsNullOrWhiteSpace(h.Ps);
 
         static HourlyCheck MapHour(HourRequest h) => new()
         {

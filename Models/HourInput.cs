@@ -28,4 +28,13 @@ public class HourInput
     public string? Ss { get; set; }
     public string? Qs { get; set; }
     public string? Ps { get; set; }
+
+    public bool HasAnyData() =>
+        Haz.HasValue || Uns.HasValue || Pos.HasValue || Qchk.HasValue || Dev.HasValue || Nc.HasValue
+        || Tgt.HasValue || Maint.HasValue || Mat.HasValue || Tools.HasValue || Escl.HasValue
+        || Pconf.HasValue || Pid.HasValue || Ncp.HasValue || Sixs.HasValue || Tpm.HasValue
+        || Wb.HasValue || Sup.HasValue || Acc.HasValue
+        || !string.IsNullOrWhiteSpace(Snote) || !string.IsNullOrWhiteSpace(Qnote)
+        || !string.IsNullOrWhiteSpace(Pnote) || !string.IsNullOrWhiteSpace(Mnote)
+        || !string.IsNullOrWhiteSpace(Ss) || !string.IsNullOrWhiteSpace(Qs) || !string.IsNullOrWhiteSpace(Ps);
 }
