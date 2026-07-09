@@ -94,39 +94,57 @@
 
                     <!-- HEALTH & SAFETY -->
                     <tr class="sec-row safety"><td class="acc"></td><td colspan="@H">Health &amp; Safety</td></tr>
-                    @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz); }
-                    @{ await RenderYN("Any unsafe behaviours observed?", "Uns", h => hd(h).Uns); }
-                    @{ await RenderYN("Any positive behaviours praised?", "Pos", h => hd(h).Pos); }
+                    @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz,
+                        "Slips, trips, blocked exits or unsafe conditions anywhere in the area"); }
+                    @{ await RenderYN("Any unsafe behaviours observed?", "Uns", h => hd(h).Uns,
+                        "Anyone working unsafely — missing PPE, bypassing guards or taking shortcuts"); }
+                    @{ await RenderYN("Any positive behaviours praised?", "Pos", h => hd(h).Pos,
+                        "Proactive safety actions worth calling out and sharing with the team"); }
                     @{ await RenderNote("Description", "Snote", h => hd(h).Snote); }
 
                     <!-- QUALITY -->
                     <tr class="sec-row quality"><td class="acc"></td><td colspan="@H">Quality</td></tr>
-                    @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk); }
-                    @{ await RenderYN("Any deviations escalated?", "Dev", h => hd(h).Dev); }
-                    @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc); }
+                    @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk,
+                        "All scheduled inspections and verification checks were carried out this hour"); }
+                    @{ await RenderYN("Any deviations escalated?", "Dev", h => hd(h).Dev,
+                        "Any deviation from spec or process has been raised with the relevant team"); }
+                    @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc,
+                        "Any instance of non-compliance was identified and acted on"); }
                     @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
 
                     <!-- PERFORMANCE -->
                     <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>
-                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt); }
-                    @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint); }
-                    @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat); }
-                    @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools); }
-                    @{ await RenderYN("Any escalations needed?", "Escl", h => hd(h).Escl); }
-                    @{ await RenderYN("All parts confirmed?", "Pconf", h => hd(h).Pconf); }
-                    @{ await RenderYN("All parts ID'd properly?", "Pid", h => hd(h).Pid); }
-                    @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp); }
+                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt,
+                        "Output met the planned production target for this hour"); }
+                    @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint,
+                        "Equipment faults or breakdowns have been logged with maintenance"); }
+                    @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat,
+                        "Raw materials, components and consumables are in place for the next hour"); }
+                    @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools,
+                        "All required tools and equipment are present and in working order"); }
+                    @{ await RenderYN("Any escalations needed?", "Escl", h => hd(h).Escl,
+                        "Issues that need action from another team or a senior level"); }
+                    @{ await RenderYN("All parts confirmed?", "Pconf", h => hd(h).Pconf,
+                        "Parts count matches the production order for this hour"); }
+                    @{ await RenderYN("All parts ID'd properly?", "Pid", h => hd(h).Pid,
+                        "Covers ALL parts and stock in the surrounding area — not just the part currently on the machine. Check every bin, label and WIP in the vicinity.",
+                        warn: true); }
+                    @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp,
+                        "Non-conforming parts are clearly labelled and moved to the dedicated NC zone"); }
                     @{ await RenderNote("Actions taken", "Pnote", h => hd(h).Pnote); }
 
                     <!-- MORALE -->
                     <tr class="sec-row morale"><td class="acc"></td><td colspan="@H">Morale Check</td></tr>
-                    @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb); }
-                    @{ await RenderYN("Does operator require support?", "Sup", h => hd(h).Sup); }
+                    @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb,
+                        "Checked in with each team member — everyone is fit, comfortable and not struggling"); }
+                    @{ await RenderYN("Does operator require support?", "Sup", h => hd(h).Sup,
+                        "Anyone raising a concern, finding it difficult or asking for additional help"); }
                     @{ await RenderNote("Detail support required", "Mnote", h => hd(h).Mnote); }
 
                     <!-- FINAL STATUS -->
                     <tr class="sec-row final"><td class="acc"></td><td colspan="@H">Final Shift Status</td></tr>
-                    @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc); }
+                    @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc,
+                        "Any RTA, near-miss or first-aid incident recorded in the accident book this shift"); }
                     @{ await RenderStatus("Overall safety status", "Ss", h => hd(h).Ss); }
                     @{ await RenderStatus("Overall quality status", "Qs", h => hd(h).Qs); }
                     @{ await RenderStatus("Overall performance status", "Ps", h => hd(h).Ps); }
@@ -417,10 +435,16 @@
 </script>
 
 @functions {
-    async Task RenderYN(string label, string field, Func<int, bool?> val)
+    async Task RenderYN(string label, string field, Func<int, bool?> val, string? hint = null, bool warn = false)
     {
         <tr class="dr">
-            <td class="ql">@Html.Raw(label)</td>
+            <td class="ql">
+                @Html.Raw(label)
+                @if (hint != null)
+                {
+                    <div class="@(warn ? "q-hint q-hint-warn" : "q-hint")">@hint</div>
+                }
+            </td>
             @for (int h = 0; h < Model.Hours; h++)
             {
                 var v = val(h);
