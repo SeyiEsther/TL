@@ -1,7 +1,8 @@
 @page
 @model SeniorStartModel
 @using TL.Models
-@{ ViewData["Title"] = "Senior Team Audit"; }
+@{ ViewData["Title"] = "Senior Team Audit";
+   var defaultArea = Model.SuggestedAreas.FirstOrDefault()?.Area; }
 
 <div class="welcome-wrap">
     <div class="welcome-card" style="max-width:560px">
@@ -13,16 +14,21 @@
         </div>
         <div class="welcome-time">@DateTime.Now.ToString("dddd d MMMM yyyy")</div>
 
-        @if (!string.IsNullOrEmpty(Model.SuggestedArea))
+        @if (Model.SuggestedAreas.Count > 0)
         {
-            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
-                <div style="width:36px;height:36px;background:#dc2626;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="area-rec-box">
+                <div class="area-rec-head">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Recommended — worst performing this week
                 </div>
-                <div>
-                    <div style="font-size:12px;font-weight:700;color:#991b1b">Dashboard recommends this area</div>
-                    <div style="font-size:14px;font-weight:700;color:#dc2626;margin:2px 0">@Model.SuggestedArea</div>
-                    <div style="font-size:11px;color:#b91c1c">@Model.SuggestedReason — worst performing this week</div>
+                <div class="area-rec-pills" id="area-rec-pills">
+                    @foreach (var s in Model.SuggestedAreas)
+                    {
+                        <button type="button" class="area-rec-pill" data-area="@s.Area" title="@s.Area — @s.Reason">
+                            <span class="area-rec-pill-name">@s.ShortLabel</span>
+                            <span class="area-rec-pill-meta">@s.Reason</span>
+                        </button>
+                    }
                 </div>
             </div>
         }
@@ -43,7 +49,7 @@
 
             <div class="fl" style="margin-bottom:6px">
                 <label>Area to audit <span style="color:var(--red)">*</span></label>
-                <select name="area" required>
+                <select name="area" id="senior-area-select" required>
                     <option value="">Select area…</option>
                     @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
                     {
@@ -51,7 +57,7 @@
                             @foreach (var a in grp)
                             {
                                 var disp = string.IsNullOrEmpty(a.Machines) ? a.Label : $"{a.Label} ({a.Machines})";
-                                var selected = Model.SuggestedArea == a.Label;
+                                var selected = defaultArea == a.Label;
                                 <option value="@a.Label" selected="@(selected ? "selected" : null)">@disp</option>
                             }
                         </optgroup>
@@ -70,3 +76,30 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var select = document.getElementById('senior-area-select');
+    var pills = document.querySelectorAll('.area-rec-pill');
+    if (!select || !pills.length) return;
+
+    function syncPillActive() {
+        var val = select.value;
+        pills.forEach(function (p) {
+            p.classList.toggle('active', p.getAttribute('data-area') === val);
+        });
+    }
+
+    pills.forEach(function (pill) {
+        pill.addEventListener('click', function () {
+            var area = pill.getAttribute('data-area');
+            if (!area) return;
+            select.value = area;
+            syncPillActive();
+        });
+    });
+
+    select.addEventListener('change', syncPillActive);
+    syncPillActive();
+})();
+</script>

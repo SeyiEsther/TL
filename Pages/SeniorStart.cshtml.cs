@@ -16,8 +16,7 @@ public class SeniorStartModel : PageModel
 
     public string AuditorName { get; set; } = "";
     public string AuditDate { get; set; } = "";
-    public string? SuggestedArea { get; set; }
-    public string? SuggestedReason { get; set; }
+    public List<AreaPerformanceSuggestion> SuggestedAreas { get; set; } = [];
     public string? Error { get; set; }
 
     public async Task OnGetAsync()
@@ -25,8 +24,24 @@ public class SeniorStartModel : PageModel
         var user = _users.GetCurrentUser();
         AuditorName = user.DisplayName;
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
+        SuggestedAreas = await LoadSuggestedAreasAsync();
+    }
 
-        // Find the worst-performing area this week (Mon–Sun) by red count
+    public async Task<IActionResult> OnPostAsync(string auditDate, string auditorName, string area)
+    {
+        if (string.IsNullOrWhiteSpace(auditorName) || string.IsNullOrWhiteSpace(area))
+        {
+            AuditorName = auditorName ?? "";
+            AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
+            SuggestedAreas = await LoadSuggestedAreasAsync();
+            Error = "Please fill in all fields.";
+            return Page();
+        }
+        return RedirectToPage("/SeniorAudit", new { date = auditDate, auditor = auditorName, area });
+    }
+
+    async Task<List<AreaPerformanceSuggestion>> LoadSuggestedAreasAsync()
+    {
         var today = DateTime.Today;
         var dow = (int)today.DayOfWeek;
         var weekStart = DateOnly.FromDateTime(today.AddDays(dow == 0 ? -6 : 1 - dow));
@@ -38,43 +53,30 @@ public class SeniorStartModel : PageModel
             .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd)
             .ToListAsync();
 
-        var worst = weekData
+        return weekData
             .Where(s => !string.IsNullOrEmpty(s.Area))
             .GroupBy(s => s.Area!)
             .Select(g =>
             {
-                var reds = g.Sum(s =>
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault() == "Red" ? 1 : 0) +
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault() == "Red" ? 1 : 0) +
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault() == "Red" ? 1 : 0));
-                var ambers = g.Sum(s =>
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault() == "Amber" ? 1 : 0) +
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallQualityStatus).FirstOrDefault() == "Amber" ? 1 : 0) +
-                    (s.Hours.OrderByDescending(h => h.HourNumber).Select(h => h.OverallPerfStatus).FirstOrDefault() == "Amber" ? 1 : 0));
-                return new { Area = g.Key, Reds = reds, Ambers = ambers };
+                var reds = g.Sum(s => CountStatus(s, "Red"));
+                var ambers = g.Sum(s => CountStatus(s, "Amber"));
+                return new AreaPerformanceSuggestion(g.Key, reds, ambers);
             })
+            .Where(a => a.Reds > 0 || a.Ambers > 0)
             .OrderByDescending(a => a.Reds)
             .ThenByDescending(a => a.Ambers)
-            .FirstOrDefault();
-
-        if (worst != null)
-        {
-            SuggestedArea = worst.Area;
-            SuggestedReason = worst.Reds > 0
-                ? $"{worst.Reds} red status{(worst.Reds > 1 ? "es" : "")} this week"
-                : $"{worst.Ambers} amber status{(worst.Ambers > 1 ? "es" : "")} this week";
-        }
+            .Take(4)
+            .ToList();
     }
 
-    public IActionResult OnPost(string auditDate, string auditorName, string area)
+    static int CountStatus(ShiftSubmission s, string status)
     {
-        if (string.IsNullOrWhiteSpace(auditorName) || string.IsNullOrWhiteSpace(area))
-        {
-            AuditorName = auditorName ?? "";
-            AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
-            Error = "Please fill in all fields.";
-            return Page();
-        }
-        return RedirectToPage("/SeniorAudit", new { date = auditDate, auditor = auditorName, area });
+        var latest = s.Hours.OrderByDescending(h => h.HourNumber).FirstOrDefault();
+        if (latest == null) return 0;
+        var n = 0;
+        if (latest.OverallSafetyStatus == status) n++;
+        if (latest.OverallQualityStatus == status) n++;
+        if (latest.OverallPerfStatus == status) n++;
+        return n;
     }
 }
