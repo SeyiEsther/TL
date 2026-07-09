@@ -53,18 +53,7 @@ public class IndexModel : PageModel
         if (existing != null && ShiftResumeService.IsInProgress(existing))
             return RedirectToPage("/Form", new { id = existing.Id, tl = teamLeader });
 
-        var previousShift = await _resume.FindPendingHandoverForAreaAsync(area, d, shift);
-        if (previousShift != null)
-        {
-            return RedirectToPage("/HandoverAck", new
-            {
-                prevId = previousShift.Id,
-                date = shiftDate,
-                shift,
-                area,
-                tl = teamLeader
-            });
-        }
+        // Handover-acknowledgement gate temporarily disabled — start the shift directly.
 
         return RedirectToPage("/Form", new
         {
