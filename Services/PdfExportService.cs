@@ -232,6 +232,7 @@ namespace TL.Services
         public byte[] GenerateHodDaily(HodDailyAudit a, List<HodAuditAnswer> answers, List<HodEffectivenessFinding>? effectiveness = null)
         {
             QuestPDF.Settings.License = LicenseType.Community;
+            _ = effectiveness;
             var band = HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore);
             var sections = answers.GroupBy(x => x.Section).ToList();
 
@@ -268,12 +269,8 @@ namespace TL.Services
                                 t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
                                 t.Cell().Element(LabelCell).Text("Area to audit");
                                 t.Cell().Element(ValueCell).Text(a.Department);
-                                t.Cell().Element(LabelCell).Text("Effectiveness check");
-                                t.Cell().Element(ValueCell).Text(a.ResolveEffectivenessArea());
                                 t.Cell().Element(LabelCell).Text("Auditor");
                                 t.Cell().Element(ValueCell).Text(a.AuditorName);
-                                t.Cell().Element(LabelCell).Text("Score");
-                                t.Cell().Element(ValueCell).Text($"{a.TotalScore} / {a.MaxScore} ({band})");
                                 t.Cell().Element(LabelCell).Text("Submitted");
                                 t.Cell().Element(ValueCell).Text(a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
                             });
@@ -292,50 +289,6 @@ namespace TL.Services
                                         t.Cell().PaddingVertical(2).Text(q.Label).FontColor(MidGray).FontSize(8);
                                         PassFailRow(t, q.Pass);
                                         t.Cell().PaddingVertical(2).Text(q.Evidence ?? "—").FontSize(8).FontColor(MidGray);
-                                    }
-                                });
-                            });
-                        }
-
-                        if (effectiveness?.Count > 0)
-                        {
-                            col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
-                            {
-                                inner.Item().Background("#1e3a5f").Padding(6).Text("EFFECTIVENESS CHECK").FontSize(8).Bold().FontColor("#fff");
-                                inner.Item().Padding(8).Table(t =>
-                                {
-                                    t.ColumnsDefinition(cd =>
-                                    {
-                                        cd.RelativeColumn(2);
-                                        cd.RelativeColumn();
-                                        cd.RelativeColumn();
-                                        cd.RelativeColumn();
-                                        cd.RelativeColumn();
-                                        cd.RelativeColumn();
-                                        cd.RelativeColumn(3);
-                                    });
-                                    t.Header(h =>
-                                    {
-                                        h.Cell().Text("TL").FontSize(7).Bold();
-                                        h.Cell().Text("Shift").FontSize(7).Bold();
-                                        h.Cell().Text("Date").FontSize(7).Bold();
-                                        h.Cell().Text("Form").FontSize(7).Bold();
-                                        h.Cell().Text("Sign-off").FontSize(7).Bold();
-                                        h.Cell().Text("Close").FontSize(7).Bold();
-                                        h.Cell().Text("Notes").FontSize(7).Bold();
-                                    });
-                                    foreach (var f in effectiveness)
-                                    {
-                                        t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader).FontSize(8);
-                                        t.Cell().Text(f.Shift ?? "—").FontSize(8);
-                                        t.Cell().Text(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM/yy")).FontSize(8);
-                                        t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "No forms" : f.FormComplete ? "Complete" : $"{f.HoursComplete}/{f.HoursTotal} hrs").FontSize(8);
-                                        t.Cell().Text(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.OutgoingSignedOff ? "Signed" : "Unsigned").FontSize(8);
-                                        t.Cell().Text(f.CloseStatus ?? "—").FontSize(8);
-                                        var notes = string.Join(" · ", f.Issues);
-                                        if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
-                                            notes += " · Mismatch: " + string.Join("; ", f.LinkedAuditFailures);
-                                        t.Cell().Text(notes).FontSize(7).FontColor(MidGray);
                                     }
                                 });
                             });
@@ -366,10 +319,31 @@ namespace TL.Services
                                 });
                             });
                         });
+
+                        col.Item().Element(c => HodScoreFooter(c, a.TotalScore, a.MaxScore, band));
                     });
                     page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
                 });
             }).GeneratePdf();
+        }
+
+        static void HodScoreFooter(IContainer container, int total, int max, string band)
+        {
+            var color = HodAuditScoring.BandColor(total, max);
+            container.Border(1.5f).BorderColor(DarkGray).Background(LightGray).Padding(24).AlignCenter().Column(col =>
+            {
+                col.Item().Text("AUDIT SCORE").FontSize(11).Bold().FontColor(MidGray);
+                col.Item().Height(10);
+                col.Item().Text(max > 0 ? $"{total} / {max}" : "—").FontSize(42).Bold().FontColor(color);
+                if (max > 0)
+                {
+                    var pct = total * 100 / max;
+                    col.Item().Height(6);
+                    col.Item().Text($"{pct}%").FontSize(28).Bold().FontColor(color);
+                }
+                col.Item().Height(8);
+                col.Item().Text(band.ToUpperInvariant()).FontSize(22).Bold().FontColor(DarkGray);
+            });
         }
 
         static void PassFailRow(TableDescriptor t, bool? pass)
@@ -445,10 +419,6 @@ namespace TL.Services
                                 t.Cell().Element(ValueCell).Text(a.Area);
                                 t.Cell().Element(LabelCell).Text("Auditor");
                                 t.Cell().Element(ValueCell).Text(a.AuditorName);
-                                t.Cell().Element(LabelCell).Text("Overall score");
-                                t.Cell().Element(ValueCell).Text($"{overall}%");
-                                t.Cell().Element(LabelCell).Text("Verdict");
-                                t.Cell().Element(ValueCell).Text(a.OverallVerdict ?? "—");
                                 t.Cell().Element(LabelCell).Text("Submitted");
                                 t.Cell().Element(ValueCell).Text(a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
                             });
@@ -521,10 +491,28 @@ namespace TL.Services
                                 });
                             });
                         });
+
+                        col.Item().Element(c => SeniorScoreFooter(c, overall, a.OverallVerdict));
                     });
                     page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
                 });
             }).GeneratePdf();
+        }
+
+        static void SeniorScoreFooter(IContainer container, int overall, string? verdict)
+        {
+            var color = SeniorAuditScoring.GaugeColor(overall);
+            container.Border(1.5f).BorderColor(DarkGray).Background(LightGray).Padding(24).AlignCenter().Column(col =>
+            {
+                col.Item().Text("OVERALL SCORE").FontSize(11).Bold().FontColor(MidGray);
+                col.Item().Height(10);
+                col.Item().Text($"{overall}%").FontSize(48).Bold().FontColor(color);
+                if (!string.IsNullOrWhiteSpace(verdict))
+                {
+                    col.Item().Height(8);
+                    col.Item().Text(verdict.ToUpperInvariant()).FontSize(22).Bold().FontColor(DarkGray);
+                }
+            });
         }
 
         static void ScoreRow(TableDescriptor t, byte? score)
