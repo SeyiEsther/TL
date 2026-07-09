@@ -26,10 +26,7 @@
                     <label>Audit date</label>
                     <input type="date" name="auditDate" id="auditDateInput" value="@Model.AuditDate" required>
                 </div>
-                <div class="fl">
-                    <label>Auditor name</label>
-                    <input type="text" name="auditorName" value="@Model.AuditorName" placeholder="Your full name" required>
-                </div>
+                <partial name="_HodPicker" model='new FilterDropdownModel("auditorName", "Auditor name", Model.AuditorName, "Select your name…")' />
             </div>
 
             <div class="fl" style="margin-bottom:14px">
