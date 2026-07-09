@@ -249,7 +249,7 @@ thead th.hcol { width: 82px; }
 }
 .yn-group label:active { opacity: 0.85; }
 .yn-y:checked + label,
-.yn-n:checked + label { background: var(--surface); color: var(--ink); }
+.yn-n:checked + label { background: #c5cad1; color: var(--ink); }
 .yn-group label:last-child { border-right: none; }
 
 /* STATUS G/A/R — same pill style as Y/N */
