@@ -162,7 +162,7 @@ public class FormModel : PageModel
             var byId = await _db.ShiftSubmissions
                 .Include(s => s.Hours)
                 .FirstOrDefaultAsync(s => s.Id == EditingId.Value);
-            if (byId != null && SubmissionMatchesSlot(byId, slotDate, Shift, Area, editorName))
+            if (byId != null && SubmissionMatchesSlot(byId, slotDate, Shift, Area))
                 return byId;
         }
 
@@ -180,12 +180,10 @@ public class FormModel : PageModel
         return await CreateSubmissionAsync(ShiftDate, Shift, editorName, Area, user);
     }
 
-    static bool SubmissionMatchesSlot(
-        ShiftSubmission sub, DateOnly date, string shift, string area, string teamLeader) =>
+    static bool SubmissionMatchesSlot(ShiftSubmission sub, DateOnly date, string shift, string area) =>
         sub.ShiftDate == date
         && string.Equals(sub.Shift, shift, StringComparison.OrdinalIgnoreCase)
-        && string.Equals(sub.Area, area, StringComparison.OrdinalIgnoreCase)
-        && ShiftResumeService.TlEquals(sub.TeamLeaderDisplay, teamLeader);
+        && string.Equals(sub.Area, area, StringComparison.OrdinalIgnoreCase);
 
     async Task<ShiftSubmission> CreateSubmissionAsync(string shiftDate, string shift, string teamLeader, string area, AppUser user)
     {

@@ -132,30 +132,29 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
-    public async Task Different_team_leader_gets_separate_shift_not_existing_data()
+    public async Task Different_team_leader_name_resumes_same_slot_shift()
     {
         await ResetDbAsync();
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var today = DateTime.Today.ToString("yyyy-MM-dd");
         var area = AreaList.All[0].Label;
 
-        var leaderA = await client.GetAsync(
-            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Leader%20A");
-        var idA = ParseIdFromLocation(leaderA.Headers.Location?.ToString());
-        var htmlA = await (await client.GetAsync($"/Form?id={idA}")).Content.ReadAsStringAsync();
-        var tokenA = ExtractAntiforgeryToken(htmlA)!;
-        Assert.True((await client.SendAsync(BuildSaveRequest(idA, today, area, tokenA, includeEditingId: true, teamLeader: "Leader A"))).IsSuccessStatusCode);
+        var first = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=john%20smith");
+        var id = ParseIdFromLocation(first.Headers.Location?.ToString());
+        var html = await (await client.GetAsync($"/Form?id={id}")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(html)!;
+        Assert.True((await client.SendAsync(BuildSaveRequest(id, today, area, token, includeEditingId: true, teamLeader: "john smith"))).IsSuccessStatusCode);
 
-        var leaderB = await client.GetAsync(
-            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Leader%20B");
-        var idB = ParseIdFromLocation(leaderB.Headers.Location?.ToString());
-        Assert.NotEqual(idA, idB);
+        var resume = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=JOHN%20SMITH");
+        var resumedId = ParseIdFromLocation(resume.Headers.Location?.ToString());
+        Assert.Equal(id, resumedId);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        Assert.Equal(2, await db.ShiftSubmissions.CountAsync());
-        Assert.Single((await db.ShiftSubmissions.Include(s => s.Hours).FirstAsync(s => s.Id == idA)).Hours);
-        Assert.Empty((await db.ShiftSubmissions.Include(s => s.Hours).FirstAsync(s => s.Id == idB)).Hours);
+        Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
+        Assert.Single((await db.ShiftSubmissions.Include(s => s.Hours).SingleAsync()).Hours);
     }
 
     static HttpRequestMessage BuildSaveRequest(int id, string date, string area, string token, bool includeEditingId, string teamLeader = "Test Leader")

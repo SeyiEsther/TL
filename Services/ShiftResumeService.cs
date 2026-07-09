@@ -20,30 +20,21 @@ public class ShiftResumeService
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
     /// <summary>
-    /// Find an in-progress shift to resume for this date/shift/area and team leader.
-    /// Never returns another TL's shift — each leader gets their own record.
+    /// Find an in-progress shift to resume for this date/shift/area slot.
+    /// Team leader name is not used for matching — one shift per slot regardless of spelling.
     /// </summary>
     public async Task<ShiftSubmission?> FindForResumeAsync(
-        DateOnly date, string shift, string area, string? teamLeader)
+        DateOnly date, string shift, string area, string? teamLeader = null)
     {
-        var tlName = NormalizeTl(teamLeader);
-        if (string.IsNullOrWhiteSpace(tlName))
-            return null;
-
         var slot = await _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
             .Where(s => s.ShiftDate == date && s.Shift == shift && s.Area == area)
-            .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .ToListAsync();
-
-        var matches = slot
-            .Where(s => IsInProgress(s) && TlEquals(s.TeamLeaderDisplay, tlName))
             .OrderByDescending(s => s.Hours.Count)
             .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .ToList();
+            .ToListAsync();
 
-        return matches.FirstOrDefault();
+        return slot.FirstOrDefault(IsInProgress);
     }
 
     public async Task<ShiftSubmission?> FindPendingHandoverForAreaAsync(
