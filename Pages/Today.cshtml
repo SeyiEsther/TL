@@ -38,6 +38,7 @@
                             <th>Date</th>
                             <th>Outgoing TL</th>
                             <th>Waiting</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -56,6 +57,9 @@
                                                 : $"{(int)t.TotalDays}d {t.Hours}h";
                                     }
                                     @age
+                                </td>
+                                <td>
+                                    <a asp-page="/HandoverAck" asp-route-prevId="@p.Id" class="dl-link">Ack</a>
                                 </td>
                             </tr>
                         }

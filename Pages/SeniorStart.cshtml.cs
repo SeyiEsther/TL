@@ -34,7 +34,8 @@ public class SeniorStartModel : PageModel
 
         var weekData = await _db.ShiftSubmissions
             .Include(s => s.Hours)
-            .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd && s.Shift != "Audit")
+            .ExcludeAudits()
+            .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd)
             .ToListAsync();
 
         var worst = weekData

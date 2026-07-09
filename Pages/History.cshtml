@@ -134,7 +134,7 @@
                                             <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">View</a>
                                             @if (r.HandoverPending)
                                             {
-                                                <a asp-page="/Handover" asp-route-area="@r.Area" class="dl-link">Ack</a>
+                                                <a asp-page="/HandoverAck" asp-route-prevId="@r.Id" class="dl-link">Ack</a>
                                             }
                                             break;
                                     }

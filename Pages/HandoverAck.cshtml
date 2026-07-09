@@ -17,7 +17,14 @@
             <div>
                 <div style="font-size:16px;font-weight:700;color:#fff">Handover acknowledgement required</div>
                 <div style="font-size:12px;color:#9ca3af;margin-top:2px">
-                    You must read and accept the previous shift handover before starting <strong style="color:#fff">@Model.NewShift shift</strong> for <strong style="color:#fff">@Model.NewArea</strong>
+                    @if (Model.AckOnly)
+                    {
+                        <span>Read and sign off the previous shift handover for <strong style="color:#fff">@s.Area</strong></span>
+                    }
+                    else
+                    {
+                        <span>You must read and accept the previous shift handover before starting <strong style="color:#fff">@Model.NewShift shift</strong> for <strong style="color:#fff">@Model.NewArea</strong></span>
+                    }
                 </div>
             </div>
         </div>
@@ -170,7 +177,7 @@
 
             <button type="submit" id="acceptBtn" class="sbtn primary" disabled
                     style="opacity:.45;cursor:not-allowed;pointer-events:none">
-                Accept handover &amp; start shift
+                @(Model.AckOnly ? "Accept handover" : "Accept handover & start shift")
             </button>
         </form>
     </div>

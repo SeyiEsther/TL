@@ -56,10 +56,16 @@ namespace TL.Controllers
         public async Task<IActionResult> Find([FromQuery] string date, [FromQuery] string shift, [FromQuery] string area)
         {
             if (!DateOnly.TryParse(date, out var d)) return BadRequest("Invalid date");
-            var existing = await _db.ShiftSubmissions
+            var matches = await _db.ShiftSubmissions
+                .ExcludeAudits()
                 .Include(s => s.Hours.OrderBy(h => h.HourNumber))
                 .Include(s => s.AuditLogs.OrderByDescending(a => a.ChangedAt))
-                .FirstOrDefaultAsync(s => s.ShiftDate == d && s.Shift == shift && s.Area == area);
+                .Where(s => s.ShiftDate == d && s.Shift == shift && s.Area == area)
+                .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
+                .ToListAsync();
+
+            var existing = matches.FirstOrDefault(s => string.IsNullOrEmpty(s.OutgoingTLSignature))
+                ?? matches.FirstOrDefault();
             if (existing == null) return NotFound();
             return Ok(existing);
         }
