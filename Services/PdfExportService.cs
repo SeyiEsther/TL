@@ -294,31 +294,14 @@ namespace TL.Services
                             });
                         }
 
-                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        col.Item().ShowEntire().Element(c => RenderFindingsSignOff(c, findings =>
                         {
-                            inner.Item().Background("#78350f").Padding(6).Text("FINDINGS & SIGN-OFF").FontSize(8).Bold().FontColor("#fff");
-                            inner.Item().Padding(8).Column(sc =>
-                            {
-                                if (!string.IsNullOrWhiteSpace(a.ActionsRaised))
-                                {
-                                    sc.Item().Text("Actions raised").FontSize(8).Bold();
-                                    sc.Item().Background(LightGray).Padding(4).Text(a.ActionsRaised).FontSize(8);
-                                }
-                                if (!string.IsNullOrWhiteSpace(a.GoodPractice))
-                                {
-                                    sc.Item().Text("Good practice").FontSize(8).Bold();
-                                    sc.Item().Background(LightGray).Padding(4).Text(a.GoodPractice).FontSize(8);
-                                }
-                                sc.Item().Table(t =>
-                                {
-                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); });
-                                    t.Cell().Element(LabelCell).Text("Auditor signature");
-                                    t.Cell().Element(LabelCell).Text("TL signature");
-                                    t.Cell().Element(ValueCell).Text(a.AuditorSignature ?? "—");
-                                    t.Cell().Element(ValueCell).Text(a.TeamLeaderSignature ?? "—");
-                                });
-                            });
-                        });
+                            findings.Note("Actions raised", a.ActionsRaised);
+                            findings.Note("Good practice", a.GoodPractice);
+                            findings.Signatures(
+                                ("Auditor signature", a.AuditorSignature),
+                                ("TL signature", a.TeamLeaderSignature));
+                        }));
 
                         col.Item().Element(c => HodScoreFooter(c, a.TotalScore, a.MaxScore, band));
                     });
@@ -468,29 +451,13 @@ namespace TL.Services
                             ("Improvement actions progressing?", a.ImprovementActionsProgressing),
                         ], a.PerformanceNotes);
 
-                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        col.Item().ShowEntire().Element(c => RenderFindingsSignOff(c, findings =>
                         {
-                            inner.Item().Background("#78350f").Padding(6).Text("FINDINGS & SIGN-OFF").FontSize(8).Bold().FontColor("#fff");
-                            inner.Item().Padding(8).Column(sc =>
-                            {
-                                void Note(string label, string? text)
-                                {
-                                    if (string.IsNullOrWhiteSpace(text)) return;
-                                    sc.Item().Text(label).FontSize(8).Bold();
-                                    sc.Item().Background(LightGray).Padding(4).Text(text).FontSize(8);
-                                    sc.Item().Height(4);
-                                }
-                                Note("Good practice observed", a.GoodPracticeObserved);
-                                Note("Areas for improvement", a.AreasForImprovement);
-                                Note("Actions raised", a.ActionsRaised);
-                                sc.Item().Table(t =>
-                                {
-                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(); });
-                                    t.Cell().Element(LabelCell).Text("Auditor signature");
-                                    t.Cell().Element(ValueCell).Text(a.AuditorSignature ?? "—");
-                                });
-                            });
-                        });
+                            findings.Note("Good practice observed", a.GoodPracticeObserved, GreenBg);
+                            findings.Note("Areas for improvement", a.AreasForImprovement, AmberBg);
+                            findings.Note("Actions raised", a.ActionsRaised);
+                            findings.Signatures(("Auditor signature", a.AuditorSignature));
+                        }));
 
                         col.Item().Element(c => SeniorScoreFooter(c, overall, a.OverallVerdict));
                     });
@@ -692,6 +659,51 @@ namespace TL.Services
 
         static IContainer LabelCell(IContainer c) => c.PaddingVertical(3).PaddingRight(8);
         static IContainer ValueCell(IContainer c) => c.PaddingVertical(3);
+
+        sealed class FindingsSignOffBuilder(ColumnDescriptor col)
+        {
+            public void Note(string label, string? text, string? background = null)
+            {
+                if (string.IsNullOrWhiteSpace(text)) return;
+                col.Item().PaddingTop(6).Text(label).FontSize(10).Bold().FontColor(DarkGray);
+                col.Item().PaddingTop(6)
+                    .Background(background ?? LightGray)
+                    .Border(0.5f).BorderColor(BorderGray)
+                    .Padding(14)
+                    .Text(text).FontSize(10).LineHeight(1.45f).FontColor(DarkGray);
+                col.Item().Height(14);
+            }
+
+            public void Signatures(params (string Label, string? Value)[] signatures)
+            {
+                if (signatures.Length == 0) return;
+                col.Item().PaddingTop(10).Text("Sign-off").FontSize(10).Bold().FontColor(DarkGray);
+                col.Item().PaddingTop(8).Row(row =>
+                {
+                    foreach (var (label, value) in signatures)
+                    {
+                        row.RelativeItem().PaddingHorizontal(4).Border(1).BorderColor(BorderGray)
+                            .Background("#fff").MinHeight(72).Padding(14).Column(sig =>
+                            {
+                                sig.Item().Text(label).FontSize(9).Bold().FontColor(MidGray);
+                                sig.Item().Height(10);
+                                sig.Item().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                                    .FontSize(15).Bold().FontColor(DarkGray);
+                            });
+                    }
+                });
+            }
+        }
+
+        static void RenderFindingsSignOff(IContainer container, Action<FindingsSignOffBuilder> build)
+        {
+            container.Border(1).BorderColor(BorderGray).Column(inner =>
+            {
+                inner.Item().Background("#78350f").Padding(12)
+                    .Text("FINDINGS & SIGN-OFF").FontSize(11).Bold().FontColor("#fff");
+                inner.Item().Padding(18).Column(body => build(new FindingsSignOffBuilder(body)));
+            });
+        }
 
         static void BoolRow(TableDescriptor t, string label, bool? value)
         {
