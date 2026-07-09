@@ -491,6 +491,7 @@
                 </td>
             }
         </tr>
+        await Task.CompletedTask;
     }
 
     async Task RenderNote(string label, string field, Func<int, string?> val)
@@ -505,6 +506,7 @@
                 </td>
             }
         </tr>
+        await Task.CompletedTask;
     }
 
     async Task RenderStatus(string label, string field, Func<int, string?> val)
@@ -530,5 +532,6 @@
                 </td>
             }
         </tr>
+        await Task.CompletedTask;
     }
 }

@@ -132,7 +132,8 @@ public class FormModel : PageModel
         if (finalSubmit)
             return RedirectToPage("/Success", new { id = sub.Id });
 
-        if (Request.Headers.Accept.Any(h => h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
+        if (Request.Headers.Accept.Any(h =>
+            !string.IsNullOrEmpty(h) && h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
         {
             var progress = _completion.Evaluate(sub);
             var hoursSaved = sub.Hours.Count;
