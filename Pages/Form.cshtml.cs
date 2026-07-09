@@ -22,11 +22,13 @@ public class FormModel : PageModel
         _resume = resume;
     }
 
-    public string ShiftDate { get; set; } = "";
-    public string Shift { get; set; } = "";
-    public string TeamLeader { get; set; } = "";
-    public string Area { get; set; } = "";
+    [BindProperty] public string ShiftDate { get; set; } = "";
+    [BindProperty] public string Shift { get; set; } = "";
+    [BindProperty] public string TeamLeader { get; set; } = "";
+    [BindProperty] public string Area { get; set; } = "";
+    [BindProperty(Name = "HoursCount")]
     public int Hours { get; set; } = 8;
+    [BindProperty]
     public int? EditingId { get; set; }
     public string? SaveMessage { get; set; }
 
@@ -90,51 +92,26 @@ public class FormModel : PageModel
         return Page();
     }
 
-    public Task<IActionResult> OnPostSaveProgressAsync(
-        string shiftDate, string shift, string teamLeader, string area,
-        int hoursCount, int? editingId, string? outgoingTLSignature)
-        => SaveAsync(shiftDate, shift, teamLeader, area, hoursCount, editingId, outgoingTLSignature, finalSubmit: false);
+    public Task<IActionResult> OnPostSaveProgressAsync()
+        => SaveAsync(finalSubmit: false);
 
-    public Task<IActionResult> OnPostAsync(
-        string shiftDate, string shift, string teamLeader, string area,
-        int hoursCount, int? editingId, string? outgoingTLSignature)
-        => SaveAsync(shiftDate, shift, teamLeader, area, hoursCount, editingId, outgoingTLSignature, finalSubmit: true);
+    public Task<IActionResult> OnPostAsync()
+        => SaveAsync(finalSubmit: true);
 
-    async Task<IActionResult> SaveAsync(
-        string shiftDate, string shift, string teamLeader, string area,
-        int hoursCount, int? editingId, string? outgoingTLSignature, bool finalSubmit)
+    async Task<IActionResult> SaveAsync(bool finalSubmit)
     {
-        ShiftDate = shiftDate;
-        Shift = shift;
-        TeamLeader = teamLeader;
-        Area = area;
-        Hours = Math.Clamp(hoursCount, 1, 8);
-        EditingId = editingId;
-        OutgoingTLSignature = outgoingTLSignature;
         PadHours();
 
         var user = _users.GetCurrentUser();
-        var editorName = ShiftResumeService.NormalizeTl(teamLeader) is { Length: > 0 } n ? n : user.DisplayName;
-        teamLeader = editorName;
+        var editorName = ShiftResumeService.NormalizeTl(TeamLeader) is { Length: > 0 } n ? n : user.DisplayName;
+        TeamLeader = editorName;
         var hours = H.Take(Hours).ToList();
 
-        ShiftSubmission sub;
-        if (editingId.HasValue)
-        {
-            sub = await _db.ShiftSubmissions
-                .Include(s => s.Hours)
-                .FirstOrDefaultAsync(s => s.Id == editingId.Value)
-                ?? await CreateSubmissionAsync(shiftDate, shift, teamLeader, area, user);
-            EditingId = sub.Id;
-        }
-        else
-        {
-            sub = await CreateSubmissionAsync(shiftDate, shift, teamLeader, area, user);
-            EditingId = sub.Id;
-        }
+        var sub = await ResolveSubmissionAsync(user, editorName);
+        EditingId = sub.Id;
 
         var logs = new List<AuditLog>();
-        ApplyShiftFields(sub, outgoingTLSignature, editorName, logs);
+        ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
         MergeHours(sub, hours, editorName, logs);
 
         if (finalSubmit)
@@ -145,11 +122,12 @@ public class FormModel : PageModel
                 ValidationError = "Cannot submit — complete all hours, 6S/TPM checks, and sign-off first: "
                     + string.Join("; ", check.MissingItems.Take(5))
                     + (check.MissingItems.Count > 5 ? $" (+{check.MissingItems.Count - 5} more)" : "");
-                RepopulateFromSubmission(sub, teamLeader);
+                RepopulateFromSubmission(sub, editorName);
                 return Page();
             }
         }
 
+        sub.TeamLeaderDisplay = editorName;
         sub.LastEditedBy = editorName;
         sub.LastEditedAt = DateTime.UtcNow;
         _db.AuditLogs.AddRange(logs);
@@ -161,17 +139,43 @@ public class FormModel : PageModel
         if (Request.Headers.Accept.Any(h => h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
         {
             var progress = _completion.Evaluate(sub);
+            var hoursSaved = sub.Hours.Count;
             return new JsonResult(new
             {
                 id = sub.Id,
                 savedAt = DateTime.UtcNow,
                 hoursComplete = progress.HoursComplete,
                 hoursTotal = progress.HoursTotal,
-                message = "Progress saved",
+                hoursSaved,
+                message = hoursSaved > 0 ? "Progress saved" : "Shift record saved (no hour data in request)",
             });
         }
 
         return RedirectToPage("/Form", new { id = sub.Id, hours = Hours, saved = "progress" });
+    }
+
+    async Task<ShiftSubmission> ResolveSubmissionAsync(AppUser user, string editorName)
+    {
+        if (EditingId.HasValue)
+        {
+            var byId = await _db.ShiftSubmissions
+                .Include(s => s.Hours)
+                .FirstOrDefaultAsync(s => s.Id == EditingId.Value);
+            if (byId != null) return byId;
+        }
+
+        if (DateOnly.TryParse(ShiftDate, out var d) && !string.IsNullOrWhiteSpace(Shift) && !string.IsNullOrWhiteSpace(Area))
+        {
+            var existing = await _resume.FindForResumeAsync(d, Shift, Area, editorName);
+            if (existing != null)
+            {
+                if (!_db.Entry(existing).Collection(s => s.Hours).IsLoaded)
+                    await _db.Entry(existing).Collection(s => s.Hours).LoadAsync();
+                return existing;
+            }
+        }
+
+        return await CreateSubmissionAsync(ShiftDate, Shift, editorName, Area, user);
     }
 
     async Task<ShiftSubmission> CreateSubmissionAsync(string shiftDate, string shift, string teamLeader, string area, AppUser user)

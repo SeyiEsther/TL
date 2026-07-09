@@ -16,6 +16,7 @@ builder.Services.AddScoped<ShiftResumeService>();
 builder.Services.AddScoped<HodEffectivenessService>();
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
+builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
@@ -25,3 +26,5 @@ app.MapControllers();
 app.MapRazorPages();
 
 app.Run();
+
+public partial class Program { }

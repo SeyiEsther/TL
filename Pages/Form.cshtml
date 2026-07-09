@@ -80,17 +80,14 @@
     </div>
 
     <!-- Main data entry form -->
-    <form method="post" id="shift-form" data-shift-form data-hours="@H">
+    <form method="post" id="shift-form" data-shift-form data-hours="@H" data-editing-id="@(Model.EditingId?.ToString() ?? "")">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
         <input type="hidden" name="Shift" value="@Model.Shift">
         <input type="hidden" name="TeamLeader" value="@Model.TeamLeader">
         <input type="hidden" name="Area" value="@Model.Area">
         <input type="hidden" name="HoursCount" value="@H">
-        @if (Model.EditingId.HasValue)
-        {
-            <input type="hidden" name="EditingId" value="@Model.EditingId">
-        }
+        <input type="hidden" name="EditingId" value="@(Model.EditingId?.ToString() ?? "")">
 
         <div class="grid-wrap">
             <table>
@@ -347,37 +344,60 @@
         if (!form || serverSaveInFlight) return;
         serverSaveInFlight = true;
         try {
+            ensureEditingIdInput();
             const formData = new FormData(form);
             const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
-            const resp = await fetch('?handler=SaveProgress', {
+            const pageId = new URLSearchParams(location.search).get('id');
+            const saveUrl = pageId ? `?handler=SaveProgress&id=${pageId}` : '?handler=SaveProgress';
+            const resp = await fetch(saveUrl, {
                 method: 'POST',
                 body: formData,
                 credentials: 'same-origin',
                 headers: {
                     'Accept': 'application/json',
-                    'RequestVerificationToken': token || ''
+                    'RequestVerificationToken': token || '',
+                    'X-CSRF-TOKEN': token || ''
                 }
             });
-            if (!resp.ok) throw new Error('Save failed');
-            const data = await resp.json();
+            const saveText = await resp.text();
+            if (!resp.ok) {
+                throw new Error('Server returned ' + resp.status + (saveText ? ': ' + saveText.slice(0, 120) : ''));
+            }
+            let data;
+            try { data = JSON.parse(saveText); } catch (e) {
+                throw new Error('Unexpected server response — use Save progress button');
+            }
             if (data.id) {
-                let idInput = form.querySelector('input[name="EditingId"]');
-                if (!idInput) {
-                    idInput = document.createElement('input');
-                    idInput.type = 'hidden';
-                    idInput.name = 'EditingId';
-                    form.appendChild(idInput);
+                ensureEditingIdInput().value = data.id;
+                form.dataset.editingId = String(data.id);
+                if (!pageId) {
+                    const url = new URL(location.href);
+                    url.searchParams.set('id', data.id);
+                    history.replaceState(null, '', url);
                 }
-                idInput.value = data.id;
             }
             const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            statusEl.textContent = (reason === 'hour' ? 'Hour saved' : 'Saved') + ' to server at ' + t;
+            const label = data.hoursSaved > 0
+                ? (reason === 'hour' ? 'Hour saved' : 'Saved')
+                : 'Connected (fill an hour to save data)';
+            statusEl.textContent = label + ' to server at ' + t;
             try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
         } catch (e) {
-            statusEl.textContent = 'Could not save to server — use Save progress';
+            statusEl.textContent = e.message || 'Could not save to server — use Save progress';
         } finally {
             serverSaveInFlight = false;
         }
+    }
+
+    function ensureEditingIdInput() {
+        let idInput = form.querySelector('input[name="EditingId"]');
+        if (!idInput) {
+            idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'EditingId';
+            form.appendChild(idInput);
+        }
+        return idInput;
     }
 
     function scheduleServerSave() {
@@ -426,17 +446,22 @@
             return;
         }
         if (submitter && submitter.id === 'shift-submit-btn') {
+            try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
+            ensureEditingIdInput();
             return;
         }
     });
 
-    // --- On load: check for saved draft ---
-    try {
+    // --- On load: discard stale local draft when resuming a server-backed shift ---
+    const hasServerShift = !!(form?.dataset.editingId);
+    if (hasServerShift) {
+        try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+    } else try {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
             const parsed = JSON.parse(raw);
             const ageMin = (Date.now() - parsed.ts) / 60000;
-            if (ageMin < 720 && parsed.data) { // only offer if < 12 hours old
+            if (ageMin < 720 && parsed.data) {
                 savedDraft = parsed.data;
                 banner.style.display = 'flex';
             }
