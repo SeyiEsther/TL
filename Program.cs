@@ -12,6 +12,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddScoped<ShiftCompletionService>();
+builder.Services.AddScoped<ShiftResumeService>();
 builder.Services.AddScoped<HodEffectivenessService>();
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);

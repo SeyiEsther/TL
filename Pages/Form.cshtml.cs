@@ -12,12 +12,14 @@ public class FormModel : PageModel
     private readonly AppDbContext _db;
     private readonly UserService _users;
     private readonly ShiftCompletionService _completion;
+    private readonly ShiftResumeService _resume;
 
-    public FormModel(AppDbContext db, UserService users, ShiftCompletionService completion)
+    public FormModel(AppDbContext db, UserService users, ShiftCompletionService completion, ShiftResumeService resume)
     {
         _db = db;
         _users = users;
         _completion = completion;
+        _resume = resume;
     }
 
     public string ShiftDate { get; set; } = "";
@@ -64,13 +66,9 @@ public class FormModel : PageModel
         if (DateOnly.TryParse(ShiftDate, out var d) && !string.IsNullOrWhiteSpace(Shift) && !string.IsNullOrWhiteSpace(Area))
         {
             var user = _users.GetCurrentUser();
-            var tlName = string.IsNullOrWhiteSpace(TeamLeader) ? user.DisplayName : TeamLeader;
+            var tlName = string.IsNullOrWhiteSpace(TeamLeader) ? user.DisplayName : ShiftResumeService.NormalizeTl(TeamLeader);
 
-            var existing = await _db.ShiftSubmissions
-                .ExcludeAudits()
-                .FirstOrDefaultAsync(s =>
-                    s.ShiftDate == d && s.Shift == Shift && s.Area == Area && s.TeamLeaderDisplay == tlName);
-
+            var existing = await _resume.FindForResumeAsync(d, Shift, Area, tlName);
             if (existing != null)
                 return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName });
 
@@ -116,7 +114,8 @@ public class FormModel : PageModel
         PadHours();
 
         var user = _users.GetCurrentUser();
-        var editorName = teamLeader ?? user.DisplayName;
+        var editorName = ShiftResumeService.NormalizeTl(teamLeader) is { Length: > 0 } n ? n : user.DisplayName;
+        teamLeader = editorName;
         var hours = H.Take(Hours).ToList();
 
         ShiftSubmission sub;
@@ -180,13 +179,10 @@ public class FormModel : PageModel
         if (!DateOnly.TryParse(shiftDate, out var d))
             d = DateOnly.FromDateTime(DateTime.Today);
 
-        var tlName = teamLeader ?? user.DisplayName;
-        var existing = await _db.ShiftSubmissions
-            .Include(s => s.Hours)
-            .ExcludeAudits()
-            .FirstOrDefaultAsync(s =>
-                s.ShiftDate == d && s.Shift == shift && s.Area == area && s.TeamLeaderDisplay == tlName);
+        var tlName = ShiftResumeService.NormalizeTl(teamLeader);
+        if (string.IsNullOrEmpty(tlName)) tlName = user.DisplayName;
 
+        var existing = await _resume.FindForResumeAsync(d, shift, area, tlName);
         if (existing != null) return existing;
 
         var sub = new ShiftSubmission
@@ -278,25 +274,32 @@ public class FormModel : PageModel
         EditingId = sub.Id;
         ShiftDate = sub.ShiftDate.ToString("yyyy-MM-dd");
         Shift = sub.Shift;
-        TeamLeader = tl ?? sub.TeamLeaderDisplay;
+        TeamLeader = ShiftResumeService.NormalizeTl(tl ?? sub.TeamLeaderDisplay);
         Area = sub.Area ?? "";
-        Hours = sub.HoursCompleted;
+        Hours = Math.Clamp((int)sub.HoursCompleted, 1, 8);
         Escalations = sub.Escalations;
         KeyRisks = sub.KeyRisks;
         Priorities = sub.Priorities;
         OutgoingTLSignature = sub.OutgoingTLSignature;
 
-        H = sub.Hours.OrderBy(h => h.HourNumber).Select(h => new HourInput
+        H = new List<HourInput>();
+        for (int hourNum = 1; hourNum <= Hours; hourNum++)
         {
-            Haz = h.HazardsObserved, Uns = h.UnsafeBehaviours, Pos = h.PositiveBehaviours, Snote = h.SafetyNotes,
-            Qchk = h.QualityChecksCompleted, Dev = h.DeviationsEscalated, Nc = h.NonComplianceAddressed, Qnote = h.QualityNotes,
-            Tgt = h.HourlyTargetAchieved, Maint = h.MaintenanceIssues, Mat = h.MaterialsAvailable, Tools = h.ToolsAvailable,
-            Escl = h.EscalationsNeeded, Pconf = h.PartsConfirmed, Pid = h.PartsIdCorrect, Ncp = h.NCPartsStoredCorrectly,
-            Sixs = h.SixSCompleted, Tpm = h.TPMCompleted, Pnote = h.PerformanceNotes,
-            Wb = h.WellbeingConfirmed, Sup = h.SupportRequired, Mnote = h.MoraleNotes,
-            Acc = h.AccidentsReported, Ss = h.OverallSafetyStatus, Qs = h.OverallQualityStatus, Ps = h.OverallPerfStatus,
-        }).ToList();
+            var dbHour = sub.Hours.FirstOrDefault(h => h.HourNumber == hourNum);
+            H.Add(dbHour != null ? MapHourInput(dbHour) : new HourInput());
+        }
     }
+
+    static HourInput MapHourInput(HourlyCheck h) => new()
+    {
+        Haz = h.HazardsObserved, Uns = h.UnsafeBehaviours, Pos = h.PositiveBehaviours, Snote = h.SafetyNotes,
+        Qchk = h.QualityChecksCompleted, Dev = h.DeviationsEscalated, Nc = h.NonComplianceAddressed, Qnote = h.QualityNotes,
+        Tgt = h.HourlyTargetAchieved, Maint = h.MaintenanceIssues, Mat = h.MaterialsAvailable, Tools = h.ToolsAvailable,
+        Escl = h.EscalationsNeeded, Pconf = h.PartsConfirmed, Pid = h.PartsIdCorrect, Ncp = h.NCPartsStoredCorrectly,
+        Sixs = h.SixSCompleted, Tpm = h.TPMCompleted, Pnote = h.PerformanceNotes,
+        Wb = h.WellbeingConfirmed, Sup = h.SupportRequired, Mnote = h.MoraleNotes,
+        Acc = h.AccidentsReported, Ss = h.OverallSafetyStatus, Qs = h.OverallQualityStatus, Ps = h.OverallPerfStatus,
+    };
 
     void RepopulateFromSubmission(ShiftSubmission sub, string? tl)
     {

@@ -9,6 +9,32 @@
         <div class="welcome-name">Welcome@(Model.UserName != null ? ", " + Model.UserName : "")</div>
         <div class="welcome-time">@DateTime.Now.ToString("dddd d MMMM yyyy")</div>
 
+        @if (Model.InProgressShifts.Count > 0)
+        {
+            <div class="in-progress-panel">
+                <div class="in-progress-title">Continue where you left off</div>
+                <p class="in-progress-hint">Saved shifts for today — pick one to resume your hourly checks.</p>
+                <div class="in-progress-list">
+                    @foreach (var s in Model.InProgressShifts)
+                    {
+                        var hoursSaved = s.Hours?.Count ?? 0;
+                        <a class="in-progress-item" asp-page="/Form" asp-route-id="@s.Id" asp-route-tl="@s.TeamLeaderDisplay">
+                            <span class="in-progress-area">@s.Area</span>
+                            <span class="in-progress-meta">@s.Shift shift · @s.TeamLeaderDisplay</span>
+                            @if (hoursSaved > 0)
+                            {
+                                <span class="in-progress-badge">@hoursSaved hr@(hoursSaved == 1 ? "" : "s") saved</span>
+                            }
+                            else
+                            {
+                                <span class="in-progress-badge muted">Started</span>
+                            }
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+
         <form method="post">
             @Html.AntiForgeryToken()
 
