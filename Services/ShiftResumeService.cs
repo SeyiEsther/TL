@@ -20,13 +20,16 @@ public class ShiftResumeService
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
     /// <summary>
-    /// Find a shift to resume for this date/shift/area.
-    /// Prefers in-progress shifts; matches team leader loosely (case/trim).
-    /// Falls back to any in-progress shift in the slot (shared PC / same area).
+    /// Find an in-progress shift to resume for this date/shift/area and team leader.
+    /// Never returns another TL's shift — each leader gets their own record.
     /// </summary>
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader)
     {
+        var tlName = NormalizeTl(teamLeader);
+        if (string.IsNullOrWhiteSpace(tlName))
+            return null;
+
         var slot = await _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
@@ -34,23 +37,13 @@ public class ShiftResumeService
             .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
             .ToListAsync();
 
-        if (slot.Count == 0) return null;
+        var matches = slot
+            .Where(s => IsInProgress(s) && TlEquals(s.TeamLeaderDisplay, tlName))
+            .OrderByDescending(s => s.Hours.Count)
+            .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
+            .ToList();
 
-        var inProgress = slot.Where(IsInProgress).ToList();
-        if (inProgress.Count > 0)
-        {
-            if (!string.IsNullOrWhiteSpace(teamLeader))
-            {
-                var tlMatch = inProgress.FirstOrDefault(s => TlEquals(s.TeamLeaderDisplay, teamLeader));
-                if (tlMatch != null) return tlMatch;
-            }
-            return inProgress[0];
-        }
-
-        if (!string.IsNullOrWhiteSpace(teamLeader))
-            return slot.FirstOrDefault(s => TlEquals(s.TeamLeaderDisplay, teamLeader));
-
-        return null;
+        return matches.FirstOrDefault();
     }
 
     public async Task<ShiftSubmission?> FindPendingHandoverForAreaAsync(

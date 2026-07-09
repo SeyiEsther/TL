@@ -300,9 +300,14 @@
         if (hourMatch) {
             const h = parseInt(hourMatch[1], 10);
             if (hourComplete(h)) saveToServer('hour');
+            return;
         }
+        scheduleServerSave();
     });
-    form?.addEventListener('input', updateCompletion);
+    form?.addEventListener('input', function (e) {
+        updateCompletion();
+        if (!/^H\[/.test(e.target?.name || '')) scheduleServerSave();
+    });
     updateCompletion();
 
     let serverSaveTimer = null;
@@ -345,11 +350,13 @@
                 }
             }
             const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const label = data.hoursSaved > 0
+            const label = data.hoursMerged > 0
                 ? (reason === 'hour' ? 'Hour saved' : 'Saved')
                 : 'Connected (fill an hour to save data)';
             statusEl.textContent = label + ' to server at ' + t;
-            try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+            if (data.hoursMerged > 0) {
+                try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+            }
         } catch (e) {
             statusEl.textContent = e.message || 'Could not save to server — use Save progress';
         } finally {
@@ -372,9 +379,6 @@
         clearTimeout(serverSaveTimer);
         serverSaveTimer = setTimeout(() => saveToServer('auto'), 3000);
     }
-
-    form?.addEventListener('input', scheduleServerSave);
-    form?.addEventListener('change', scheduleServerSave);
 
     // --- Session keepalive: ping every 10 minutes ---
     setInterval(() => {
