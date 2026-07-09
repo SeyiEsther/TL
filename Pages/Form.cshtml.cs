@@ -121,7 +121,7 @@ public class FormModel : PageModel
 
         var logs = new List<AuditLog>();
         ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
-        MergeHours(sub, hours, editorName, logs);
+        var hoursMerged = MergeHours(sub, hours, editorName, logs);
 
         sub.TeamLeaderDisplay = editorName;
         sub.LastEditedBy = editorName;
@@ -136,15 +136,14 @@ public class FormModel : PageModel
             !string.IsNullOrEmpty(h) && h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
         {
             var progress = _completion.Evaluate(sub);
-            var hoursSaved = sub.Hours.Count;
             return new JsonResult(new
             {
                 id = sub.Id,
                 savedAt = DateTime.UtcNow,
                 hoursComplete = progress.HoursComplete,
                 hoursTotal = progress.HoursTotal,
-                hoursSaved,
-                message = hoursSaved > 0 ? "Progress saved" : "Shift record saved (no hour data in request)",
+                hoursMerged,
+                message = hoursMerged > 0 ? "Progress saved" : "Shift record saved (no hour data in request)",
             });
         }
 
@@ -153,17 +152,23 @@ public class FormModel : PageModel
 
     async Task<ShiftSubmission> ResolveSubmissionAsync(AppUser user, string editorName)
     {
+        DateOnly slotDate = default;
+        var hasSlot = DateOnly.TryParse(ShiftDate, out slotDate)
+            && !string.IsNullOrWhiteSpace(Shift)
+            && !string.IsNullOrWhiteSpace(Area);
+
         if (EditingId.HasValue)
         {
             var byId = await _db.ShiftSubmissions
                 .Include(s => s.Hours)
                 .FirstOrDefaultAsync(s => s.Id == EditingId.Value);
-            if (byId != null) return byId;
+            if (byId != null && SubmissionMatchesSlot(byId, slotDate, Shift, Area, editorName))
+                return byId;
         }
 
-        if (DateOnly.TryParse(ShiftDate, out var d) && !string.IsNullOrWhiteSpace(Shift) && !string.IsNullOrWhiteSpace(Area))
+        if (hasSlot)
         {
-            var existing = await _resume.FindForResumeAsync(d, Shift, Area, editorName);
+            var existing = await _resume.FindForResumeAsync(slotDate, Shift, Area, editorName);
             if (existing != null)
             {
                 if (!_db.Entry(existing).Collection(s => s.Hours).IsLoaded)
@@ -174,6 +179,13 @@ public class FormModel : PageModel
 
         return await CreateSubmissionAsync(ShiftDate, Shift, editorName, Area, user);
     }
+
+    static bool SubmissionMatchesSlot(
+        ShiftSubmission sub, DateOnly date, string shift, string area, string teamLeader) =>
+        sub.ShiftDate == date
+        && string.Equals(sub.Shift, shift, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(sub.Area, area, StringComparison.OrdinalIgnoreCase)
+        && ShiftResumeService.TlEquals(sub.TeamLeaderDisplay, teamLeader);
 
     async Task<ShiftSubmission> CreateSubmissionAsync(string shiftDate, string shift, string teamLeader, string area, AppUser user)
     {
@@ -223,8 +235,9 @@ public class FormModel : PageModel
         sub.HoursCompleted = (byte)Hours;
     }
 
-    void MergeHours(ShiftSubmission sub, List<HourInput> hours, string editorName, List<AuditLog> logs)
+    int MergeHours(ShiftSubmission sub, List<HourInput> hours, string editorName, List<AuditLog> logs)
     {
+        var merged = 0;
         for (int i = 0; i < hours.Count; i++)
         {
             var inp = hours[i];
@@ -232,37 +245,54 @@ public class FormModel : PageModel
 
             var hourNum = i + 1;
             var existing = sub.Hours.FirstOrDefault(h => h.HourNumber == hourNum);
+            var replaceAll = HourMergeHelper.IsHourComplete(inp);
+
             if (existing == null)
             {
                 sub.Hours.Add(MapHour(inp, hourNum));
                 logs.Add(new AuditLog { SubmissionId = sub.Id, ChangedBy = editorName, FieldName = $"Hour{hourNum}", NewValue = "Created" });
+                merged++;
                 continue;
             }
 
-            void TrackHour(string f, string? o, string? n)
+            var before = SnapshotHour(existing);
+            HourMergeHelper.MergeInto(existing, inp, replaceAll);
+            if (!HourSnapshotsEqual(before, existing))
             {
-                if (o != n) logs.Add(new AuditLog { SubmissionId = sub.Id, ChangedBy = editorName, FieldName = $"Hr{hourNum}.{f}", OldValue = o, NewValue = n });
+                merged++;
+                LogHourChanges(sub.Id, hourNum, editorName, before, existing, logs);
             }
-
-            TrackHour("Hazards", existing.HazardsObserved?.ToString(), inp.Haz?.ToString());
-            TrackHour("Target", existing.HourlyTargetAchieved?.ToString(), inp.Tgt?.ToString());
-            TrackHour("SafetyStatus", existing.OverallSafetyStatus, inp.Ss);
-            TrackHour("QualityStatus", existing.OverallQualityStatus, inp.Qs);
-            TrackHour("PerfStatus", existing.OverallPerfStatus, inp.Ps);
-
-            existing.HazardsObserved = inp.Haz; existing.UnsafeBehaviours = inp.Uns; existing.PositiveBehaviours = inp.Pos;
-            existing.SafetyNotes = inp.Snote;
-            existing.QualityChecksCompleted = inp.Qchk; existing.DeviationsEscalated = inp.Dev; existing.NonComplianceAddressed = inp.Nc;
-            existing.QualityNotes = inp.Qnote;
-            existing.HourlyTargetAchieved = inp.Tgt; existing.MaintenanceIssues = inp.Maint; existing.MaterialsAvailable = inp.Mat;
-            existing.ToolsAvailable = inp.Tools;
-            existing.EscalationsNeeded = inp.Escl; existing.PartsConfirmed = inp.Pconf; existing.PartsIdCorrect = inp.Pid;
-            existing.NCPartsStoredCorrectly = inp.Ncp;
-            existing.SixSCompleted = inp.Sixs; existing.TPMCompleted = inp.Tpm; existing.PerformanceNotes = inp.Pnote;
-            existing.WellbeingConfirmed = inp.Wb; existing.SupportRequired = inp.Sup; existing.MoraleNotes = inp.Mnote;
-            existing.AccidentsReported = inp.Acc; existing.OverallSafetyStatus = inp.Ss; existing.OverallQualityStatus = inp.Qs;
-            existing.OverallPerfStatus = inp.Ps;
         }
+        return merged;
+    }
+
+    static (bool? Haz, bool? Tgt, string? Ss, string? Qs, string? Ps) SnapshotHour(HourlyCheck h) =>
+        (h.HazardsObserved, h.HourlyTargetAchieved, h.OverallSafetyStatus, h.OverallQualityStatus, h.OverallPerfStatus);
+
+    static bool HourSnapshotsEqual(
+        (bool? Haz, bool? Tgt, string? Ss, string? Qs, string? Ps) before,
+        HourlyCheck after) =>
+        before.Haz == after.HazardsObserved
+        && before.Tgt == after.HourlyTargetAchieved
+        && before.Ss == after.OverallSafetyStatus
+        && before.Qs == after.OverallQualityStatus
+        && before.Ps == after.OverallPerfStatus;
+
+    static void LogHourChanges(
+        int submissionId, int hourNum, string editorName,
+        (bool? Haz, bool? Tgt, string? Ss, string? Qs, string? Ps) before,
+        HourlyCheck after, List<AuditLog> logs)
+    {
+        void Track(string f, string? o, string? n)
+        {
+            if (o != n)
+                logs.Add(new AuditLog { SubmissionId = submissionId, ChangedBy = editorName, FieldName = $"Hr{hourNum}.{f}", OldValue = o, NewValue = n });
+        }
+        Track("Hazards", before.Haz?.ToString(), after.HazardsObserved?.ToString());
+        Track("Target", before.Tgt?.ToString(), after.HourlyTargetAchieved?.ToString());
+        Track("SafetyStatus", before.Ss, after.OverallSafetyStatus);
+        Track("QualityStatus", before.Qs, after.OverallQualityStatus);
+        Track("PerfStatus", before.Ps, after.OverallPerfStatus);
     }
 
     async Task<ShiftSubmission?> LoadSubmissionAsync(int id) =>
