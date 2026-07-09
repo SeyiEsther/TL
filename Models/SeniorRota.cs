@@ -4,17 +4,22 @@ namespace TL.Models;
 
 /// <summary>
 /// Weekly duty rota for the Senior Weekly Audit, covering Group 1s and Directors.
-/// The rotation order is reshuffled automatically every January (seeded by ISO year)
-/// so it stays fresh year to year without any manual maintenance.
+/// The 12 names are split into 3 fixed teams of 4, and one team is on duty each
+/// week (cycling every 3 weeks). The teams are re-drawn automatically every January
+/// (seeded by ISO year) so they stay fresh year to year without any manual upkeep.
 /// </summary>
 public static class SeniorRota
 {
+    public const int GroupSize = 4;
+
     public static readonly string[] Names =
     [
         "Jim Gray", "John Fisher", "Steven Hawkins", "Vic Ward",
         "Simon Graham", "Lukasz Jaworski", "Dean Campbell", "Glen Atkinson",
         "Kyle Anderson", "Jonathan Maynard", "Mark Tapp", "Tony Bent",
     ];
+
+    public static int GroupCount => Names.Length / GroupSize;
 
     public static string[] OrderForYear(int year)
     {
@@ -28,10 +33,21 @@ public static class SeniorRota
         return order;
     }
 
-    public static string PersonForWeek(int isoYear, int isoWeek) =>
-        OrderForYear(isoYear)[(isoWeek - 1) % Names.Length];
+    /// <summary>The fixed teams of 4 for the given year, drawn from that year's shuffle.</summary>
+    public static List<string[]> TeamsForYear(int year) =>
+        OrderForYear(year)
+            .Select((name, i) => (name, i))
+            .GroupBy(x => x.i / GroupSize)
+            .Select(g => g.Select(x => x.name).ToArray())
+            .ToList();
 
-    public record RotaWeek(int IsoWeek, DateOnly WeekStart, DateOnly WeekEnd, string Person, bool IsCurrent, bool IsPast);
+    /// <summary>Zero-based index of the team on duty for a given ISO week.</summary>
+    public static int TeamIndexForWeek(int isoWeek) => (isoWeek - 1) % GroupCount;
+
+    public static string[] TeamForWeek(int isoYear, int isoWeek) =>
+        TeamsForYear(isoYear)[TeamIndexForWeek(isoWeek)];
+
+    public record RotaWeek(int IsoWeek, DateOnly WeekStart, DateOnly WeekEnd, string[] Team, int TeamNumber, bool IsCurrent, bool IsPast);
 
     /// <summary>One row per week from the first week of the given date's year through 31 December.</summary>
     public static List<RotaWeek> WeeksThisYear(DateOnly today)
@@ -50,7 +66,9 @@ public static class SeniorRota
             var isoYear = ISOWeek.GetYear(dt);
             var isoWeek = ISOWeek.GetWeekOfYear(dt);
             var weekEnd = cursor.AddDays(6);
-            result.Add(new RotaWeek(isoWeek, cursor, weekEnd, PersonForWeek(isoYear, isoWeek), cursor == currentMonday, weekEnd < today));
+            result.Add(new RotaWeek(isoWeek, cursor, weekEnd,
+                TeamForWeek(isoYear, isoWeek), TeamIndexForWeek(isoWeek) + 1,
+                cursor == currentMonday, weekEnd < today));
         }
         return result;
     }
