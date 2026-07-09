@@ -11,14 +11,8 @@ namespace TL.Services
         private readonly ILogger<UserService> _log;
         private readonly IMemoryCache _cache;
 
-        // AD display-name lookups are expensive (a synchronous round-trip to the
-        // domain controller). The layout resolves the current user on every page
-        // render, and page models resolve it again, so without caching a single
-        // request can hit AD multiple times. Cache the resolved name per username.
         private static readonly TimeSpan CacheDuration = TimeSpan.FromHours(1);
 
-        // Memoise within the (scoped) instance so repeated calls in the same
-        // request never recompute, even for a cache miss.
         private AppUser? _current;
 
         public UserService(IHttpContextAccessor http, ILogger<UserService> log, IMemoryCache cache)
@@ -32,22 +26,44 @@ namespace TL.Services
         {
             if (_current != null) return _current;
 
-            var username = Environment.UserName;
-            var displayName = _cache.GetOrCreate(
-                $"ad-display-name::{username}",
-                entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-                    return ResolveDisplayName(username);
-                }) ?? username;
+            var identity = _http.HttpContext?.User?.Identity;
+            if (identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(identity.Name))
+            {
+                var username = NormalizeAccountName(identity.Name);
+                var displayName = _cache.GetOrCreate(
+                    $"ad-display-name::{username}",
+                    entry =>
+                    {
+                        entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+                        return ResolveDisplayName(username);
+                    }) ?? username;
 
+                _current = new AppUser
+                {
+                    Username = username,
+                    DisplayName = displayName,
+                    IsManager = true
+                };
+                return _current;
+            }
+
+            // IIS app pool / anonymous — not the person at the keyboard; don't pre-fill names.
             _current = new AppUser
             {
-                Username = username,
-                DisplayName = displayName,
+                Username = Environment.UserName ?? "unknown",
+                DisplayName = "",
                 IsManager = true
             };
             return _current;
+        }
+
+        public static string NormalizeAccountName(string identityName)
+        {
+            if (identityName.Contains('\\', StringComparison.Ordinal))
+                return identityName.Split('\\').Last();
+            if (identityName.Contains('@', StringComparison.Ordinal))
+                return identityName.Split('@').First();
+            return identityName;
         }
 
         private string ResolveDisplayName(string username)
@@ -64,7 +80,7 @@ namespace TL.Services
             try
             {
                 using var ctx = new PrincipalContext(ContextType.Domain);
-                using var user = UserPrincipal.FindByIdentity(ctx, username);
+                using var user = UserPrincipal.FindByIdentity(ctx, IdentityType.SamAccountName, username);
                 if (user != null)
                     return user.DisplayName ?? user.GivenName ?? username;
             }

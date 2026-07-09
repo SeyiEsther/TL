@@ -30,7 +30,7 @@
 
             <div class="fl" style="margin-bottom:14px">
                 <label>Team leader</label>
-                <input type="text" name="TeamLeader" value="@Model.TeamLeader" placeholder="Enter your full name" required>
+                <input type="text" name="TeamLeader" value="@(Model.TeamLeader ?? "")" placeholder="Enter your full name" autocomplete="name" required>
             </div>
 
             <div class="fl" style="margin-bottom:6px">

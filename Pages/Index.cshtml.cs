@@ -25,9 +25,8 @@ public class IndexModel : PageModel
 
     public void OnGet()
     {
-        var user = _users.GetCurrentUser();
-        UserName = user.DisplayName;
-        TeamLeader = user.DisplayName;
+        var displayName = _users.GetCurrentUser().DisplayName;
+        UserName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
     }
 
     public async Task<IActionResult> OnPostAsync(string shiftDate, string shift, string teamLeader, string area)
@@ -42,7 +41,8 @@ public class IndexModel : PageModel
             TeamLeader = teamLeader;
             Area = area;
             Error = "Please fill in all fields.";
-            UserName = _users.GetCurrentUser().DisplayName;
+            var displayName = _users.GetCurrentUser().DisplayName;
+            UserName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
             return Page();
         }
 

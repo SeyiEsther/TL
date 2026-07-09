@@ -67,8 +67,11 @@ public class FormModel : PageModel
 
         if (DateOnly.TryParse(ShiftDate, out var d) && !string.IsNullOrWhiteSpace(Shift) && !string.IsNullOrWhiteSpace(Area))
         {
+            var tlName = ShiftResumeService.NormalizeTl(TeamLeader);
+            if (string.IsNullOrWhiteSpace(tlName))
+                return RedirectToPage("/Index");
+
             var user = _users.GetCurrentUser();
-            var tlName = string.IsNullOrWhiteSpace(TeamLeader) ? user.DisplayName : ShiftResumeService.NormalizeTl(TeamLeader);
 
             var existing = await _resume.FindForResumeAsync(d, Shift, Area, tlName);
             if (existing != null)
@@ -103,7 +106,13 @@ public class FormModel : PageModel
         PadHours();
 
         var user = _users.GetCurrentUser();
-        var editorName = ShiftResumeService.NormalizeTl(TeamLeader) is { Length: > 0 } n ? n : user.DisplayName;
+        var editorName = ShiftResumeService.NormalizeTl(TeamLeader);
+        if (string.IsNullOrWhiteSpace(editorName))
+        {
+            ValidationError = "Team leader name is required — go back to Home and enter your name.";
+            PadHours();
+            return Page();
+        }
         TeamLeader = editorName;
         var hours = H.Take(Hours).ToList();
 
@@ -184,7 +193,8 @@ public class FormModel : PageModel
             d = DateOnly.FromDateTime(DateTime.Today);
 
         var tlName = ShiftResumeService.NormalizeTl(teamLeader);
-        if (string.IsNullOrEmpty(tlName)) tlName = user.DisplayName;
+        if (string.IsNullOrEmpty(tlName))
+            throw new InvalidOperationException("Team leader name is required.");
 
         var existing = await _resume.FindForResumeAsync(d, shift, area, tlName);
         if (existing != null) return existing;
