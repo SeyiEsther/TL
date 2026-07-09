@@ -28,9 +28,8 @@
                 </div>
             </div>
 
-            <div class="fl" style="margin-bottom:14px">
-                <label>Team leader</label>
-                <input type="text" name="TeamLeader" value="@(Model.TeamLeader ?? "")" placeholder="Enter your full name" autocomplete="name" required>
+            <div style="margin-bottom:14px">
+                <partial name="_TeamLeaderPicker" model='new FilterDropdownModel("TeamLeader", "Team leader", Model.TeamLeader, "Select your name…")' />
             </div>
 
             <div class="fl" style="margin-bottom:6px">

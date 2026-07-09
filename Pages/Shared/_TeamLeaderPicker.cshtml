@@ -1,0 +1,31 @@
+@model FilterDropdownModel
+@{
+    var id = $"fs-{Model.Name}";
+    var current = Model.Value ?? "";
+    var display = string.IsNullOrEmpty(current) ? Model.Placeholder : current;
+}
+<div class="fs" id="@id" data-name="@Model.Name" data-placeholder="@Model.Placeholder">
+    <span class="fs-label">@Model.Label</span>
+    <button type="button" class="fs-trigger" aria-haspopup="listbox" aria-expanded="false">
+        <svg class="fs-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+        </svg>
+        <span class="fs-display @(string.IsNullOrEmpty(current) ? "fs-placeholder" : "")">@display</span>
+        <svg class="fs-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <input type="hidden" name="@Model.Name" value="@current" class="fs-input">
+    <div class="fs-popover fs-popover-scroll" aria-hidden="true" role="listbox">
+        <div class="fs-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" class="fs-search" placeholder="Search names…" autocomplete="off">
+        </div>
+        <div class="fs-group">
+            @foreach (var name in TeamLeaderList.Names)
+            {
+                <button type="button" class="fs-option @(current == name ? "active" : "")" data-value="@name" data-search="@name.ToLowerInvariant()" role="option">
+                    <span class="fs-option-label">@name</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
