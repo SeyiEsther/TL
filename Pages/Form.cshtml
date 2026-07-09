@@ -59,24 +59,14 @@
         <div class="err" style="margin-bottom:14px">@Model.ValidationError</div>
     }
 
-    @if (Model.EditingId.HasValue)
-    {
-        <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#b45309">
-            Editing existing shift — all changes are audit-logged.
-        </div>
-    }
-
-    <div class="hint">Fill in each hour as you go — use <strong>Save progress</strong> or it auto-saves when an hour is complete. Previous hours are kept on the server.</div>
-
     <div id="shift-progress-bar" style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:700">Shift completion</span>
-            <span id="shift-progress-text" style="font-size:12px;color:var(--muted)">0 of @H hours complete</span>
+            <span style="font-size:12px;font-weight:700">Progress</span>
+            <span id="shift-progress-text" style="font-size:12px;color:var(--muted)">0 of @H hours</span>
         </div>
         <div style="height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden">
             <div id="shift-progress-fill" style="height:100%;width:0;background:#16a34a;transition:width .2s"></div>
         </div>
-        <div id="shift-submit-hint" style="font-size:11px;color:#b45309;margin-top:8px;display:none"></div>
     </div>
 
     <!-- Main data entry form -->
@@ -104,57 +94,39 @@
 
                     <!-- HEALTH & SAFETY -->
                     <tr class="sec-row safety"><td class="acc"></td><td colspan="@H">Health &amp; Safety</td></tr>
-                    @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz,
-                        "Slips, trips, blocked exits or unsafe conditions anywhere in the area"); }
-                    @{ await RenderYN("Any unsafe behaviours observed?", "Uns", h => hd(h).Uns,
-                        "Anyone working unsafely — missing PPE, bypassing guards or taking shortcuts"); }
-                    @{ await RenderYN("Any positive behaviours praised?", "Pos", h => hd(h).Pos,
-                        "Proactive safety actions worth calling out and sharing with the team"); }
+                    @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz); }
+                    @{ await RenderYN("Any unsafe behaviours observed?", "Uns", h => hd(h).Uns); }
+                    @{ await RenderYN("Any positive behaviours praised?", "Pos", h => hd(h).Pos); }
                     @{ await RenderNote("Description", "Snote", h => hd(h).Snote); }
 
                     <!-- QUALITY -->
                     <tr class="sec-row quality"><td class="acc"></td><td colspan="@H">Quality</td></tr>
-                    @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk,
-                        "All scheduled inspections and verification checks were carried out this hour"); }
-                    @{ await RenderYN("Any deviations escalated?", "Dev", h => hd(h).Dev,
-                        "Any deviation from spec or process has been raised with the relevant team"); }
-                    @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc,
-                        "Any instance of non-compliance was identified and acted on"); }
+                    @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk); }
+                    @{ await RenderYN("Any deviations escalated?", "Dev", h => hd(h).Dev); }
+                    @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc); }
                     @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
 
                     <!-- PERFORMANCE -->
                     <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>
-                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt,
-                        "Output met the planned production target for this hour"); }
-                    @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint,
-                        "Equipment faults or breakdowns have been logged with maintenance"); }
-                    @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat,
-                        "Raw materials, components and consumables are in place for the next hour"); }
-                    @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools,
-                        "All required tools and equipment are present and in working order"); }
-                    @{ await RenderYN("Any escalations needed?", "Escl", h => hd(h).Escl,
-                        "Issues that need action from another team or a senior level"); }
-                    @{ await RenderYN("All parts confirmed?", "Pconf", h => hd(h).Pconf,
-                        "Parts count matches the production order for this hour"); }
-                    @{ await RenderYN("All parts ID'd properly?", "Pid", h => hd(h).Pid,
-                        "Covers ALL parts and stock in the surrounding area — not just the part currently on the machine. Check every bin, label and WIP in the vicinity.",
-                        warn: true); }
-                    @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp,
-                        "Non-conforming parts are clearly labelled and moved to the dedicated NC zone"); }
+                    @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt); }
+                    @{ await RenderYN("Any maintenance issues reported?", "Maint", h => hd(h).Maint); }
+                    @{ await RenderYN("All materials available for next hour?", "Mat", h => hd(h).Mat); }
+                    @{ await RenderYN("All tools available?", "Tools", h => hd(h).Tools); }
+                    @{ await RenderYN("Any escalations needed?", "Escl", h => hd(h).Escl); }
+                    @{ await RenderYN("All parts confirmed?", "Pconf", h => hd(h).Pconf); }
+                    @{ await RenderYN("All parts ID'd properly?", "Pid", h => hd(h).Pid); }
+                    @{ await RenderYN("All NC parts ID'd &amp; stored correctly?", "Ncp", h => hd(h).Ncp); }
                     @{ await RenderNote("Actions taken", "Pnote", h => hd(h).Pnote); }
 
                     <!-- MORALE -->
                     <tr class="sec-row morale"><td class="acc"></td><td colspan="@H">Morale Check</td></tr>
-                    @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb,
-                        "Checked in with each team member — everyone is fit, comfortable and not struggling"); }
-                    @{ await RenderYN("Does operator require support?", "Sup", h => hd(h).Sup,
-                        "Anyone raising a concern, finding it difficult or asking for additional help"); }
+                    @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb); }
+                    @{ await RenderYN("Does operator require support?", "Sup", h => hd(h).Sup); }
                     @{ await RenderNote("Detail support required", "Mnote", h => hd(h).Mnote); }
 
                     <!-- FINAL STATUS -->
                     <tr class="sec-row final"><td class="acc"></td><td colspan="@H">Final Shift Status</td></tr>
-                    @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc,
-                        "Any RTA, near-miss or first-aid incident recorded in the accident book this shift"); }
+                    @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc); }
                     @{ await RenderStatus("Overall safety status", "Ss", h => hd(h).Ss); }
                     @{ await RenderStatus("Overall quality status", "Qs", h => hd(h).Qs); }
                     @{ await RenderStatus("Overall performance status", "Ps", h => hd(h).Ps); }
@@ -170,10 +142,7 @@
                 @{ var sixsVal = Model.H.Count > 0 ? Model.H[0].Sixs : null; }
                 @{ var tpmVal  = Model.H.Count > 0 ? Model.H[0].Tpm  : null; }
                 <div class="shift-once-q">
-                    <div class="shift-once-label">
-                        <span>6S activities completed?</span>
-                        <span class="shift-once-hint">Sort, Set, Shine, Standardise, Sustain and Safety checks — done once for the whole shift</span>
-                    </div>
+                    <div class="shift-once-label">6S activities completed?</div>
                     <div class="audit-yn">
                         <input type="radio" class="ayn-y" name="H[0].Sixs" id="sixs_y" value="True"  checked="@(sixsVal == true  ? "checked" : null)">
                         <label for="sixs_y">Yes</label>
@@ -182,10 +151,7 @@
                     </div>
                 </div>
                 <div class="shift-once-q">
-                    <div class="shift-once-label">
-                        <span>TPM activities completed?</span>
-                        <span class="shift-once-hint">Planned preventive maintenance tasks — checked once at end of shift, not every hour</span>
-                    </div>
+                    <div class="shift-once-label">TPM activities completed?</div>
                     <div class="audit-yn">
                         <input type="radio" class="ayn-y" name="H[0].Tpm" id="tpm_y" value="True"  checked="@(tpmVal == true  ? "checked" : null)">
                         <label for="tpm_y">Yes</label>
@@ -201,15 +167,15 @@
             <h3>Shift summary &amp; handover</h3>
             <div class="sfield full">
                 <label>Escalations / outstanding issues</label>
-                <textarea name="Escalations" placeholder="What, why and to whom…">@Model.Escalations</textarea>
+                <textarea name="Escalations" placeholder="Notes…">@Model.Escalations</textarea>
             </div>
             <div class="sfield">
                 <label>Key risks for next shift</label>
-                <textarea name="KeyRisks" placeholder="Watch out for…">@Model.KeyRisks</textarea>
+                <textarea name="KeyRisks" placeholder="Notes…">@Model.KeyRisks</textarea>
             </div>
             <div class="sfield">
                 <label>Immediate priorities for incoming team</label>
-                <textarea name="Priorities" placeholder="Immediate actions…">@Model.Priorities</textarea>
+                <textarea name="Priorities" placeholder="Notes…">@Model.Priorities</textarea>
             </div>
         </div>
 
@@ -217,12 +183,11 @@
         <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:14px">Outgoing TL sign-off</div>
             <div class="sfield full">
-                <label>Type your full name to sign off this shift</label>
+                <label>Sign-off (full name)</label>
                 <input type="text" name="OutgoingTLSignature" value="@Model.OutgoingTLSignature"
                        placeholder="Full name…"
                        style="padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;color:var(--ink);max-width:400px">
             </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px">By signing, you confirm this shift record is accurate and complete.</div>
         </div>
 
         <div class="submit-bar">
@@ -239,7 +204,7 @@
 </div>
 
 <div id="draft-restore-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:12px 20px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:9999;font-size:13px;display:flex;align-items:center;gap:12px">
-    <span>A draft from a previous session was found. Restore it?</span>
+    <span>Restore unsaved draft?</span>
     <button onclick="restoreDraft()" style="background:#fff;color:#1e3a5f;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600">Restore</button>
     <button onclick="dismissDraft()" style="background:transparent;color:#aaa;border:none;cursor:pointer">Discard</button>
 </div>
@@ -254,7 +219,6 @@
     const progressBtn = document.getElementById('shift-submit-btn');
     const progressText = document.getElementById('shift-progress-text');
     const progressFill = document.getElementById('shift-progress-fill');
-    const submitHint = document.getElementById('shift-submit-hint');
     const hoursCount = parseInt(form?.dataset.hours || '@H', 10);
     let savedDraft = null;
 
@@ -276,54 +240,10 @@
     function updateCompletion() {
         let complete = 0;
         for (let h = 0; h < hoursCount; h++) {
-            const colCells = form.querySelectorAll(`input[name^="H[${h}]."]`);
-            const incomplete = !hourComplete(h);
-            colCells.forEach(el => {
-                const cell = el.closest('td');
-                if (cell) cell.classList.toggle('hour-incomplete', incomplete);
-            });
-            if (!incomplete) complete++;
+            if (hourComplete(h)) complete++;
         }
-
-        const sixsOk = !!form.querySelector('input[name="H[0].Sixs"]:checked');
-        const tpmOk = !!form.querySelector('input[name="H[0].Tpm"]:checked');
-        const sig = (form.querySelector('input[name="OutgoingTLSignature"]')?.value || '').trim();
-        const allHours = complete === hoursCount;
-        const canSubmit = allHours && sixsOk && tpmOk && sig.length > 0;
-
-        document.querySelectorAll('.shift-once-q').forEach(function (row) {
-            var isSixs = !!row.querySelector('[name="H[0].Sixs"]');
-            var isTpm = !!row.querySelector('[name="H[0].Tpm"]');
-            var incomplete = (isSixs && !sixsOk) || (isTpm && !tpmOk);
-            row.classList.toggle('hour-incomplete', incomplete);
-        });
-        var sigWrap = form.querySelector('input[name="OutgoingTLSignature"]')?.closest('div.sfield, div[style*="border"]');
-        if (sigWrap) sigWrap.classList.toggle('hour-incomplete', !sig);
-
-        if (progressText) progressText.textContent = complete + ' of ' + hoursCount + ' hours complete';
+        if (progressText) progressText.textContent = complete + ' of ' + hoursCount + ' hours';
         if (progressFill) progressFill.style.width = (hoursCount ? Math.round(complete / hoursCount * 100) : 0) + '%';
-
-        const missing = [];
-        if (!allHours) missing.push('complete all hours');
-        if (!sixsOk || !tpmOk) missing.push('6S and TPM checks');
-        if (!sig) missing.push('sign-off');
-
-        if (submitBtn) {
-            submitBtn.disabled = !canSubmit;
-            submitBtn.style.opacity = canSubmit ? '1' : '0.5';
-        }
-        if (progressBtn) {
-            progressBtn.disabled = false;
-            progressBtn.style.opacity = '1';
-        }
-        if (submitHint) {
-            if (canSubmit) {
-                submitHint.style.display = 'none';
-            } else {
-                submitHint.style.display = 'block';
-                submitHint.textContent = 'Complete ' + missing.join(', ') + ' before submitting.';
-            }
-        }
     }
 
     form?.addEventListener('change', function (e) {
@@ -497,16 +417,10 @@
 </script>
 
 @functions {
-    async Task RenderYN(string label, string field, Func<int, bool?> val, string? hint = null, bool warn = false)
+    async Task RenderYN(string label, string field, Func<int, bool?> val)
     {
         <tr class="dr">
-            <td class="ql">
-                @Html.Raw(label)
-                @if (hint != null)
-                {
-                    <div class="@(warn ? "q-hint q-hint-warn" : "q-hint")">@hint</div>
-                }
-            </td>
+            <td class="ql">@Html.Raw(label)</td>
             @for (int h = 0; h < Model.Hours; h++)
             {
                 var v = val(h);

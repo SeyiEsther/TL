@@ -46,8 +46,8 @@ public class FormModel : PageModel
         Hours = Math.Clamp(hours, 1, 8);
         SaveMessage = saved switch
         {
-            "progress" => "Progress saved to server.",
-            "hour" => "Hour saved to server.",
+            "progress" => "Saved.",
+            "hour" => "Saved.",
             _ => null,
         };
 
@@ -122,19 +122,6 @@ public class FormModel : PageModel
         var logs = new List<AuditLog>();
         ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
         MergeHours(sub, hours, editorName, logs);
-
-        if (finalSubmit)
-        {
-            var check = _completion.Evaluate(sub);
-            if (!check.IsComplete)
-            {
-                ValidationError = "Cannot submit — complete all hours, 6S/TPM checks, and sign-off first: "
-                    + string.Join("; ", check.MissingItems.Take(5))
-                    + (check.MissingItems.Count > 5 ? $" (+{check.MissingItems.Count - 5} more)" : "");
-                RepopulateFromSubmission(sub, editorName);
-                return Page();
-            }
-        }
 
         sub.TeamLeaderDisplay = editorName;
         sub.LastEditedBy = editorName;
@@ -314,12 +301,6 @@ public class FormModel : PageModel
         Wb = h.WellbeingConfirmed, Sup = h.SupportRequired, Mnote = h.MoraleNotes,
         Acc = h.AccidentsReported, Ss = h.OverallSafetyStatus, Qs = h.OverallQualityStatus, Ps = h.OverallPerfStatus,
     };
-
-    void RepopulateFromSubmission(ShiftSubmission sub, string? tl)
-    {
-        PopulateFromSubmission(sub, tl);
-        PadHours();
-    }
 
     void PadHours()
     {
