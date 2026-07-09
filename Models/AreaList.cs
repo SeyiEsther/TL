@@ -28,9 +28,6 @@ public static class AreaList
         ("Sheet Metal", "Zone 1",  "Trumpf Laser, Trubend F35"),
         ("Sheet Metal", "Zone 2",  "T500, T5000, T5000–S10, T5000–S11, T7000"),
         ("Sheet Metal", "Zone 3",  "T5000–S13, T5000–S14"),
-        ("Sheet Metal", "Zone 4",  "Heilbronn"),
-        ("Sheet Metal", "Zone 5",  "Salv 1"),
-        ("Sheet Metal", "Zone 6",  "Salv 3"),
         ("Sheet Metal", "Zone 7",  "Mainframe 2, Microsoft"),
         ("Sheet Metal", "Zone 8",  "HP Weld"),
         ("Sheet Metal", "Zone 9",  "German Jig 1"),
@@ -42,11 +39,19 @@ public static class AreaList
         ("Sheet Metal", "Zone 15", "Small Parts Welding"),
         ("Sheet Metal", "Zone 16", "100T Xact, Training Bay, 250T"),
         ("Sheet Metal", "Zone 17", "Trubend F32, F33, F34"),
-        ("Sheet Metal", "Zone 18", "Grind Master PH1"),
-        ("Sheet Metal", "Zone 19", "Automatic TX Stud Weld Cell"),
         ("Sheet Metal", "Zone 20", "Robot Folding Cell F28, Bystronic F29, F30, F31, F36"),
-        ("Sheet Metal", "Zone 21", "Skiaky Spot Weld"),
         ("Sheet Metal", "Zone 22", "F37, EP3"),
+
+        // ── Phase 1 Sheetmetal (200143/200249/200250/300308 cost codes) ────────
+        ("Phase 1 Sheetmetal", "Zone 4",  "Heilbronn"),
+        ("Phase 1 Sheetmetal", "Zone 5",  "Salv 1"),
+        ("Phase 1 Sheetmetal", "Zone 6",  "Salv 3"),
+        ("Phase 1 Sheetmetal", "Zone 23", "Galv Grindbay"),
+
+        // ── Phase 3 Sheetmetal (100253/200212/200239/300289 cost codes) ────────
+        ("Phase 3 Sheetmetal", "Zone 18", "Grind Master PH1"),
+        ("Phase 3 Sheetmetal", "Zone 19", "Automatic TX Stud Weld Cell"),
+        ("Phase 3 Sheetmetal", "Zone 21", "Sciaky Spot Weld, Spotwelder E11/2 (Serial 770066)"),
 
         // ── Dispatch ──────────────────────────────────────────────────────────
         ("Dispatch", "Loading Bays",    ""),
