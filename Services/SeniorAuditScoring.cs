@@ -21,19 +21,27 @@ public static class SeniorAuditScoring
         CategoryScore(a.HandoverStandardsFollowed, a.VisualManagementCurrent, a.EscalationPathsUsed);
 
     public static int SafetyScore(SeniorWeeklyAudit a) =>
-        CategoryScore(a.PpeComplianceFull, a.NearMissesReported, a.SafetyActionLogCurrent);
+        CategoryScore(a.PpeComplianceFull, a.NearMissesReported);
 
     public static int QualityScore(SeniorWeeklyAudit a) =>
-        CategoryScore(a.FirstOffRecordsComplete, a.NcCaptureTrended, a.QualityGatesMaintained);
+        CategoryScore(
+            a.FirstOffRecordsComplete,
+            a.NcProcedureFollowed ?? a.NcCaptureTrended,
+            a.QualityGatesMaintained);
 
     public static int PeopleScore(SeniorWeeklyAudit a) =>
-        CategoryScore(a.AbsenceManagedProactively, a.TlsCoachingTeams, a.TrainingMatrixCurrent);
+        CategoryScore(
+            a.LeaderVisibilityCheck ?? a.AbsenceManagedProactively,
+            a.TrainingMatrixCurrent);
 
     public static int StandardsScore(SeniorWeeklyAudit a) =>
-        CategoryScore(a.SixSStandardMaintained, a.TpmScheduleFollowed, a.StandardWorkVisible);
+        CategoryScore(
+            a.SixSStandardMaintained,
+            a.TpmScheduleFollowed,
+            a.StandardWorkMaintained ?? a.StandardWorkVisible);
 
     public static int PerformanceScore(SeniorWeeklyAudit a) =>
-        CategoryScore(a.TrackingAgainstWeeklyPlan, a.MetricsVisibleAndOwned, a.ImprovementActionsProgressing);
+        CategoryScore(a.TrackingAgainstWeeklyPlan, a.ImprovementActionsProgressing);
 
     public static int OverallScore(SeniorWeeklyAudit a)
     {

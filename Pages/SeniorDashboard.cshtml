@@ -115,32 +115,29 @@
 
         RenderCategoryPanel("leadership", "Leadership & Governance", Model.GovScore,
             ("Handover standards", a => a.HandoverStandardsFollowed),
-            ("Visual management", a => a.VisualManagementCurrent),
+            ("RPS boards", a => a.VisualManagementCurrent),
             ("Escalation paths", a => a.EscalationPathsUsed));
 
         RenderCategoryPanel("safety", "Safety Culture", Model.SafetyScore,
             ("PPE compliance", a => a.PpeComplianceFull),
-            ("Near-misses reported", a => a.NearMissesReported),
-            ("Safety action log", a => a.SafetyActionLogCurrent));
+            ("Near-misses reported", a => a.NearMissesReported));
 
-        RenderCategoryPanel("quality", "Quality Governance", Model.QualityScore,
+        RenderCategoryPanel("quality", "Quality", Model.QualityScore,
             ("First-off records", a => a.FirstOffRecordsComplete),
-            ("NC capture trended", a => a.NcCaptureTrended),
+            ("NC procedure followed", a => a.NcProcedureFollowed ?? a.NcCaptureTrended),
             ("Quality gates", a => a.QualityGatesMaintained));
 
         RenderCategoryPanel("people", "People & Wellbeing", Model.PeopleScore,
-            ("Absence managed", a => a.AbsenceManagedProactively),
-            ("TLs coaching", a => a.TlsCoachingTeams),
+            ("Leader visibility", a => a.LeaderVisibilityCheck ?? a.AbsenceManagedProactively),
             ("Training matrix", a => a.TrainingMatrixCurrent));
 
         RenderCategoryPanel("standards", "Standards & Housekeeping", Model.StandardsScore,
             ("6S standard", a => a.SixSStandardMaintained),
             ("TPM schedule", a => a.TpmScheduleFollowed),
-            ("Standard work visible", a => a.StandardWorkVisible));
+            ("Standard work maintained", a => a.StandardWorkMaintained ?? a.StandardWorkVisible));
 
         RenderCategoryPanel("performance", "Performance", Model.PerfScore,
             ("Weekly plan tracking", a => a.TrackingAgainstWeeklyPlan),
-            ("Metrics owned", a => a.MetricsVisibleAndOwned),
             ("CI actions progressing", a => a.ImprovementActionsProgressing));
 
         <div class="sd-panel" id="panel-records">

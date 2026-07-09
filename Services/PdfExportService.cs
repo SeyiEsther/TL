@@ -457,7 +457,7 @@ namespace TL.Services
                         Section(col, "LEADERSHIP & GOVERNANCE", "#1e3a5f",
                         [
                             ("Shift handover standards being followed?", a.HandoverStandardsFollowed),
-                            ("Visual management board up to date?", a.VisualManagementCurrent),
+                            ("RPS boards up to date?", a.VisualManagementCurrent),
                             ("Escalation paths being used correctly?", a.EscalationPathsUsed),
                         ], a.GovernanceNotes);
 
@@ -465,34 +465,36 @@ namespace TL.Services
                         [
                             ("PPE compliance 100% across the area?", a.PpeComplianceFull),
                             ("Near-misses being reported?", a.NearMissesReported),
-                            ("Safety action log current?", a.SafetyActionLogCurrent),
                         ], a.SafetyNotes);
 
-                        Section(col, "QUALITY GOVERNANCE", "#1e3a5f",
+                        Section(col, "QUALITY", "#1e3a5f",
                         [
                             ("First-off records complete?", a.FirstOffRecordsComplete),
-                            ("NC capture trended?", a.NcCaptureTrended),
+                            ("Non-conformance procedure followed?", a.NcProcedureFollowed ?? a.NcCaptureTrended),
                             ("Quality gates maintained?", a.QualityGatesMaintained),
                         ], a.QualityNotes);
 
+                        var peopleNotes = string.IsNullOrWhiteSpace(a.LastTeamMeeting)
+                            ? a.PeopleNotes
+                            : $"Last team meeting: {a.LastTeamMeeting}"
+                              + (string.IsNullOrWhiteSpace(a.PeopleNotes) ? "" : $"\n{a.PeopleNotes}");
+
                         Section(col, "PEOPLE & WELLBEING", "#4a1d1d",
                         [
-                            ("Absence managed proactively?", a.AbsenceManagedProactively),
-                            ("TLs coaching their teams?", a.TlsCoachingTeams),
+                            ("Operator check — visibility of leaders?", a.LeaderVisibilityCheck ?? a.AbsenceManagedProactively),
                             ("Training matrix current?", a.TrainingMatrixCurrent),
-                        ], a.PeopleNotes);
+                        ], peopleNotes);
 
                         Section(col, "STANDARDS & HOUSEKEEPING", "#1e1b4b",
                         [
                             ("6S standard maintained?", a.SixSStandardMaintained),
                             ("TPM schedule followed?", a.TpmScheduleFollowed),
-                            ("Standard work visible?", a.StandardWorkVisible),
+                            ("Standard work maintained across the area?", a.StandardWorkMaintained ?? a.StandardWorkVisible),
                         ], a.StandardsNotes);
 
                         Section(col, "PERFORMANCE", "#1e1b4b",
                         [
                             ("Tracking against weekly plan?", a.TrackingAgainstWeeklyPlan),
-                            ("Performance metrics visible and owned?", a.MetricsVisibleAndOwned),
                             ("Improvement actions progressing?", a.ImprovementActionsProgressing),
                         ], a.PerformanceNotes);
 

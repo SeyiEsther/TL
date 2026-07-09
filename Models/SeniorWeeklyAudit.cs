@@ -18,32 +18,39 @@ public class SeniorWeeklyAudit
     // ── Safety Culture ────────────────────────────────────────────────────────
     public byte? PpeComplianceFull { get; set; }
     public byte? NearMissesReported { get; set; }
-    public byte? SafetyActionLogCurrent { get; set; }
     public string? SafetyNotes { get; set; }
 
-    // ── Quality Governance ────────────────────────────────────────────────────
+    // ── Quality ─────────────────────────────────────────────────────────────────
     public byte? FirstOffRecordsComplete { get; set; }
-    public byte? NcCaptureTrended { get; set; }
+    /// <summary>Non-conformance procedure followed (0–2).</summary>
+    public byte? NcProcedureFollowed { get; set; }
     public byte? QualityGatesMaintained { get; set; }
     public string? QualityNotes { get; set; }
 
-    // ── People & Wellbeing ────────────────────────────────────────────────────
-    public byte? AbsenceManagedProactively { get; set; }
-    public byte? TlsCoachingTeams { get; set; }
+    // ── People & Wellbeing ──────────────────────────────────────────────────────
+    public byte? LeaderVisibilityCheck { get; set; }
+    public string? LastTeamMeeting { get; set; }
     public byte? TrainingMatrixCurrent { get; set; }
     public string? PeopleNotes { get; set; }
 
     // ── Standards & Housekeeping ──────────────────────────────────────────────
     public byte? SixSStandardMaintained { get; set; }
     public byte? TpmScheduleFollowed { get; set; }
-    public byte? StandardWorkVisible { get; set; }
+    public byte? StandardWorkMaintained { get; set; }
     public string? StandardsNotes { get; set; }
 
     // ── Performance ───────────────────────────────────────────────────────────
     public byte? TrackingAgainstWeeklyPlan { get; set; }
-    public byte? MetricsVisibleAndOwned { get; set; }
     public byte? ImprovementActionsProgressing { get; set; }
     public string? PerformanceNotes { get; set; }
+
+    // Legacy columns — retained for older audit records
+    public byte? SafetyActionLogCurrent { get; set; }
+    public byte? NcCaptureTrended { get; set; }
+    public byte? AbsenceManagedProactively { get; set; }
+    public byte? TlsCoachingTeams { get; set; }
+    public byte? StandardWorkVisible { get; set; }
+    public byte? MetricsVisibleAndOwned { get; set; }
 
     // ── Findings & sign-off ───────────────────────────────────────────────────
     public string? GoodPracticeObserved { get; set; }

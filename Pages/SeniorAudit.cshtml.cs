@@ -16,26 +16,24 @@ public class SeniorAuditInputModel
 
     public byte? PpeComplianceFull { get; set; }
     public byte? NearMissesReported { get; set; }
-    public byte? SafetyActionLogCurrent { get; set; }
     public string? SafetyNotes { get; set; }
 
     public byte? FirstOffRecordsComplete { get; set; }
-    public byte? NcCaptureTrended { get; set; }
+    public byte? NcProcedureFollowed { get; set; }
     public byte? QualityGatesMaintained { get; set; }
     public string? QualityNotes { get; set; }
 
-    public byte? AbsenceManagedProactively { get; set; }
-    public byte? TlsCoachingTeams { get; set; }
+    public byte? LeaderVisibilityCheck { get; set; }
+    public string? LastTeamMeeting { get; set; }
     public byte? TrainingMatrixCurrent { get; set; }
     public string? PeopleNotes { get; set; }
 
     public byte? SixSStandardMaintained { get; set; }
     public byte? TpmScheduleFollowed { get; set; }
-    public byte? StandardWorkVisible { get; set; }
+    public byte? StandardWorkMaintained { get; set; }
     public string? StandardsNotes { get; set; }
 
     public byte? TrackingAgainstWeeklyPlan { get; set; }
-    public byte? MetricsVisibleAndOwned { get; set; }
     public byte? ImprovementActionsProgressing { get; set; }
     public string? PerformanceNotes { get; set; }
 
@@ -99,6 +97,12 @@ public class SeniorAuditModel : PageModel
             return Page();
         }
 
+        if (string.IsNullOrWhiteSpace(A.LastTeamMeeting))
+        {
+            ModelState.AddModelError("", "Please record when the last team meeting was held.");
+            return Page();
+        }
+
         var user = _users.GetCurrentUser();
 
         if (editingId.HasValue)
@@ -133,11 +137,11 @@ public class SeniorAuditModel : PageModel
         new byte?[]
         {
             a.HandoverStandardsFollowed, a.VisualManagementCurrent, a.EscalationPathsUsed,
-            a.PpeComplianceFull, a.NearMissesReported, a.SafetyActionLogCurrent,
-            a.FirstOffRecordsComplete, a.NcCaptureTrended, a.QualityGatesMaintained,
-            a.AbsenceManagedProactively, a.TlsCoachingTeams, a.TrainingMatrixCurrent,
-            a.SixSStandardMaintained, a.TpmScheduleFollowed, a.StandardWorkVisible,
-            a.TrackingAgainstWeeklyPlan, a.MetricsVisibleAndOwned, a.ImprovementActionsProgressing,
+            a.PpeComplianceFull, a.NearMissesReported,
+            a.FirstOffRecordsComplete, a.NcProcedureFollowed, a.QualityGatesMaintained,
+            a.LeaderVisibilityCheck, a.TrainingMatrixCurrent,
+            a.SixSStandardMaintained, a.TpmScheduleFollowed, a.StandardWorkMaintained,
+            a.TrackingAgainstWeeklyPlan, a.ImprovementActionsProgressing,
         }.Count(v => v is null or > 2);
 
     private static SeniorAuditInputModel MapToInput(SeniorWeeklyAudit s) => new()
@@ -148,22 +152,20 @@ public class SeniorAuditModel : PageModel
         GovernanceNotes = s.GovernanceNotes,
         PpeComplianceFull = s.PpeComplianceFull,
         NearMissesReported = s.NearMissesReported,
-        SafetyActionLogCurrent = s.SafetyActionLogCurrent,
         SafetyNotes = s.SafetyNotes,
         FirstOffRecordsComplete = s.FirstOffRecordsComplete,
-        NcCaptureTrended = s.NcCaptureTrended,
+        NcProcedureFollowed = s.NcProcedureFollowed ?? s.NcCaptureTrended,
         QualityGatesMaintained = s.QualityGatesMaintained,
         QualityNotes = s.QualityNotes,
-        AbsenceManagedProactively = s.AbsenceManagedProactively,
-        TlsCoachingTeams = s.TlsCoachingTeams,
+        LeaderVisibilityCheck = s.LeaderVisibilityCheck ?? s.AbsenceManagedProactively,
+        LastTeamMeeting = s.LastTeamMeeting,
         TrainingMatrixCurrent = s.TrainingMatrixCurrent,
         PeopleNotes = s.PeopleNotes,
         SixSStandardMaintained = s.SixSStandardMaintained,
         TpmScheduleFollowed = s.TpmScheduleFollowed,
-        StandardWorkVisible = s.StandardWorkVisible,
+        StandardWorkMaintained = s.StandardWorkMaintained ?? s.StandardWorkVisible,
         StandardsNotes = s.StandardsNotes,
         TrackingAgainstWeeklyPlan = s.TrackingAgainstWeeklyPlan,
-        MetricsVisibleAndOwned = s.MetricsVisibleAndOwned,
         ImprovementActionsProgressing = s.ImprovementActionsProgressing,
         PerformanceNotes = s.PerformanceNotes,
         GoodPracticeObserved = s.GoodPracticeObserved,
@@ -180,22 +182,20 @@ public class SeniorAuditModel : PageModel
         s.GovernanceNotes = a.GovernanceNotes;
         s.PpeComplianceFull = a.PpeComplianceFull;
         s.NearMissesReported = a.NearMissesReported;
-        s.SafetyActionLogCurrent = a.SafetyActionLogCurrent;
         s.SafetyNotes = a.SafetyNotes;
         s.FirstOffRecordsComplete = a.FirstOffRecordsComplete;
-        s.NcCaptureTrended = a.NcCaptureTrended;
+        s.NcProcedureFollowed = a.NcProcedureFollowed;
         s.QualityGatesMaintained = a.QualityGatesMaintained;
         s.QualityNotes = a.QualityNotes;
-        s.AbsenceManagedProactively = a.AbsenceManagedProactively;
-        s.TlsCoachingTeams = a.TlsCoachingTeams;
+        s.LeaderVisibilityCheck = a.LeaderVisibilityCheck;
+        s.LastTeamMeeting = a.LastTeamMeeting?.Trim();
         s.TrainingMatrixCurrent = a.TrainingMatrixCurrent;
         s.PeopleNotes = a.PeopleNotes;
         s.SixSStandardMaintained = a.SixSStandardMaintained;
         s.TpmScheduleFollowed = a.TpmScheduleFollowed;
-        s.StandardWorkVisible = a.StandardWorkVisible;
+        s.StandardWorkMaintained = a.StandardWorkMaintained;
         s.StandardsNotes = a.StandardsNotes;
         s.TrackingAgainstWeeklyPlan = a.TrackingAgainstWeeklyPlan;
-        s.MetricsVisibleAndOwned = a.MetricsVisibleAndOwned;
         s.ImprovementActionsProgressing = a.ImprovementActionsProgressing;
         s.PerformanceNotes = a.PerformanceNotes;
         s.GoodPracticeObserved = a.GoodPracticeObserved;

@@ -66,9 +66,9 @@
                 @{ await RenderScore("Shift handover standards being followed?",
                     "A.HandoverStandardsFollowed", Model.A.HandoverStandardsFollowed,
                     "Outgoing TL has briefed incoming TL; checklist completed and signed"); }
-                @{ await RenderScore("Visual management board up to date?",
+                @{ await RenderScore("RPS boards up to date?",
                     "A.VisualManagementCurrent", Model.A.VisualManagementCurrent,
-                    "KPIs, targets and action boards are current and owned"); }
+                    "RPS boards are current, owned and reflect the area's priorities"); }
                 @{ await RenderScore("Escalation paths being used correctly?",
                     "A.EscalationPathsUsed", Model.A.EscalationPathsUsed,
                     "Issues are being surfaced through the right channels at the right level"); }
@@ -86,9 +86,6 @@
                 @{ await RenderScore("Near-misses being reported and acted on?",
                     "A.NearMissesReported", Model.A.NearMissesReported,
                     "Near-miss log is current; corrective actions have owners and due dates"); }
-                @{ await RenderScore("Safety action log up to date?",
-                    "A.SafetyActionLogCurrent", Model.A.SafetyActionLogCurrent,
-                    "All open safety actions have been reviewed and progressed this week"); }
                 @{ await RenderNote("Notes &amp; observations", "A.SafetyNotes", Model.A.SafetyNotes); }
             </div>
         </div>
@@ -100,9 +97,9 @@
                 @{ await RenderScore("First-off inspection records complete?",
                     "A.FirstOffRecordsComplete", Model.A.FirstOffRecordsComplete,
                     "First-off checks have been signed off and filed for all jobs run this week"); }
-                @{ await RenderScore("Non-conformance being captured and trended?",
-                    "A.NcCaptureTrended", Model.A.NcCaptureTrended,
-                    "NC data is recorded, visible, and reviewed for repeat patterns"); }
+                @{ await RenderScore("Non-conformance procedure followed?",
+                    "A.NcProcedureFollowed", Model.A.NcProcedureFollowed,
+                    "NC process is being followed — capture, containment, and escalation as required"); }
                 @{ await RenderScore("Quality gates maintained across the process?",
                     "A.QualityGatesMaintained", Model.A.QualityGatesMaintained,
                     "Inspection points and hold points are staffed and not being bypassed"); }
@@ -114,12 +111,12 @@
         <div class="audit-card" id="sec-people">
             <div class="audit-head morale"><div class="audit-acc"></div><span>People &amp; Wellbeing</span></div>
             <div class="audit-body">
-                @{ await RenderScore("Absence and attendance being managed proactively?",
-                    "A.AbsenceManagedProactively", Model.A.AbsenceManagedProactively,
-                    "Return-to-work interviews completed; patterns identified and escalated where needed"); }
-                @{ await RenderScore("TLs actively coaching and developing their teams?",
-                    "A.TlsCoachingTeams", Model.A.TlsCoachingTeams,
-                    "Observed TL interaction — coaching, not just directing"); }
+                @{ await RenderScore("Operator check — visibility of leaders?",
+                    "A.LeaderVisibilityCheck", Model.A.LeaderVisibilityCheck,
+                    "How often do operators see their leadership team on the floor?"); }
+                @{ await RenderText("When was the last team meeting?",
+                    "A.LastTeamMeeting", Model.A.LastTeamMeeting,
+                    "Date or how long ago — e.g. &quot;Tue 1 Jul&quot; or &quot;2 weeks ago&quot;"); }
                 @{ await RenderScore("Training matrix current and actioned?",
                     "A.TrainingMatrixCurrent", Model.A.TrainingMatrixCurrent,
                     "Training plans are up to date, gaps identified and in progress"); }
@@ -137,9 +134,9 @@
                 @{ await RenderScore("TPM schedule being followed?",
                     "A.TpmScheduleFollowed", Model.A.TpmScheduleFollowed,
                     "All planned preventive maintenance tasks completed on schedule this week"); }
-                @{ await RenderScore("Standard work documents visible and in use?",
-                    "A.StandardWorkVisible", Model.A.StandardWorkVisible,
-                    "Work instructions are at the point of use and operators are following them"); }
+                @{ await RenderScore("Standard work maintained across the area?",
+                    "A.StandardWorkMaintained", Model.A.StandardWorkMaintained,
+                    "Standard work is defined, followed and consistent across the area"); }
                 @{ await RenderNote("Notes &amp; observations", "A.StandardsNotes", Model.A.StandardsNotes); }
             </div>
         </div>
@@ -151,9 +148,6 @@
                 @{ await RenderScore("Area tracking against weekly production plan?",
                     "A.TrackingAgainstWeeklyPlan", Model.A.TrackingAgainstWeeklyPlan,
                     "Output is on or ahead of the weekly plan; any shortfall has a recovery plan"); }
-                @{ await RenderScore("Performance metrics visible and owned?",
-                    "A.MetricsVisibleAndOwned", Model.A.MetricsVisibleAndOwned,
-                    "OEE or equivalent KPIs are displayed, current, and each has a named owner"); }
                 @{ await RenderScore("Improvement actions progressing?",
                     "A.ImprovementActionsProgressing", Model.A.ImprovementActionsProgressing,
                     "CI actions from last audit have moved forward; no stalled items without reason"); }
@@ -232,6 +226,22 @@
                     <label for="@id" title="@opt.Item3">@opt.Item2</label>
                 }
             </div>
+        </div>
+        await Task.CompletedTask;
+    }
+
+    async Task RenderText(string label, string field, string? val, string? hint = null)
+    {
+        <div class="audit-q">
+            <div class="audit-q-label">
+                <span>@Html.Raw(label)</span>
+                @if (hint != null)
+                {
+                    <span class="q-hint">@Html.Raw(hint)</span>
+                }
+            </div>
+            <input type="text" name="@field" value="@val" class="audit-ta" style="min-height:auto;padding:10px 12px"
+                   placeholder="Enter date or timeframe…" autocomplete="off">
         </div>
         await Task.CompletedTask;
     }

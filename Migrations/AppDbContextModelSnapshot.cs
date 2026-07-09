@@ -317,8 +317,11 @@ namespace TL.Migrations
                     b.Property<string>("SafetyNotes").HasColumnType("nvarchar(max)");
                     b.Property<byte?>("FirstOffRecordsComplete").HasColumnType("tinyint");
                     b.Property<byte?>("NcCaptureTrended").HasColumnType("tinyint");
+                    b.Property<byte?>("NcProcedureFollowed").HasColumnType("tinyint");
                     b.Property<byte?>("QualityGatesMaintained").HasColumnType("tinyint");
                     b.Property<string>("QualityNotes").HasColumnType("nvarchar(max)");
+                    b.Property<byte?>("LeaderVisibilityCheck").HasColumnType("tinyint");
+                    b.Property<string>("LastTeamMeeting").HasColumnType("nvarchar(max)");
                     b.Property<byte?>("AbsenceManagedProactively").HasColumnType("tinyint");
                     b.Property<byte?>("TlsCoachingTeams").HasColumnType("tinyint");
                     b.Property<byte?>("TrainingMatrixCurrent").HasColumnType("tinyint");
@@ -326,6 +329,7 @@ namespace TL.Migrations
                     b.Property<byte?>("SixSStandardMaintained").HasColumnType("tinyint");
                     b.Property<byte?>("TpmScheduleFollowed").HasColumnType("tinyint");
                     b.Property<byte?>("StandardWorkVisible").HasColumnType("tinyint");
+                    b.Property<byte?>("StandardWorkMaintained").HasColumnType("tinyint");
                     b.Property<string>("StandardsNotes").HasColumnType("nvarchar(max)");
                     b.Property<byte?>("TrackingAgainstWeeklyPlan").HasColumnType("tinyint");
                     b.Property<byte?>("MetricsVisibleAndOwned").HasColumnType("tinyint");
