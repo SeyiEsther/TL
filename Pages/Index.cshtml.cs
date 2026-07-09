@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using TL.Data;
 using TL.Models;
 using TL.Services;
 
@@ -9,13 +7,11 @@ namespace TL.Pages;
 
 public class IndexModel : PageModel
 {
-    private readonly AppDbContext _db;
     private readonly UserService _users;
     private readonly ShiftResumeService _resume;
 
-    public IndexModel(AppDbContext db, UserService users, ShiftResumeService resume)
+    public IndexModel(UserService users, ShiftResumeService resume)
     {
-        _db = db;
         _users = users;
         _resume = resume;
     }
@@ -26,16 +22,12 @@ public class IndexModel : PageModel
     public string? TeamLeader { get; set; }
     public string? Area { get; set; }
     public string? Error { get; set; }
-    public List<ShiftSubmission> InProgressShifts { get; set; } = [];
 
-    public async Task OnGetAsync()
+    public void OnGet()
     {
         var user = _users.GetCurrentUser();
         UserName = user.DisplayName;
         TeamLeader = user.DisplayName;
-
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        InProgressShifts = await _resume.ListInProgressAsync(today);
     }
 
     public async Task<IActionResult> OnPostAsync(string shiftDate, string shift, string teamLeader, string area)
@@ -50,9 +42,7 @@ public class IndexModel : PageModel
             TeamLeader = teamLeader;
             Area = area;
             Error = "Please fill in all fields.";
-            var u = _users.GetCurrentUser();
-            UserName = u.DisplayName;
-            InProgressShifts = await _resume.ListInProgressAsync(DateOnly.FromDateTime(DateTime.Today));
+            UserName = _users.GetCurrentUser().DisplayName;
             return Page();
         }
 

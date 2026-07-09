@@ -170,27 +170,6 @@ html.is-navigating .app-main {
 .welcome-btn.primary:active { opacity: 0.9; }
 .welcome-btn.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); font-size: 13px; padding: 11px; }
 .welcome-btn.secondary:active { opacity: 0.88; }
-
-.in-progress-panel {
-    background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
-    padding: 14px 16px; margin-bottom: 20px;
-}
-.in-progress-title { font-size: 13px; font-weight: 700; color: #0369a1; margin-bottom: 4px; }
-.in-progress-hint { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
-.in-progress-list { display: flex; flex-direction: column; gap: 8px; }
-.in-progress-item {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    padding: 10px 12px; background: var(--white); border: 1px solid var(--border);
-    border-radius: 8px; text-decoration: none; color: inherit; transition: border-color .15s, box-shadow .15s;
-}
-.in-progress-item:hover { border-color: #38bdf8; box-shadow: 0 2px 8px rgba(56,189,248,.15); }
-.in-progress-area { font-weight: 700; font-size: 13px; color: var(--ink); }
-.in-progress-meta { font-size: 12px; color: var(--muted); flex: 1; }
-.in-progress-badge {
-    font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
-    background: #dcfce7; color: #166534;
-}
-.in-progress-badge.muted { background: #f3f4f6; color: var(--muted); }
 .err { font-size: 11px; color: var(--red); margin: 6px 0; }
 
 /* SUCCESS */

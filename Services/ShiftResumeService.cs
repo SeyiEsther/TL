@@ -68,19 +68,4 @@ public class ShiftResumeService
         return candidates.FirstOrDefault(s =>
             !(s.ShiftDate == startingDate && s.Shift == startingShift && IsInProgress(s)));
     }
-
-    public async Task<List<ShiftSubmission>> ListInProgressAsync(DateOnly? onDate = null)
-    {
-        var q = _db.ShiftSubmissions
-            .Include(s => s.Hours)
-            .ExcludeAudits()
-            .Where(s => string.IsNullOrEmpty(s.OutgoingTLSignature));
-
-        if (onDate.HasValue)
-            q = q.Where(s => s.ShiftDate == onDate.Value);
-
-        return await q
-            .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .ToListAsync();
-    }
 }
