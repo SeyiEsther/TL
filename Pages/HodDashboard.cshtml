@@ -130,7 +130,7 @@
         <div style="overflow-x:auto">
             <table class="dash-table" style="min-width:640px">
                 <thead>
-                    <tr><th>Day</th><th>Date</th><th>Suggested</th><th>Done</th><th>Areas audited</th></tr>
+                    <tr><th>Day</th><th>Date</th><th>Suggested</th><th>Done</th><th>Completed audits</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var row in Model.WeekRotation)
@@ -345,12 +345,12 @@
     {
         <div class="card" style="margin-bottom:14px">
             <div class="card-head">
-                <span class="card-title">Areas needing attention</span>
-                <span class="card-sub">lowest audit scores in period</span>
+                <span class="card-title">Departments needing attention</span>
+                <span class="card-sub">lowest walkaround audit scores in period</span>
             </div>
             <table class="dash-table">
                 <thead>
-                    <tr><th>Area</th><th>Audits</th><th>Avg score</th><th>Poor / needs improvement</th></tr>
+                    <tr><th>Department</th><th>Audits</th><th>Avg score</th><th>Poor / needs improvement</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var a in Model.AreaAuditScores)
@@ -387,8 +387,8 @@
                         <tr>
                             <th>Date</th>
                             <th>Type</th>
-                            <th>Area</th>
-                            <th>Department</th>
+                            <th>Audit (dept)</th>
+                            <th>TL check (zone)</th>
                             <th>Auditor</th>
                             <th>Score</th>
                             <th>Rating</th>
@@ -403,15 +403,15 @@
                             <tr>
                                 <td>@a.AuditDate.ToString("dd/MM/yyyy")</td>
                                 <td>@HodAuditTypes.LabelFor(a.AuditType)</td>
-                                <td style="font-weight:600">@a.Area</td>
-                                <td>@a.Department</td>
+                                <td style="font-weight:600">@a.Department</td>
+                                <td>@a.ResolveEffectivenessArea()</td>
                                 <td>@a.AuditorName</td>
                                 <td><span style="font-weight:700;color:@HodAuditScoring.BandColor(a.TotalScore, a.MaxScore)">@a.TotalScore / @a.MaxScore</span></td>
                                 <td><span class="rag @HodDashboardModel.BandClass(a)">@band</span></td>
                                 <td style="font-size:11px;color:var(--muted)">@a.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
                                 <td style="white-space:nowrap">
                                     <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
-                                    <a href="/api/audits/@a.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.Area.Replace(" ", "_")).pdf">PDF</a>
+                                    <a href="/api/audits/@a.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.ResolveEffectivenessArea().Replace(" ", "_")).pdf">PDF</a>
                                 </td>
                             </tr>
                         }

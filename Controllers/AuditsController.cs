@@ -32,7 +32,7 @@ public class AuditsController : ControllerBase
                 var effectiveness = HodAuditSerializer.ParseEffectiveness(hod.EffectivenessJson);
                 var bytes = _pdf.GenerateHodDaily(hod, answers, effectiveness);
                 var type = HodAuditTypes.LabelFor(hod.AuditType).Replace(" ", "_");
-                var filename = $"HoD_{type}_{hod.AuditDate:yyyyMMdd}_{hod.Area.Replace(" ", "_")}.pdf";
+                var filename = $"HoD_{type}_{hod.AuditDate:yyyyMMdd}_{hod.ResolveEffectivenessArea().Replace(" ", "_")}.pdf";
                 return PdfResponse.File(this, bytes, filename);
             }
             catch (Exception)

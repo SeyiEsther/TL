@@ -84,13 +84,14 @@ public class HistoryModel : PageModel
         var newQ = _db.HodDailyAudits.AsQueryable();
         if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f)) newQ = newQ.Where(a => a.AuditDate >= f);
         if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t)) newQ = newQ.Where(a => a.AuditDate <= t);
-        if (!string.IsNullOrEmpty(AreaFilter)) newQ = newQ.Where(a => a.Area == AreaFilter);
+        if (!string.IsNullOrEmpty(AreaFilter))
+            newQ = newQ.Where(a => a.EffectivenessArea == AreaFilter || a.Area == AreaFilter);
         if (!string.IsNullOrEmpty(PersonFilter)) newQ = newQ.Where(a => a.AuditorName.Contains(PersonFilter));
 
         var newAudits = await newQ.OrderByDescending(a => a.AuditDate).ToListAsync();
         rows.AddRange(newAudits.Select(a => new HistoryRow(
             $"HoD — {HodAuditTypes.LabelFor(a.AuditType)}", "hod", a.Id, a.AuditDate,
-            $"{a.TotalScore}/{a.MaxScore}", a.Area, a.AuditorName,
+            a.Department, a.ResolveEffectivenessArea(), a.AuditorName,
             null, null, null, HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore),
             !string.IsNullOrEmpty(a.ActionsRaised), false, a.SubmittedAt,
             a.MaxScore > 0 ? a.TotalScore * 100 / a.MaxScore : null,

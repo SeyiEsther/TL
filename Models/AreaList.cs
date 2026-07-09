@@ -67,6 +67,16 @@ public static class AreaList
     public static IReadOnlyList<string> Departments =>
         All.Select(a => a.Group).Distinct().ToList();
 
+    public static IReadOnlyList<string> GetLabelsForDepartment(string? department) =>
+        string.IsNullOrWhiteSpace(department)
+            ? []
+            : All.Where(a => a.Group == department).Select(a => a.Label).ToList();
+
+    public static bool IsInDepartment(string? label, string? department) =>
+        !string.IsNullOrWhiteSpace(label)
+        && !string.IsNullOrWhiteSpace(department)
+        && GetDepartment(label) == department;
+
     public static List<string> GetMachineList(string? label)
     {
         var machines = GetMachines(label);

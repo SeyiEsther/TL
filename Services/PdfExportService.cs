@@ -266,10 +266,10 @@ namespace TL.Services
                                 t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); });
                                 t.Cell().Element(LabelCell).Text("Date");
                                 t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
-                                t.Cell().Element(LabelCell).Text("Department");
+                                t.Cell().Element(LabelCell).Text("Audit scope");
                                 t.Cell().Element(ValueCell).Text(a.Department);
-                                t.Cell().Element(LabelCell).Text("Area");
-                                t.Cell().Element(ValueCell).Text(a.Area);
+                                t.Cell().Element(LabelCell).Text("TL effectiveness zone");
+                                t.Cell().Element(ValueCell).Text(a.ResolveEffectivenessArea());
                                 t.Cell().Element(LabelCell).Text("Auditor");
                                 t.Cell().Element(ValueCell).Text(a.AuditorName);
                                 t.Cell().Element(LabelCell).Text("Score");

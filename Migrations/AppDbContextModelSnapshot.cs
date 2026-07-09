@@ -352,6 +352,7 @@ namespace TL.Migrations
                     b.Property<string>("AuditorName").IsRequired().HasColumnType("nvarchar(max)");
                     b.Property<string>("AuditorSignature").HasColumnType("nvarchar(max)");
                     b.Property<string>("Department").IsRequired().HasColumnType("nvarchar(max)");
+                    b.Property<string>("EffectivenessArea").IsRequired().HasColumnType("nvarchar(max)");
                     b.Property<string>("EffectivenessJson").HasColumnType("nvarchar(max)");
                     b.Property<string>("GoodPractice").HasColumnType("nvarchar(max)");
                     b.Property<string>("LastEditedBy").HasColumnType("nvarchar(max)");

@@ -13,7 +13,8 @@
         </div>
         <div class="welcome-time">Daily effectiveness audit &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
         <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;line-height:1.5">
-            One audit type per day. Verify what TLs claimed on their shift forms.
+            Walkaround audit covers the <strong>whole department</strong>.
+            The effectiveness check verifies TL shift forms for <strong>one zone/line</strong>.
             <br>Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
         </div>
 
@@ -44,7 +45,7 @@
 
             <div class="sf-row" style="margin-bottom:14px">
                 <div class="fl">
-                    <label>Department <span style="color:var(--red)">*</span></label>
+                    <label>Department to audit <span style="color:var(--red)">*</span></label>
                     <select name="department" id="deptSelect" required>
                         <option value="">Select department…</option>
                         @foreach (var dept in AreaList.Departments)
@@ -52,11 +53,12 @@
                             <option value="@dept">@dept</option>
                         }
                     </select>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Walkaround covers the whole department (e.g. all of Assembly)</div>
                 </div>
                 <div class="fl">
-                    <label>Area to audit <span style="color:var(--red)">*</span></label>
-                    <select name="area" id="areaSelect" required>
-                        <option value="">Select area…</option>
+                    <label>Zone for TL effectiveness check <span style="color:var(--red)">*</span></label>
+                    <select name="effectivenessArea" id="areaSelect" required>
+                        <option value="">Select zone…</option>
                         @foreach (var grp in AreaList.All.GroupBy(a => a.Group))
                         {
                             <optgroup label="@grp.Key" data-dept="@grp.Key">
@@ -68,6 +70,7 @@
                             </optgroup>
                         }
                     </select>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Checks shift forms for this specific line/zone only</div>
                 </div>
             </div>
 
@@ -137,7 +140,7 @@
             return;
         }
         var deptVal = dept ? dept.value : '';
-        var url = '?handler=Compliance&area=' + encodeURIComponent(area.value)
+        var url = '?handler=Compliance&effectivenessArea=' + encodeURIComponent(area.value)
             + '&date=' + encodeURIComponent(dateInput.value)
             + (deptVal ? '&department=' + encodeURIComponent(deptVal) : '');
         fetch(url)
@@ -150,8 +153,8 @@
                 if (data.totalShifts === 0) {
                     summary.style.background = '#fef2f2';
                     summary.style.borderColor = '#fecaca';
-                    summary.innerHTML = '<strong>No shift forms submitted</strong> for this area during the audit week. '
-                        + 'TLs must complete and sign off shift forms before the audit can verify effectiveness.';
+                    summary.innerHTML = '<strong>No shift forms submitted</strong> for this zone during the audit week. '
+                        + 'TLs must complete and sign off shift forms before the effectiveness check can verify claims.';
                 } else if (problems > 0) {
                     summary.style.background = '#fef2f2';
                     summary.style.borderColor = '#fecaca';
@@ -162,7 +165,7 @@
                 } else {
                     summary.style.background = '#f0fdf4';
                     summary.style.borderColor = '#bbf7d0';
-                    summary.innerHTML = '<strong>All ' + data.totalShifts + ' shift form(s) closed correctly</strong> for this area this week.';
+                    summary.innerHTML = '<strong>All ' + data.totalShifts + ' shift form(s) closed correctly</strong> for this zone this week.';
                 }
 
                 body.innerHTML = '';

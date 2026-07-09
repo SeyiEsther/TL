@@ -76,7 +76,8 @@ public class HodDashboardModel : PageModel
             var q = _db.HodDailyAudits.AsQueryable();
             if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) q = q.Where(a => a.AuditDate >= f);
             if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) q = q.Where(a => a.AuditDate <= t);
-            if (!string.IsNullOrEmpty(area)) q = q.Where(a => a.Area == area);
+            if (!string.IsNullOrEmpty(area))
+                q = q.Where(a => a.EffectivenessArea == area || a.Area == area);
             if (!string.IsNullOrEmpty(department)) q = q.Where(a => a.Department == department);
 
             Audits = await q.OrderByDescending(a => a.AuditDate).ThenByDescending(a => a.SubmittedAt).ToListAsync();
@@ -147,7 +148,7 @@ public class HodDashboardModel : PageModel
                 HodAuditTypes.LabelFor(suggested),
                 suggested,
                 done.Count,
-                done.Select(a => $"{a.Area} ({HodAuditTypes.LabelFor(a.AuditType)})").ToList()));
+                done.Select(a => $"{a.Department} / {a.ResolveEffectivenessArea()} ({HodAuditTypes.LabelFor(a.AuditType)})").ToList()));
         }
     }
 
@@ -325,7 +326,7 @@ public class HodDashboardModel : PageModel
     void BuildAreaAuditScores()
     {
         AreaAuditScores = Audits
-            .GroupBy(a => a.Area)
+            .GroupBy(a => a.Department)
             .Select(g =>
             {
                 var scores = g.Where(a => a.MaxScore > 0).Select(a => a.TotalScore * 100 / a.MaxScore).ToList();

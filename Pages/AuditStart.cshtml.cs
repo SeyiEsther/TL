@@ -31,13 +31,13 @@ public class AuditStartModel : PageModel
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
     }
 
-    public async Task<IActionResult> OnGetComplianceAsync(string area, string date, string? department)
+    public async Task<IActionResult> OnGetComplianceAsync(string effectivenessArea, string date, string? department)
     {
-        if (string.IsNullOrWhiteSpace(area) || !DateOnly.TryParse(date, out var auditDate))
-            return new JsonResult(new { error = "Select an area and audit date." });
+        if (string.IsNullOrWhiteSpace(effectivenessArea) || !DateOnly.TryParse(date, out var auditDate))
+            return new JsonResult(new { error = "Select a zone and audit date." });
 
-        var dept = department ?? AreaList.GetDepartment(area) ?? "";
-        var summary = await _effectiveness.GetComplianceSummaryAsync(dept, area, auditDate);
+        var dept = department ?? AreaList.GetDepartment(effectivenessArea) ?? "";
+        var summary = await _effectiveness.GetComplianceSummaryAsync(dept, effectivenessArea, auditDate);
 
         return new JsonResult(new
         {
@@ -66,18 +66,28 @@ public class AuditStartModel : PageModel
         });
     }
 
-    public IActionResult OnPost(string auditDate, string auditorName, string department, string area, string auditType)
+    public IActionResult OnPost(
+        string auditDate, string auditorName, string department, string effectivenessArea, string auditType)
     {
-        if (string.IsNullOrWhiteSpace(auditorName) || string.IsNullOrWhiteSpace(department) || string.IsNullOrWhiteSpace(area))
+        AuditorName = auditorName ?? "";
+        AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
+        if (DateOnly.TryParse(AuditDate, out var d))
         {
-            AuditorName = auditorName ?? "";
-            AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
-            if (DateOnly.TryParse(AuditDate, out var d))
-            {
-                SuggestedType = HodAuditTypes.SuggestedForDate(d);
-                SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
-            }
+            SuggestedType = HodAuditTypes.SuggestedForDate(d);
+            SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
+        }
+
+        if (string.IsNullOrWhiteSpace(auditorName)
+            || string.IsNullOrWhiteSpace(department)
+            || string.IsNullOrWhiteSpace(effectivenessArea))
+        {
             Error = "Please fill in all required fields.";
+            return Page();
+        }
+
+        if (!AreaList.IsInDepartment(effectivenessArea, department))
+        {
+            Error = "The effectiveness zone must belong to the selected department.";
             return Page();
         }
 
@@ -85,6 +95,13 @@ public class AuditStartModel : PageModel
             ? (DateOnly.TryParse(auditDate, out var ad) ? HodAuditTypes.SuggestedForDate(ad) : HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek))
             : auditType;
 
-        return RedirectToPage("/Audit", new { date = auditDate, auditor = auditorName, department, area, type });
+        return RedirectToPage("/Audit", new
+        {
+            date = auditDate,
+            auditor = auditorName,
+            department,
+            effectivenessArea,
+            type,
+        });
     }
 }

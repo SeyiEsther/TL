@@ -25,11 +25,11 @@ public class HodEffectivenessService
     }
 
     public async Task<HodShiftComplianceSummary> GetComplianceSummaryAsync(
-        string department, string area, DateOnly auditDate, string? auditType = null)
+        string department, string effectivenessArea, DateOnly auditDate, string? auditType = null)
     {
         var type = auditType ?? HodAuditTypes.SuggestedForDate(auditDate);
         var (weekStart, weekEnd) = WeekRange(auditDate);
-        var findings = await GetFindingsAsync(department, area, auditDate, type);
+        var findings = await GetFindingsAsync(department, effectivenessArea, auditDate, type);
         var shifts = findings.Where(f => f.ShiftSubmissionId.HasValue).ToList();
 
         return new HodShiftComplianceSummary(
@@ -45,7 +45,7 @@ public class HodEffectivenessService
     }
 
     public async Task<List<HodEffectivenessFinding>> GetFindingsAsync(
-        string department, string area, DateOnly auditDate, string auditType)
+        string department, string effectivenessArea, DateOnly auditDate, string auditType)
     {
         var (weekStart, weekEnd) = WeekRange(auditDate);
         var deptAreas = AreaList.All
@@ -58,8 +58,8 @@ public class HodEffectivenessService
             .ExcludeAudits()
             .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd);
 
-        if (!string.IsNullOrEmpty(area))
-            q = q.Where(s => s.Area == area);
+        if (!string.IsNullOrEmpty(effectivenessArea))
+            q = q.Where(s => s.Area == effectivenessArea);
         else if (!string.IsNullOrEmpty(department))
             q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));
 
@@ -71,7 +71,7 @@ public class HodEffectivenessService
             [
                 new HodEffectivenessFinding
                 {
-                    Area = area,
+                    Area = effectivenessArea,
                     CloseStatus = "No forms",
                     Issues = ["No TL shift forms submitted for this area/week"],
                     IsAuditFinding = true,

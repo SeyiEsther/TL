@@ -11,6 +11,9 @@ public class HodDailyAudit
     public string AuditorName { get; set; } = "";
     public DateOnly AuditDate { get; set; }
     public string Department { get; set; } = "";
+    /// <summary>Zone/line for TL form effectiveness check (AreaList.Label).</summary>
+    public string EffectivenessArea { get; set; } = "";
+    /// <summary>Legacy mirror of EffectivenessArea for older queries/exports.</summary>
     public string Area { get; set; } = "";
     public string AuditType { get; set; } = "";
 
@@ -26,6 +29,9 @@ public class HodDailyAudit
     public string? GoodPractice { get; set; }
     public string? AuditorSignature { get; set; }
     public string? TeamLeaderSignature { get; set; }
+
+    public string ResolveEffectivenessArea() =>
+        !string.IsNullOrWhiteSpace(EffectivenessArea) ? EffectivenessArea : Area;
 }
 
 public class HodAuditAnswer

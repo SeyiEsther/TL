@@ -594,7 +594,7 @@ a.pdf-loading { opacity: .55; pointer-events: none; }
 .audit-yn label:last-child { border-right: none; }
 .ayn-y:checked + label { background: var(--green-bg); color: var(--green); }
 .shift-once-body .ayn-y:checked + label,
-.shift-once-body .ayn-n:checked + label { background: var(--surface); color: var(--ink); }
+.shift-once-body .ayn-n:checked + label { background: #c5cad1; color: var(--ink); }
 .score-3 label { min-width: 52px; }
 .score-3 input[value="0"]:checked + label { background: #fee2e2; color: #991b1b; }
 .score-3 input[value="1"]:checked + label { background: #fef3c7; color: #b45309; }

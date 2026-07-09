@@ -23,7 +23,7 @@ public class AuditModel : PageModel
     public string AuditDate { get; set; } = "";
     public string AuditorName { get; set; } = "";
     public string Department { get; set; } = "";
-    public string Area { get; set; } = "";
+    public string EffectivenessArea { get; set; } = "";
     public string AuditType { get; set; } = "";
     public string AuditTypeLabel { get; set; } = "";
     public int? EditingId { get; set; }
@@ -43,7 +43,7 @@ public class AuditModel : PageModel
     [BindProperty] public string? TeamLeaderSignature { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
-        string? date, string? auditor, string? department, string? area, string? type, int? id)
+        string? date, string? auditor, string? department, string? effectivenessArea, string? area, string? type, int? id)
     {
         if (id.HasValue)
         {
@@ -54,7 +54,7 @@ public class AuditModel : PageModel
             AuditDate = audit.AuditDate.ToString("yyyy-MM-dd");
             AuditorName = audit.AuditorName;
             Department = audit.Department;
-            Area = audit.Area;
+            EffectivenessArea = audit.ResolveEffectivenessArea();
             AuditType = audit.AuditType;
             Actions = audit.ActionsRaised;
             GoodPractice = audit.GoodPractice;
@@ -62,7 +62,8 @@ public class AuditModel : PageModel
             TeamLeaderSignature = audit.TeamLeaderSignature;
             Answers = HodAuditSerializer.ParseAnswers(audit.AnswersJson);
             if (DateOnly.TryParse(AuditDate, out var editDate))
-                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, editDate, AuditType);
+                EffectivenessFindings = await _effectiveness.GetFindingsAsync(
+                    Department, EffectivenessArea, editDate, AuditType);
             else
                 EffectivenessFindings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
             TotalScore = audit.TotalScore;
@@ -72,19 +73,25 @@ public class AuditModel : PageModel
         {
             AuditDate = date ?? DateTime.Today.ToString("yyyy-MM-dd");
             AuditorName = auditor ?? "";
-            Department = department ?? AreaList.GetDepartment(area);
-            Area = area ?? "";
+            Department = department ?? "";
+            EffectivenessArea = effectivenessArea ?? area ?? "";
             AuditType = type ?? HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
 
-            if (string.IsNullOrWhiteSpace(Area) || string.IsNullOrWhiteSpace(AuditorName))
+            if (string.IsNullOrWhiteSpace(Department)
+                || string.IsNullOrWhiteSpace(EffectivenessArea)
+                || string.IsNullOrWhiteSpace(AuditorName))
+                return RedirectToPage("/AuditStart");
+
+            if (!AreaList.IsInDepartment(EffectivenessArea, Department))
                 return RedirectToPage("/AuditStart");
 
             if (DateOnly.TryParse(AuditDate, out var ad))
-                EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
+                EffectivenessFindings = await _effectiveness.GetFindingsAsync(
+                    Department, EffectivenessArea, ad, AuditType);
         }
 
         AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
-        Questions = HodAuditDefinitions.GetQuestions(AuditType, Area);
+        Questions = HodAuditDefinitions.GetQuestions(AuditType, Department);
         MaxScore = Questions.Count;
 
         if (Answers.Count == 0)
@@ -114,19 +121,19 @@ public class AuditModel : PageModel
     }
 
     public async Task<IActionResult> OnPostAsync(
-        string auditDate, string auditorName, string department, string area, string auditType,
+        string auditDate, string auditorName, string department, string effectivenessArea, string auditType,
         int? editingId, string? auditorSignature, string? teamLeaderSignature)
     {
         AuditDate = auditDate;
         AuditorName = auditorName;
         Department = department;
-        Area = area;
+        EffectivenessArea = effectivenessArea;
         AuditType = auditType;
         EditingId = editingId;
         AuditorSignature = auditorSignature;
         TeamLeaderSignature = teamLeaderSignature;
         AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
-        Questions = HodAuditDefinitions.GetQuestions(AuditType, Area);
+        Questions = HodAuditDefinitions.GetQuestions(AuditType, Department);
 
         var answers = BuildAnswers();
         var missing = answers.Count(a => !a.Pass.HasValue);
@@ -151,9 +158,17 @@ public class AuditModel : PageModel
             return Page();
         }
 
+        if (string.IsNullOrWhiteSpace(Department) || string.IsNullOrWhiteSpace(EffectivenessArea))
+        {
+            await RepopulateForErrorAsync(answers);
+            ModelState.AddModelError("", "Department and effectiveness zone are required.");
+            return Page();
+        }
+
         (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
         var user = _users.GetCurrentUser();
-        var effectiveness = await _effectiveness.GetFindingsAsync(Department, Area, auditD, AuditType);
+        var effectiveness = await _effectiveness.GetFindingsAsync(
+            Department, EffectivenessArea, auditD, AuditType);
         effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
         Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
@@ -165,7 +180,8 @@ public class AuditModel : PageModel
             existing.AuditorName = auditorName ?? user.DisplayName;
             existing.AuditDate = auditD;
             existing.Department = department;
-            existing.Area = area;
+            existing.EffectivenessArea = effectivenessArea;
+            existing.Area = effectivenessArea;
             existing.AuditType = auditType;
             existing.AnswersJson = HodAuditSerializer.ToJson(answers);
             existing.TotalScore = TotalScore;
@@ -188,7 +204,8 @@ public class AuditModel : PageModel
             AuditorName = auditorName ?? user.DisplayName,
             AuditDate = auditD,
             Department = department,
-            Area = area,
+            EffectivenessArea = effectivenessArea,
+            Area = effectivenessArea,
             AuditType = auditType,
             AnswersJson = HodAuditSerializer.ToJson(answers),
             TotalScore = TotalScore,
@@ -218,7 +235,8 @@ public class AuditModel : PageModel
         RatingBand = HodAuditScoring.RatingBand(TotalScore, MaxScore);
         RatingDetail = HodAuditScoring.RatingDetail(TotalScore, MaxScore);
         if (DateOnly.TryParse(AuditDate, out var ad))
-            EffectivenessFindings = await _effectiveness.GetFindingsAsync(Department, Area, ad, AuditType);
+            EffectivenessFindings = await _effectiveness.GetFindingsAsync(
+                Department, EffectivenessArea, ad, AuditType);
     }
 
     List<HodAuditAnswer> BuildAnswers()

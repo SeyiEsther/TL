@@ -12,12 +12,12 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title" style="font-size:18px;font-weight:700">@HodAuditTypes.LabelFor(a.AuditType)</div>
-            <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; <strong>@a.Area</strong> &bull; @a.Department</div>
+            <div class="page-sub">@a.AuditDate.ToString("dd/MM/yyyy") &bull; Audit: <strong>@a.Department</strong> &bull; TL check: <strong>@a.ResolveEffectivenessArea()</strong></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
             <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
             <a asp-page="/Audit" asp-route-id="@a.Id" class="sbtn sm">Edit</a>
-            <a href="/api/audits/@a.Id/pdf" class="sbtn primary sm pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.Area.Replace(" ", "_")).pdf">&#8595; PDF</a>
+            <a href="/api/audits/@a.Id/pdf" class="sbtn primary sm pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.ResolveEffectivenessArea().Replace(" ", "_")).pdf">&#8595; PDF</a>
         </div>
     </div>
 

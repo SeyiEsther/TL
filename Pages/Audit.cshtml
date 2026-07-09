@@ -15,7 +15,7 @@
             <div>
                 <div class="audit-sticky-title">@Model.AuditTypeLabel</div>
                 <div class="audit-sticky-sub">
-                    @auditDateDisplay &bull; <strong>@Model.Area</strong> &bull; @Model.Department
+                    @auditDateDisplay &bull; Audit: <strong>@Model.Department</strong> &bull; TL check: <strong>@Model.EffectivenessArea</strong>
                     @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
                 </div>
             </div>
@@ -64,7 +64,7 @@
             <strong>Shift form compliance:</strong>
             @if (Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
             {
-                <span> No TL shift forms submitted for this area this week.</span>
+                <span> No TL shift forms submitted for <strong>@Model.EffectivenessArea</strong> this week.</span>
             }
             else
             {
@@ -77,12 +77,14 @@
     }
 
     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#1e40af;line-height:1.5">
-        <strong>Effectiveness check:</strong> This audit verifies what TLs claimed on their shift forms.
-        Score each item <strong>Pass (1)</strong> or <strong>Fail (0)</strong> — no ambiguity.
+        <strong>Walkaround audit:</strong> Score the whole <strong>@Model.Department</strong> department — Pass (1) or Fail (0) for each item.
         @if (Model.AuditType == HodAuditTypes.Tpm)
         {
-            <span> Check every TPM board in this area@(tpmBoardCount > 1 ? $" ({tpmBoardCount} boards)" : "").</span>
+            <span> Includes every TPM board across @Model.Department@(tpmBoardCount > 1 ? $" ({tpmBoardCount} boards)" : "").</span>
         }
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12px;color:#166534;line-height:1.5">
+        <strong>Effectiveness check:</strong> Verifies what TLs claimed on shift forms for zone <strong>@Model.EffectivenessArea</strong> only — see the table below.
     </div>
 
     <form method="post">
@@ -90,7 +92,7 @@
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
         <input type="hidden" name="auditorName" value="@Model.AuditorName">
         <input type="hidden" name="department" value="@Model.Department">
-        <input type="hidden" name="area" value="@Model.Area">
+        <input type="hidden" name="effectivenessArea" value="@Model.EffectivenessArea">
         <input type="hidden" name="auditType" value="@Model.AuditType">
         @if (Model.EditingId.HasValue) { <input type="hidden" name="editingId" value="@Model.EditingId"> }
 
