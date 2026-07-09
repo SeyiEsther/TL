@@ -6,33 +6,66 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title">Senior audit rota — @Model.Year</div>
-            <div class="page-sub">Group 1s &amp; Directors, one on duty per week for the Senior Weekly Audit. Reshuffles automatically every January.</div>
+            <div class="page-sub">Group 1s &amp; Directors, one on duty per week for the Senior Weekly Audit. Reshuffles itself every January.</div>
         </div>
         <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
     </div>
 
-    <div class="card">
-        <table class="dash-table" style="margin:0">
-            <thead>
-                <tr>
-                    <th>Week</th>
-                    <th>Dates</th>
-                    <th>On duty</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var w in Model.Weeks)
+    @if (Model.ThisWeek is { } tw)
+    {
+        <div class="card" style="margin-bottom:20px;overflow:hidden;border:none">
+            <div style="background:linear-gradient(135deg,#1e2a4a,#2B5AED 65%,#3b6bf5);padding:22px 26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+                <div style="width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;color:#fff;flex-shrink:0">
+                    @SeniorRota.Initials(tw.Person)
+                </div>
+                <div style="flex:1;min-width:220px">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.72);font-weight:700;margin-bottom:2px">
+                        On duty now &bull; Week @tw.IsoWeek &bull; @tw.WeekStart.ToString("dd MMM") &ndash; @tw.WeekEnd.ToString("dd MMM")
+                    </div>
+                    <div style="font-size:23px;font-weight:800;color:#fff">@tw.Person</div>
+                </div>
+                <a asp-page="/SeniorStart" asp-route-auditor="@tw.Person" asp-route-date="@tw.WeekStart.ToString("yyyy-MM-dd")"
+                   class="sbtn primary" style="background:#fff;color:#1e2a4a;border:none;font-weight:700;white-space:nowrap">
+                    Start this week's audit &rarr;
+                </a>
+            </div>
+        </div>
+    }
+
+    @foreach (var month in Model.Months)
+    {
+        <div style="margin-bottom:24px">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;padding-left:2px">
+                @month.Key
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+                @foreach (var w in month)
                 {
-                    <tr style="@(w.IsCurrent ? "background:#eff6ff" : "")">
-                        <td>Week @w.IsoWeek</td>
-                        <td>@w.WeekStart.ToString("dd MMM") &ndash; @w.WeekEnd.ToString("dd MMM")</td>
-                        <td style="font-weight:@(w.IsCurrent ? "700" : "500")">
-                            @w.Person
-                            @if (w.IsCurrent) { <span style="color:var(--muted);font-weight:500"> — this week</span> }
-                        </td>
-                    </tr>
+                    var isPastCls = w.IsPast ? "opacity:.55;" : "";
+                    var borderCls = w.IsCurrent
+                        ? "border:2px solid var(--accent);box-shadow:0 6px 20px rgba(43,90,237,.18);"
+                        : "border:1px solid var(--border);";
+                    <div class="card" style="@borderCls @isPastCls padding:14px 16px;display:flex;flex-direction:column;gap:12px;margin-bottom:0">
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div style="width:34px;height:34px;border-radius:50%;background:@SeniorRota.AvatarColor(w.Person);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">
+                                @SeniorRota.Initials(w.Person)
+                            </div>
+                            <div style="min-width:0">
+                                <div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@w.Person</div>
+                                <div style="font-size:10px;color:var(--muted)">Wk @w.IsoWeek &bull; @w.WeekStart.ToString("dd MMM") &ndash; @w.WeekEnd.ToString("dd MMM")</div>
+                            </div>
+                            @if (w.IsCurrent)
+                            {
+                                <span style="margin-left:auto;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);background:var(--accent-soft);padding:3px 7px;border-radius:20px;white-space:nowrap">Now</span>
+                            }
+                        </div>
+                        <a asp-page="/SeniorStart" asp-route-auditor="@w.Person" asp-route-date="@w.WeekStart.ToString("yyyy-MM-dd")"
+                           class="sbtn @(w.IsCurrent ? "primary" : "") sm" style="text-align:center">
+                            Start audit
+                        </a>
+                    </div>
                 }
-            </tbody>
-        </table>
-    </div>
+            </div>
+        </div>
+    }
 </div>

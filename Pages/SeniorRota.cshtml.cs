@@ -6,12 +6,16 @@ namespace TL.Pages;
 public class SeniorRotaModel : PageModel
 {
     public int Year { get; set; }
-    public List<SeniorRota.RotaWeek> Weeks { get; set; } = new();
+    public SeniorRota.RotaWeek? ThisWeek { get; set; }
+    public List<IGrouping<string, SeniorRota.RotaWeek>> Months { get; set; } = new();
 
     public void OnGet()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         Year = today.Year;
-        Weeks = SeniorRota.RemainingWeeksThisYear(today);
+
+        var weeks = SeniorRota.WeeksThisYear(today);
+        ThisWeek = weeks.FirstOrDefault(w => w.IsCurrent);
+        Months = weeks.GroupBy(w => w.WeekStart.ToString("MMMM yyyy")).ToList();
     }
 }

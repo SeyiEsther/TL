@@ -19,11 +19,11 @@ public class SeniorStartModel : PageModel
     public List<AreaPerformanceSuggestion> SuggestedAreas { get; set; } = [];
     public string? Error { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(string? auditor, string? date)
     {
         var user = _users.GetCurrentUser();
-        AuditorName = user.DisplayName;
-        AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
+        AuditorName = string.IsNullOrWhiteSpace(auditor) ? user.DisplayName : auditor;
+        AuditDate = string.IsNullOrWhiteSpace(date) ? DateTime.Today.ToString("yyyy-MM-dd") : date;
         SuggestedAreas = await LoadSuggestedAreasAsync();
     }
 
