@@ -10,65 +10,6 @@
         </div>
     </div>
 
-    @* ── Unacknowledged handover banner ── *@
-    @if (Model.PendingHandovers.Any())
-    {
-        <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;overflow:hidden;margin-bottom:14px">
-            <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <span style="font-size:18px">&#9888;</span>
-                    <div>
-                        <div style="font-size:13px;font-weight:700;color:#92400e">
-                            @Model.PendingHandovers.Count unacknowledged handover@(Model.PendingHandovers.Count == 1 ? "" : "s")
-                        </div>
-                        <div style="font-size:11px;color:#b45309">Incoming TL sign-off has not been received</div>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('pendingList').style.display=document.getElementById('pendingList').style.display==='none'?'block':'none'"
-                        class="sbtn sm" style="border-color:#fcd34d;color:#92400e">
-                    Show details
-                </button>
-            </div>
-            <div id="pendingList" style="display:none;border-top:1px solid #fcd34d">
-                <table class="dash-table" style="margin:0">
-                    <thead>
-                        <tr>
-                            <th>Area</th>
-                            <th>Shift</th>
-                            <th>Date</th>
-                            <th>Outgoing TL</th>
-                            <th>Waiting</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var p in Model.PendingHandovers)
-                        {
-                            <tr>
-                                <td style="font-weight:600">@p.Area</td>
-                                <td>@p.Shift</td>
-                                <td>@p.ShiftDate.ToString("dd/MM/yyyy")</td>
-                                <td>@p.OutgoingTLSignature</td>
-                                <td style="color:#b45309;font-weight:600">
-                                    @{
-                                        var t = p.WaitingFor;
-                                        var age = t.TotalMinutes < 60 ? $"{(int)t.TotalMinutes}m"
-                                                : t.TotalHours < 24 ? $"{(int)t.TotalHours}h {t.Minutes}m"
-                                                : $"{(int)t.TotalDays}d {t.Hours}h";
-                                    }
-                                    @age
-                                </td>
-                                <td>
-                                    <a asp-page="/HandoverAck" asp-route-prevId="@p.Id" class="dl-link">Ack</a>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
-
     @if (!Model.Shifts.Any())
     {
         <div class="card"><div class="empty">No shifts recorded today yet.</div></div>
