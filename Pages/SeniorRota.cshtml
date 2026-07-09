@@ -1,0 +1,38 @@
+@page
+@model SeniorRotaModel
+@{ ViewData["Title"] = "Senior Audit Rota"; }
+
+<div class="wrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title">Senior audit rota — @Model.Year</div>
+            <div class="page-sub">Group 1s &amp; Directors, one on duty per week for the Senior Weekly Audit. Reshuffles automatically every January.</div>
+        </div>
+        <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
+    </div>
+
+    <div class="card">
+        <table class="dash-table" style="margin:0">
+            <thead>
+                <tr>
+                    <th>Week</th>
+                    <th>Dates</th>
+                    <th>On duty</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var w in Model.Weeks)
+                {
+                    <tr style="@(w.IsCurrent ? "background:#eff6ff" : "")">
+                        <td>Week @w.IsoWeek</td>
+                        <td>@w.WeekStart.ToString("dd MMM") &ndash; @w.WeekEnd.ToString("dd MMM")</td>
+                        <td style="font-weight:@(w.IsCurrent ? "700" : "500")">
+                            @w.Person
+                            @if (w.IsCurrent) { <span style="color:var(--muted);font-weight:500"> — this week</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
