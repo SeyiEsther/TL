@@ -63,7 +63,7 @@ public class HourMergeHelperTests
     static HourInput BuildCompleteHourInput() => new()
     {
         Haz = false, Uns = false, Pos = false,
-        Qchk = true, Dev = false, Nc = false,
+        Qchk = true, Dev = false, Nc = false, Qiplan = true,
         Tgt = true, Maint = false, Mat = true, Tools = true,
         Escl = false, Pconf = true, Pid = true, Ncp = true,
         Wb = true, Sup = false, Acc = false,

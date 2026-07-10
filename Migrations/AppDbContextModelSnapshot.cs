@@ -152,6 +152,9 @@ namespace TL.Migrations
                     b.Property<bool?>("NonComplianceAddressed")
                         .HasColumnType("bit");
 
+                    b.Property<bool?>("ToolsMatchInspectionPlan")
+                        .HasColumnType("bit");
+
                     b.Property<string>("OverallPerfStatus")
                         .HasColumnType("nvarchar(max)");
 

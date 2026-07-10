@@ -110,6 +110,8 @@
                         "Any deviation from spec or process has been raised with the relevant team"); }
                     @{ await RenderYN("Any non-compliance addressed?", "Nc", h => hd(h).Nc,
                         "Any instance of non-compliance was identified and acted on"); }
+                    @{ await RenderYN("Do the tools match the inspection plan?", "Qiplan", h => hd(h).Qiplan,
+                        "No non-conforming tools e.g. tape measure"); }
                     @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
 
                     <!-- PERFORMANCE -->
@@ -240,7 +242,7 @@
     const hoursCount = parseInt(form?.dataset.hours || '@H', 10);
     let savedDraft = null;
 
-    const hourFields = ['Haz','Uns','Pos','Qchk','Dev','Nc','Tgt','Maint','Mat','Tools','Escl','Pconf','Pid','Ncp','Wb','Sup','Acc'];
+    const hourFields = ['Haz','Uns','Pos','Qchk','Dev','Nc','Qiplan','Tgt','Maint','Mat','Tools','Escl','Pconf','Pid','Ncp','Wb','Sup','Acc'];
     const statusFields = ['Ss','Qs','Ps'];
 
     function radioGroupAnswered(name) {

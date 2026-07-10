@@ -575,6 +575,8 @@ namespace TL.Services
                                     BoolRow(t, "Positive behaviours", h.PositiveBehaviours);
                                     BoolRow(t, "Quality checks completed", h.QualityChecksCompleted);
                                     BoolRow(t, "Deviations escalated", h.DeviationsEscalated);
+                                    BoolRow(t, "Non-compliance addressed", h.NonComplianceAddressed);
+                                    BoolRow(t, "Tools match inspection plan", h.ToolsMatchInspectionPlan);
                                     BoolRow(t, "Hourly target achieved", h.HourlyTargetAchieved);
                                     BoolRow(t, "Maintenance issues", h.MaintenanceIssues);
                                     BoolRow(t, "Materials available", h.MaterialsAvailable);

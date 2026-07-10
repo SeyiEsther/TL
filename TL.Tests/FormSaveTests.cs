@@ -197,7 +197,7 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
         if (includeEditingId)
             pairs.Add(new("EditingId", id.ToString()));
 
-        string[] boolFields = ["Haz", "Uns", "Pos", "Qchk", "Dev", "Nc", "Tgt", "Maint", "Mat", "Tools",
+        string[] boolFields = ["Haz", "Uns", "Pos", "Qchk", "Dev", "Nc", "Qiplan", "Tgt", "Maint", "Mat", "Tools",
             "Escl", "Pconf", "Pid", "Ncp", "Wb", "Sup", "Acc"];
         foreach (var f in boolFields)
             pairs.Add(new($"H[0].{f}", f == "Haz" ? "True" : "False"));
