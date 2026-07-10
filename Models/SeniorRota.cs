@@ -13,8 +13,11 @@ public static class SeniorRota
     public static IReadOnlyList<string> ResolveNames(IReadOnlyList<string>? names) =>
         names is { Count: > 0 } ? names : SeniorManagementList.Names;
 
-    public static int GroupCountFor(IReadOnlyList<string> names) =>
-        Math.Max(1, ResolveNames(names).Count / GroupSize);
+    public static int GroupCountFor(IReadOnlyList<string> names)
+    {
+        var count = ResolveNames(names).Count;
+        return Math.Max(1, (count + GroupSize - 1) / GroupSize);
+    }
 
     public static string[] OrderForYear(int year, IReadOnlyList<string>? names = null)
     {
