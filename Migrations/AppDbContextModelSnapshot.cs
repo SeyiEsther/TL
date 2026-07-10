@@ -375,6 +375,18 @@ namespace TL.Migrations
                     b.HasKey("Id");
                     b.ToTable("HodDailyAudits");
                 });
+
+            modelBuilder.Entity("TL.Models.PickerPerson", b =>
+                {
+                    b.Property<int>("Id").ValueGeneratedOnAdd().HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("ListKind").IsRequired().HasColumnType("nvarchar(450)");
+                    b.Property<string>("Name").IsRequired().HasColumnType("nvarchar(450)");
+                    b.Property<int>("SortOrder").HasColumnType("int");
+                    b.HasKey("Id");
+                    b.HasIndex("ListKind", "Name").IsUnique();
+                    b.ToTable("PickerPersons");
+                });
 #pragma warning restore 612, 618
         }
     }

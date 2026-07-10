@@ -1,6 +1,8 @@
 @inject TL.Services.UserService UserService
+@inject TL.Services.AdminService AdminService
 @{
     var user = UserService.GetCurrentUser();
+    var isAdmin = AdminService.IsAdmin();
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 <!DOCTYPE html>
@@ -35,6 +37,10 @@
         <a class="tbtn @(pg == "/SeniorStart" || pg == "/SeniorAudit" || pg == "/SeniorDashboard" || pg == "/SeniorRota" ? "active" : "")" asp-page="/SeniorStart">Senior</a>
         <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
         <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
+        @if (isAdmin)
+        {
+            <a class="tbtn @(pg == "/Admin" ? "active" : "")" asp-page="/Admin">Admin</a>
+        }
     </div>
 </div>
 

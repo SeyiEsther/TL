@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using TL.Data;
 using TL.Models;
 
@@ -212,8 +214,17 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
 
 public class FormSaveWebAppFactory : WebApplicationFactory<Program>
 {
+    private readonly string _dbName = $"FormSaveTests_{Guid.NewGuid():N}";
+
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Admin:GrantAll"] = "true",
+            });
+        });
         builder.ConfigureServices(services =>
         {
             var descriptor = services.SingleOrDefault(d =>
@@ -221,7 +232,15 @@ public class FormSaveWebAppFactory : WebApplicationFactory<Program>
             if (descriptor != null) services.Remove(descriptor);
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("FormSaveTests"));
+                options.UseInMemoryDatabase(_dbName));
         });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();
+        return host;
     }
 }

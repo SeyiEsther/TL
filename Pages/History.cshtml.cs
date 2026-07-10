@@ -13,7 +13,17 @@ public class HistoryModel : PageModel
         { "all", "shifts", "hod", "senior", "handovers" };
 
     private readonly AppDbContext _db;
-    public HistoryModel(AppDbContext db) => _db = db;
+    private readonly AdminService _admin;
+    private readonly RecordDeleteService _delete;
+
+    public HistoryModel(AppDbContext db, AdminService admin, RecordDeleteService delete)
+    {
+        _db = db;
+        _admin = admin;
+        _delete = delete;
+    }
+
+    public bool IsAdmin => _admin.IsAdmin();
 
     public string Tab { get; set; } = "all";
     public string? From { get; set; }
@@ -39,15 +49,10 @@ public class HistoryModel : PageModel
         string kind, int id, bool isNewHodAudit,
         string? tab, string? from, string? to, string? area, string? q)
     {
-        var ok = kind switch
-        {
-            "shifts" or "handovers" => await DeleteShiftSubmissionAsync(id),
-            "hod" when isNewHodAudit => await DeleteHodAuditAsync(id),
-            "hod" => await DeleteShiftSubmissionAsync(id),
-            "senior" => await DeleteSeniorAuditAsync(id),
-            _ => false,
-        };
+        if (!_admin.IsAdmin())
+            return RedirectToPage(new { tab, from, to, area, q });
 
+        var ok = await _delete.DeleteAsync(kind, id, isNewHodAudit);
         return RedirectToPage(new { tab, from, to, area, q, deleted = ok ? "1" : null });
     }
 
@@ -70,33 +75,6 @@ public class HistoryModel : PageModel
             .OrderByDescending(r => r.Date)
             .ThenByDescending(r => r.SubmittedAt)
             .ToList();
-    }
-
-    async Task<bool> DeleteShiftSubmissionAsync(int id)
-    {
-        var sub = await _db.ShiftSubmissions.FirstOrDefaultAsync(s => s.Id == id);
-        if (sub == null) return false;
-        _db.ShiftSubmissions.Remove(sub);
-        await _db.SaveChangesAsync();
-        return true;
-    }
-
-    async Task<bool> DeleteHodAuditAsync(int id)
-    {
-        var audit = await _db.HodDailyAudits.FindAsync(id);
-        if (audit == null) return false;
-        _db.HodDailyAudits.Remove(audit);
-        await _db.SaveChangesAsync();
-        return true;
-    }
-
-    async Task<bool> DeleteSeniorAuditAsync(int id)
-    {
-        var audit = await _db.SeniorWeeklyAudits.FindAsync(id);
-        if (audit == null) return false;
-        _db.SeniorWeeklyAudits.Remove(audit);
-        await _db.SaveChangesAsync();
-        return true;
     }
 
     async Task<List<HistoryRow>> LoadShiftsAsync(bool inProgressOnly = false)

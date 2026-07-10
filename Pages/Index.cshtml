@@ -1,5 +1,6 @@
 @page
 @model IndexModel
+@inject TL.Services.PersonListService PersonList
 @{
     ViewData["Title"] = "Home";
 }
@@ -41,7 +42,7 @@
                     <label>Covering for <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label>
                     <select name="CoveringFor">
                         <option value="">— Not covering for anyone —</option>
-                        @foreach (var name in TeamLeaderList.Names)
+                        @foreach (var name in PersonList.TeamLeaders)
                         {
                             <option value="@name" selected="@(Model.CoveringFor == name ? "selected" : null)">@name</option>
                         }

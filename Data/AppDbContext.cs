@@ -11,6 +11,7 @@ namespace TL.Data
         public DbSet<AuditSubmission> AuditSubmissions => Set<AuditSubmission>();
         public DbSet<SeniorWeeklyAudit> SeniorWeeklyAudits => Set<SeniorWeeklyAudit>();
         public DbSet<HodDailyAudit> HodDailyAudits => Set<HodDailyAudit>();
+        public DbSet<PickerPerson> PickerPersons => Set<PickerPerson>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -24,6 +25,10 @@ namespace TL.Data
                  .WithOne(a => a.Submission)
                  .HasForeignKey(a => a.SubmissionId)
                  .OnDelete(DeleteBehavior.Cascade);
+            });
+            mb.Entity<PickerPerson>(e =>
+            {
+                e.HasIndex(p => new { p.ListKind, p.Name }).IsUnique();
             });
         }
     }

@@ -1,4 +1,5 @@
 @model FilterDropdownModel
+@inject TL.Services.PersonListService PersonList
 @{
     var id = $"fs-{Model.Name}";
     var current = Model.Value ?? "";
@@ -27,7 +28,7 @@
             <span class="fs-option-label" style="font-weight:600">@otherLabel</span>
         </button>
         <div class="fs-group">
-            @foreach (var name in TeamLeaderList.Names)
+            @foreach (var name in PersonList.TeamLeaders)
             {
                 <button type="button" class="fs-option @(current == name ? "active" : "")" data-value="@name" data-search="@name.ToLowerInvariant()" role="option">
                     <span class="fs-option-label">@name</span>

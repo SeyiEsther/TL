@@ -148,6 +148,8 @@
                                             <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             break;
                                     }
+                                    @if (Model.IsAdmin)
+                                    {
                                     <form method="post" asp-page-handler="Delete" class="history-delete-form"
                                           onsubmit="return confirm('Delete this record? This cannot be undone.');">
                                         <input type="hidden" name="tab" value="@Model.Tab" />
@@ -163,6 +165,7 @@
                                         }
                                         <button type="submit" class="dl-link dl-delete">Delete</button>
                                     </form>
+                                    }
                                     </div>
                                 </td>
                             </tr>

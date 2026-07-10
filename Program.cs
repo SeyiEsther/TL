@@ -10,6 +10,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<PersonListService>();
+builder.Services.AddScoped<RecordDeleteService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddScoped<ShiftCompletionService>();
 builder.Services.AddScoped<ShiftResumeService>();
@@ -38,6 +41,9 @@ using (var scope = app.Services.CreateScope())
             throw;
         }
     }
+
+    var people = scope.ServiceProvider.GetRequiredService<PersonListService>();
+    await people.EnsureLoadedAsync();
 }
 
 app.UseStaticFiles();
