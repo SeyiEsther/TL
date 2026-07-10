@@ -103,8 +103,7 @@
                                 </td>
                                 <td style="font-size:11px;white-space:nowrap">
                                     @if (r.HasActions) { <span style="color:#b45309;font-weight:600">&#9888; Actions</span> }
-                                    @if (r.HandoverPending) { <span style="color:#b45309;font-weight:600">&#9203; Pending ack</span> }
-                                    @if (!r.HasActions && !r.HandoverPending) { <span style="color:var(--muted)">—</span> }
+                                    else { <span style="color:var(--muted)">—</span> }
                                 </td>
                                 <td>@r.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
                                 <td style="white-space:nowrap">
