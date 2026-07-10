@@ -53,8 +53,6 @@ public class IndexModel : PageModel
         if (existing != null && ShiftResumeService.IsInProgress(existing))
             return RedirectToPage("/Form", new { id = existing.Id, tl = teamLeader });
 
-        // Handover-acknowledgement gate temporarily disabled — start the shift directly.
-
         return RedirectToPage("/Form", new
         {
             date = shiftDate,
