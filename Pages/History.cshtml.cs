@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
@@ -19,16 +20,39 @@ public class HistoryModel : PageModel
     public string? To { get; set; }
     public string? AreaFilter { get; set; }
     public string? PersonFilter { get; set; }
+    public string? StatusMessage { get; set; }
     public List<HistoryRow> Rows { get; set; } = [];
 
-    public async Task OnGetAsync(string? tab, string? from, string? to, string? area, string? q)
+    public async Task OnGetAsync(string? tab, string? from, string? to, string? area, string? q, string? deleted)
     {
         Tab = ValidTabs.Contains(tab ?? "") ? tab!.ToLowerInvariant() : "all";
         From = from;
         To = to;
         AreaFilter = area;
         PersonFilter = q;
+        StatusMessage = deleted == "1" ? "Record deleted." : null;
 
+        await LoadRowsAsync();
+    }
+
+    public async Task<IActionResult> OnPostDeleteAsync(
+        string kind, int id, bool isNewHodAudit,
+        string? tab, string? from, string? to, string? area, string? q)
+    {
+        var ok = kind switch
+        {
+            "shifts" or "handovers" => await DeleteShiftSubmissionAsync(id),
+            "hod" when isNewHodAudit => await DeleteHodAuditAsync(id),
+            "hod" => await DeleteShiftSubmissionAsync(id),
+            "senior" => await DeleteSeniorAuditAsync(id),
+            _ => false,
+        };
+
+        return RedirectToPage(new { tab, from, to, area, q, deleted = ok ? "1" : null });
+    }
+
+    async Task LoadRowsAsync()
+    {
         var rows = new List<HistoryRow>();
 
         if (Tab is "shifts")
@@ -46,6 +70,33 @@ public class HistoryModel : PageModel
             .OrderByDescending(r => r.Date)
             .ThenByDescending(r => r.SubmittedAt)
             .ToList();
+    }
+
+    async Task<bool> DeleteShiftSubmissionAsync(int id)
+    {
+        var sub = await _db.ShiftSubmissions.FirstOrDefaultAsync(s => s.Id == id);
+        if (sub == null) return false;
+        _db.ShiftSubmissions.Remove(sub);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    async Task<bool> DeleteHodAuditAsync(int id)
+    {
+        var audit = await _db.HodDailyAudits.FindAsync(id);
+        if (audit == null) return false;
+        _db.HodDailyAudits.Remove(audit);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    async Task<bool> DeleteSeniorAuditAsync(int id)
+    {
+        var audit = await _db.SeniorWeeklyAudits.FindAsync(id);
+        if (audit == null) return false;
+        _db.SeniorWeeklyAudits.Remove(audit);
+        await _db.SaveChangesAsync();
+        return true;
     }
 
     async Task<List<HistoryRow>> LoadShiftsAsync(bool inProgressOnly = false)

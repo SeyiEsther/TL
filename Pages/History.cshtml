@@ -12,6 +12,13 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 16px;font-size:13px;color:#16a34a;background:#f0fdf4;border-color:#bbf7d0">
+            @Model.StatusMessage
+        </div>
+    }
+
     <div class="card card-filter" style="margin-bottom:14px">
         <form method="get" class="filters">
             <input type="hidden" name="tab" value="@Model.Tab">
@@ -58,7 +65,7 @@
         else
         {
             <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-                <table class="dash-table" style="min-width:900px">
+                <table class="dash-table" style="min-width:1020px">
                     <thead>
                         <tr>
                             <th>Type</th>
@@ -72,7 +79,7 @@
                             <th>Verdict / Score</th>
                             <th>Flags</th>
                             <th>Submitted</th>
-                            <th></th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,7 +114,8 @@
                                     else { <span style="color:var(--muted)">—</span> }
                                 </td>
                                 <td>@r.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
-                                <td style="white-space:nowrap">
+                                <td class="history-actions-cell">
+                                    <div class="history-actions">
                                     @switch (r.TabKey)
                                     {
                                         case "shifts":
@@ -137,8 +145,25 @@
                                                 <a asp-page="/HandoverAck" asp-route-prevId="@r.Id" class="dl-link">Acknowledge</a>
                                             }
                                             <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">View</a>
+                                            <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             break;
                                     }
+                                    <form method="post" asp-page-handler="Delete" class="history-delete-form"
+                                          onsubmit="return confirm('Delete this record? This cannot be undone.');">
+                                        <input type="hidden" name="tab" value="@Model.Tab" />
+                                        <input type="hidden" name="from" value="@Model.From" />
+                                        <input type="hidden" name="to" value="@Model.To" />
+                                        <input type="hidden" name="area" value="@Model.AreaFilter" />
+                                        <input type="hidden" name="q" value="@Model.PersonFilter" />
+                                        <input type="hidden" name="kind" value="@r.TabKey" />
+                                        <input type="hidden" name="id" value="@r.Id" />
+                                        @if (r.IsNewHodAudit)
+                                        {
+                                            <input type="hidden" name="isNewHodAudit" value="true" />
+                                        }
+                                        <button type="submit" class="dl-link dl-delete">Delete</button>
+                                    </form>
+                                    </div>
                                 </td>
                             </tr>
                         }
