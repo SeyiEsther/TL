@@ -9,6 +9,7 @@ public class HourInput
     public bool? Qchk { get; set; }
     public bool? Dev { get; set; }
     public bool? Nc { get; set; }
+    public bool? Qiplan { get; set; }
     public string? Qnote { get; set; }
     public bool? Tgt { get; set; }
     public bool? Maint { get; set; }
@@ -30,7 +31,7 @@ public class HourInput
     public string? Ps { get; set; }
 
     public bool HasAnyData() =>
-        Haz.HasValue || Uns.HasValue || Pos.HasValue || Qchk.HasValue || Dev.HasValue || Nc.HasValue
+        Haz.HasValue || Uns.HasValue || Pos.HasValue || Qchk.HasValue || Dev.HasValue || Nc.HasValue || Qiplan.HasValue
         || Tgt.HasValue || Maint.HasValue || Mat.HasValue || Tools.HasValue || Escl.HasValue
         || Pconf.HasValue || Pid.HasValue || Ncp.HasValue || Sixs.HasValue || Tpm.HasValue
         || Wb.HasValue || Sup.HasValue || Acc.HasValue

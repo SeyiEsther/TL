@@ -66,6 +66,7 @@ public class ShiftCompletionService
         ReqBool("quality checks", h.QualityChecksCompleted);
         ReqBool("deviations check", h.DeviationsEscalated);
         ReqBool("non-compliance check", h.NonComplianceAddressed);
+        ReqBool("tools match inspection plan", h.ToolsMatchInspectionPlan);
         ReqBool("hourly target", h.HourlyTargetAchieved);
         ReqBool("maintenance check", h.MaintenanceIssues);
         ReqBool("materials check", h.MaterialsAvailable);

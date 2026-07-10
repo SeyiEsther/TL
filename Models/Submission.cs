@@ -40,6 +40,7 @@ namespace TL.Models
         public bool? QualityChecksCompleted { get; set; }
         public bool? DeviationsEscalated { get; set; }
         public bool? NonComplianceAddressed { get; set; }
+        public bool? ToolsMatchInspectionPlan { get; set; }
         public string? QualityNotes { get; set; }
         public bool? HourlyTargetAchieved { get; set; }
         public bool? MaintenanceIssues { get; set; }

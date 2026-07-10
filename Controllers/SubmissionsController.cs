@@ -144,6 +144,7 @@ namespace TL.Controllers
                     existing.QualityChecksCompleted = hReq.Qchk;
                     existing.DeviationsEscalated = hReq.Dev;
                     existing.NonComplianceAddressed = hReq.Nc;
+                    existing.ToolsMatchInspectionPlan = hReq.Qiplan;
                     existing.QualityNotes = hReq.Qnote;
                     existing.HourlyTargetAchieved = hReq.Tgt;
                     existing.MaintenanceIssues = hReq.Maint;
@@ -321,7 +322,7 @@ namespace TL.Controllers
         static string Q(string? s) => $"\"{(s ?? "").Replace("\"", "\"\"")}\"";
 
         static bool HourRequestHasData(HourRequest h) =>
-            h.Haz.HasValue || h.Uns.HasValue || h.Pos.HasValue || h.Qchk.HasValue || h.Dev.HasValue || h.Nc.HasValue
+            h.Haz.HasValue || h.Uns.HasValue || h.Pos.HasValue || h.Qchk.HasValue || h.Dev.HasValue || h.Nc.HasValue || h.Qiplan.HasValue
             || h.Tgt.HasValue || h.Maint.HasValue || h.Mat.HasValue || h.Tools.HasValue || h.Escl.HasValue
             || h.Pconf.HasValue || h.Pid.HasValue || h.Ncp.HasValue || h.Sixs.HasValue || h.Tpm.HasValue
             || h.Wb.HasValue || h.Sup.HasValue || h.Acc.HasValue
@@ -339,6 +340,7 @@ namespace TL.Controllers
             QualityChecksCompleted = h.Qchk,
             DeviationsEscalated = h.Dev,
             NonComplianceAddressed = h.Nc,
+            ToolsMatchInspectionPlan = h.Qiplan,
             QualityNotes = h.Qnote,
             HourlyTargetAchieved = h.Tgt,
             MaintenanceIssues = h.Maint,
@@ -385,6 +387,7 @@ namespace TL.Controllers
         public bool? Qchk { get; set; }
         public bool? Dev { get; set; }
         public bool? Nc { get; set; }
+        public bool? Qiplan { get; set; }
         public string? Qnote { get; set; }
         public bool? Tgt { get; set; }
         public bool? Maint { get; set; }
