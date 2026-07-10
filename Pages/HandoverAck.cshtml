@@ -1,0 +1,198 @@
+@page
+@model HandoverAckModel
+@{
+    ViewData["Title"] = "Handover acknowledgement";
+    var s = Model.PreviousShift!;
+    string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
+}
+
+<div style="min-height:calc(100vh - 52px);background:#e9ebee;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:24px 16px 60px">
+
+    <!-- Header banner -->
+    <div style="width:100%;max-width:820px;margin-bottom:20px">
+        <div style="background:#1a0a0a;border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px">
+            <div style="width:44px;height:44px;background:var(--red);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <span style="font-size:22px">&#128203;</span>
+            </div>
+            <div>
+                <div style="font-size:16px;font-weight:700;color:#fff">Handover acknowledgement required</div>
+                <div style="font-size:12px;color:#9ca3af;margin-top:2px">
+                    @if (Model.AckOnly)
+                    {
+                        <span>Read and sign off the previous shift handover for <strong style="color:#fff">@s.Area</strong></span>
+                    }
+                    else
+                    {
+                        <span>You must read and accept the previous shift handover before starting <strong style="color:#fff">@Model.NewShift shift</strong> for <strong style="color:#fff">@Model.NewArea</strong></span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Previous shift card -->
+    <div style="width:100%;max-width:820px;background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px">
+
+        <!-- Card header -->
+        <div style="padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div>
+                <div style="font-size:16px;font-weight:700">@s.Shift shift &mdash; @s.ShiftDate.ToString("dd/MM/yyyy")</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:3px">
+                    Area: <strong>@s.Area</strong> &nbsp;&middot;&nbsp; TL: <strong>@s.TeamLeaderDisplay</strong> &nbsp;&middot;&nbsp; @s.HoursCompleted hrs completed
+                </div>
+            </div>
+            <a href="/api/submissions/@s.Id/pdf" target="_blank" rel="noopener" class="sbtn sm pdf-dl" data-filename="TLSW_Handover.pdf">&#8595; PDF</a>
+        </div>
+
+        <!-- Status row -->
+        <div style="padding:18px 22px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:10px">Overall performance status</div>
+            <div style="display:flex;gap:10px">
+                <div style="flex:1;text-align:center;padding:14px 8px;border:1px solid var(--border);border-radius:8px">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Safety</div>
+                    <span class="rv @Rc(Model.SafetyStatus)" style="font-size:14px;padding:5px 18px">@(Model.SafetyStatus ?? "—")</span>
+                </div>
+                <div style="flex:1;text-align:center;padding:14px 8px;border:1px solid var(--border);border-radius:8px">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Quality</div>
+                    <span class="rv @Rc(Model.QualityStatus)" style="font-size:14px;padding:5px 18px">@(Model.QualityStatus ?? "—")</span>
+                </div>
+                <div style="flex:1;text-align:center;padding:14px 8px;border:1px solid var(--border);border-radius:8px">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Performance</div>
+                    <span class="rv @Rc(Model.PerfStatus)" style="font-size:14px;padding:5px 18px">@(Model.PerfStatus ?? "—")</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hourly target grid -->
+        @if (s.Hours.Any())
+        {
+            <div style="padding:18px 22px;border-bottom:1px solid var(--border)">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:10px">Hourly target achieved</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    @foreach (var h in s.Hours.OrderBy(h => h.HourNumber))
+                    {
+                        var achieved = h.HourlyTargetAchieved;
+                        var bg = achieved == true ? "#dcfce7" : achieved == false ? "#fee2e2" : "var(--surface)";
+                        var fg = achieved == true ? "#16a34a" : achieved == false ? "#991b1b" : "var(--muted)";
+                        var label = achieved == true ? "Y" : achieved == false ? "N" : "—";
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+                            <div style="font-size:10px;color:var(--muted);font-weight:600">Hr @h.HourNumber</div>
+                            <div style="width:36px;height:36px;border-radius:8px;background:@bg;color:@fg;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:1px solid @(achieved == true ? "#86efac" : achieved == false ? "#fca5a5" : "var(--border)")">@label</div>
+                        </div>
+                    }
+                </div>
+
+                @{
+                    var missedHours = s.Hours.Where(h => h.HourlyTargetAchieved == false && !string.IsNullOrEmpty(h.PerformanceNotes)).ToList();
+                }
+                @if (missedHours.Any())
+                {
+                    <div style="margin-top:12px">
+                        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Missed target reasons</div>
+                        @foreach (var h in missedHours)
+                        {
+                            <div style="font-size:12px;color:var(--ink);margin-bottom:4px"><span style="font-weight:600;color:var(--red)">Hr @h.HourNumber:</span> @h.PerformanceNotes</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Escalations -->
+        <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Escalations / outstanding issues</div>
+            @if (string.IsNullOrEmpty(s.Escalations))
+            {
+                <div style="font-size:13px;color:var(--muted);font-style:italic">None recorded</div>
+            }
+            else
+            {
+                <div style="font-size:13px;line-height:1.7;color:var(--ink)">@s.Escalations</div>
+            }
+        </div>
+
+        <!-- Key risks -->
+        <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Key risks for next shift</div>
+            @if (string.IsNullOrEmpty(s.KeyRisks))
+            {
+                <div style="font-size:13px;color:var(--muted);font-style:italic">None recorded</div>
+            }
+            else
+            {
+                <div style="font-size:13px;line-height:1.7;color:var(--ink)">@s.KeyRisks</div>
+            }
+        </div>
+
+        <!-- Immediate priorities -->
+        <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">Immediate priorities for incoming team</div>
+            @if (string.IsNullOrEmpty(s.Priorities))
+            {
+                <div style="font-size:13px;color:var(--muted);font-style:italic">None recorded</div>
+            }
+            else
+            {
+                <div style="font-size:13px;line-height:1.7;color:var(--ink)">@s.Priorities</div>
+            }
+        </div>
+
+        <!-- Outgoing TL signature (read-only) -->
+        <div style="padding:16px 22px;background:#f0fdf4;border-bottom:1px solid #bbf7d0">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:#16a34a;margin-bottom:6px">Outgoing TL sign-off</div>
+            <div style="display:flex;align-items:center;gap:12px">
+                <div style="font-size:14px;font-weight:600;color:var(--ink)">@s.OutgoingTLSignature</div>
+                <div style="font-size:11px;color:var(--muted)">Signed at @s.SubmittedAt.ToLocalTime().ToString("HH:mm, dd MMM yyyy")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Incoming TL sign-off form -->
+    <div style="width:100%;max-width:820px;background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div style="padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border)">
+            <div style="font-size:14px;font-weight:700">Incoming TL sign-off</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Confirm you have read and understood this handover</div>
+        </div>
+        <form method="post" style="padding:20px 22px">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="prevId" value="@Model.PrevId">
+            <input type="hidden" name="date" value="@Model.NewDate">
+            <input type="hidden" name="shift" value="@Model.NewShift">
+            <input type="hidden" name="area" value="@Model.NewArea">
+            <input type="hidden" name="tl" value="@Model.NewTL">
+
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--muted);margin-bottom:6px">
+                    Type your full name to accept this handover
+                </label>
+                <input type="text" name="incomingSignature" id="incomingSignature"
+                       placeholder="Full name…"
+                       autocomplete="off"
+                       style="width:100%;max-width:400px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;color:var(--ink)">
+            </div>
+
+            <div style="font-size:11px;color:var(--muted);margin-bottom:16px">
+                By signing, you confirm you have read and accepted this handover report.
+            </div>
+
+            <button type="submit" id="acceptBtn" class="sbtn primary" disabled
+                    style="opacity:.45;cursor:not-allowed;pointer-events:none">
+                @(Model.AckOnly ? "Accept handover" : "Accept handover & start shift")
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+(function () {
+    var inp = document.getElementById('incomingSignature');
+    var btn = document.getElementById('acceptBtn');
+    inp.addEventListener('input', function () {
+        var hasValue = inp.value.trim().length > 0;
+        btn.disabled = !hasValue;
+        btn.style.opacity = hasValue ? '1' : '.45';
+        btn.style.cursor = hasValue ? 'pointer' : 'not-allowed';
+        btn.style.pointerEvents = hasValue ? 'auto' : 'none';
+    });
+})();
+</script>

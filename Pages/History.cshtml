@@ -102,7 +102,8 @@
                                     }
                                 </td>
                                 <td style="font-size:11px;white-space:nowrap">
-                                    @if (r.HasActions) { <span style="color:#b45309;font-weight:600">&#9888; Actions</span> }
+                                    @if (r.HandoverPending) { <span style="color:#b45309;font-weight:600">Handover pending</span> }
+                                    else if (r.HasActions) { <span style="color:#b45309;font-weight:600">&#9888; Actions</span> }
                                     else { <span style="color:var(--muted)">—</span> }
                                 </td>
                                 <td>@r.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
@@ -131,6 +132,10 @@
                                             <a href="/api/audits/@r.Id/pdf" class="dl-link pdf-dl" data-filename="Senior_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             break;
                                         case "handovers":
+                                            @if (r.HandoverPending)
+                                            {
+                                                <a asp-page="/HandoverAck" asp-route-prevId="@r.Id" class="dl-link">Acknowledge</a>
+                                            }
                                             <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">View</a>
                                             break;
                                     }

@@ -57,6 +57,9 @@ public class FormModel : PageModel
             var sub = await LoadSubmissionAsync(id.Value);
             if (sub == null) return RedirectToPage("/Index");
             PopulateFromSubmission(sub, tl);
+            Hours = Math.Clamp(hours, 1, 8);
+            if (!string.IsNullOrWhiteSpace(coveringFor))
+                CoveringFor = coveringFor.Trim();
             PadHours();
             return Page();
         }
@@ -76,7 +79,7 @@ public class FormModel : PageModel
 
             var existing = await _resume.FindForResumeAsync(d, Shift, Area, tlName);
             if (existing != null)
-                return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName });
+                return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName, coveringFor });
 
             CoveringFor = string.IsNullOrWhiteSpace(coveringFor) ? null : coveringFor.Trim();
             var stub = new ShiftSubmission

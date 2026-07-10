@@ -36,4 +36,20 @@ public class ShiftResumeService
 
         return slot.FirstOrDefault(IsInProgress);
     }
+
+    public async Task<ShiftSubmission?> FindPendingHandoverForAreaAsync(
+        string area, DateOnly startingDate, string startingShift)
+    {
+        var candidates = await _db.ShiftSubmissions
+            .ExcludeAudits()
+            .Where(s => s.Area == area
+                && !string.IsNullOrEmpty(s.OutgoingTLSignature)
+                && string.IsNullOrEmpty(s.IncomingTLSignature))
+            .OrderByDescending(s => s.ShiftDate)
+            .ThenByDescending(s => s.SubmittedAt)
+            .ToListAsync();
+
+        return candidates.FirstOrDefault(s =>
+            !(s.ShiftDate == startingDate && s.Shift == startingShift && IsInProgress(s)));
+    }
 }

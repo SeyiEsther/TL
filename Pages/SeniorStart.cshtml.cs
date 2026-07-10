@@ -25,7 +25,8 @@ public class SeniorStartModel : PageModel
         var user = _users.GetCurrentUser();
         AuditorName = string.IsNullOrWhiteSpace(auditor) ? user.DisplayName : auditor;
         AuditDate = string.IsNullOrWhiteSpace(date) ? DateTime.Today.ToString("yyyy-MM-dd") : date;
-        DutyWeek = SeniorRota.CurrentWeek(DateOnly.FromDateTime(DateTime.Today));
+        var refDate = DateOnly.TryParse(AuditDate, out var ad) ? ad : DateOnly.FromDateTime(DateTime.Today);
+        DutyWeek = SeniorRota.WeekForDate(refDate) ?? SeniorRota.CurrentWeek(refDate);
         SuggestedAreas = await LoadSuggestedAreasAsync();
     }
 
@@ -35,7 +36,8 @@ public class SeniorStartModel : PageModel
         {
             AuditorName = auditorName ?? "";
             AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
-            DutyWeek = SeniorRota.CurrentWeek(DateOnly.FromDateTime(DateTime.Today));
+            var refDate = DateOnly.TryParse(AuditDate, out var ad) ? ad : DateOnly.FromDateTime(DateTime.Today);
+            DutyWeek = SeniorRota.WeekForDate(refDate) ?? SeniorRota.CurrentWeek(refDate);
             SuggestedAreas = await LoadSuggestedAreasAsync();
             Error = "Please fill in all fields.";
             return Page();

@@ -76,6 +76,13 @@ public static class SeniorRota
     public static RotaWeek? CurrentWeek(DateOnly today) =>
         WeeksThisYear(today).FirstOrDefault(w => w.IsCurrent);
 
+    public static RotaWeek? WeekForDate(DateOnly date)
+    {
+        var daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
+        var weekStart = date.AddDays(-daysSinceMonday);
+        return WeeksThisYear(date).FirstOrDefault(w => w.WeekStart == weekStart);
+    }
+
     static readonly string[] AvatarPalette =
     [
         "#2B5AED", "#CC1F2C", "#16a34a", "#b45309",

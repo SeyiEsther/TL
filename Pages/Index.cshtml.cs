@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+using TL.Data;
 using TL.Models;
 using TL.Services;
 
@@ -9,11 +11,13 @@ public class IndexModel : PageModel
 {
     public const string OtherValue = "__other__";
 
+    private readonly AppDbContext _db;
     private readonly UserService _users;
     private readonly ShiftResumeService _resume;
 
-    public IndexModel(UserService users, ShiftResumeService resume)
+    public IndexModel(AppDbContext db, UserService users, ShiftResumeService resume)
     {
+        _db = db;
         _users = users;
         _resume = resume;
     }
@@ -37,7 +41,6 @@ public class IndexModel : PageModel
         string shiftDate, string shift, string teamLeader, string area,
         string? otherName, string? coveringFor)
     {
-        // Resolve who is actually filling this in, and who (if anyone) they cover for.
         string actualName;
         string? covering = null;
         if (teamLeader == OtherValue)
@@ -70,10 +73,29 @@ public class IndexModel : PageModel
         if (!DateOnly.TryParse(shiftDate, out var d))
             d = DateOnly.FromDateTime(DateTime.Today);
 
-        // Record identity is date + shift + area; match/resume on the real filler's name.
         var existing = await _resume.FindForResumeAsync(d, shift, area, actualName);
         if (existing != null && ShiftResumeService.IsInProgress(existing))
-            return RedirectToPage("/Form", new { id = existing.Id, tl = actualName });
+        {
+            if (!string.IsNullOrWhiteSpace(covering) && string.IsNullOrWhiteSpace(existing.CoveringFor))
+            {
+                existing.CoveringFor = covering;
+                await _db.SaveChangesAsync();
+            }
+            return RedirectToPage("/Form", new { id = existing.Id, tl = actualName, coveringFor = covering });
+        }
+
+        var previousShift = await _resume.FindPendingHandoverForAreaAsync(area, d, shift);
+        if (previousShift != null)
+        {
+            return RedirectToPage("/HandoverAck", new
+            {
+                prevId = previousShift.Id,
+                date = shiftDate,
+                shift,
+                area,
+                tl = actualName
+            });
+        }
 
         return RedirectToPage("/Form", new
         {

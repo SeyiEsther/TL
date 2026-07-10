@@ -31,8 +31,10 @@ public class HistoryModel : PageModel
 
         var rows = new List<HistoryRow>();
 
-        if (Tab is "all" or "shifts")
+        if (Tab is "shifts")
             rows.AddRange(await LoadShiftsAsync());
+        else if (Tab is "all")
+            rows.AddRange(await LoadShiftsAsync(inProgressOnly: true));
         if (Tab is "all" or "hod")
             rows.AddRange(await LoadHodAuditsSafeAsync());
         if (Tab is "all" or "senior")
@@ -46,9 +48,11 @@ public class HistoryModel : PageModel
             .ToList();
     }
 
-    async Task<List<HistoryRow>> LoadShiftsAsync()
+    async Task<List<HistoryRow>> LoadShiftsAsync(bool inProgressOnly = false)
     {
         var q = _db.ShiftSubmissions.ExcludeAudits();
+        if (inProgressOnly)
+            q = q.Where(s => string.IsNullOrEmpty(s.OutgoingTLSignature));
         if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f)) q = q.Where(s => s.ShiftDate >= f);
         if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t)) q = q.Where(s => s.ShiftDate <= t);
         if (!string.IsNullOrEmpty(AreaFilter)) q = q.Where(s => s.Area == AreaFilter);
