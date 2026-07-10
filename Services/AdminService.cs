@@ -31,12 +31,12 @@ public class AdminService
         var user = _users.GetCurrentUser();
 
         var usernames = _config.GetSection("Admin:Usernames").Get<string[]>() ?? [];
-        if (usernames.Any(u => NameEquals(u, user.Username)))
+        if (usernames.Any(u => PortalNameMatcher.Matches(u, user.Username)))
             return true;
 
         var displayNames = _config.GetSection("Admin:DisplayNames").Get<string[]>() ?? [];
         if (!string.IsNullOrWhiteSpace(user.DisplayName) &&
-            displayNames.Any(n => NameEquals(n, user.DisplayName)))
+            displayNames.Any(n => PortalNameMatcher.Matches(n, user.DisplayName)))
             return true;
 
         var groups = _config.GetSection("Admin:AdGroups").Get<string[]>() ?? [];
@@ -48,17 +48,6 @@ public class AdminService
 
         return IsMemberOfAnyGroupWindows(user.Username, groups);
     }
-
-    static bool NameEquals(string configured, string actual)
-    {
-        var a = NormalizeName(configured);
-        var b = NormalizeName(actual);
-        return !string.IsNullOrEmpty(a) &&
-               string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-    }
-
-    static string NormalizeName(string? value) =>
-        string.Join(' ', (value ?? "").Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
 
     [SupportedOSPlatform("windows")]
     bool IsMemberOfAnyGroupWindows(string username, string[] groups)

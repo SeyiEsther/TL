@@ -11,6 +11,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AdminService>();
+builder.Services.AddScoped<PortalAccessService>();
 builder.Services.AddScoped<PersonListService>();
 builder.Services.AddScoped<RecordDeleteService>();
 builder.Services.AddScoped<PdfExportService>();
@@ -20,7 +21,9 @@ builder.Services.AddScoped<HodEffectivenessService>();
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+    options.Conventions.AddFolderApplicationModelConvention("/", model =>
+        model.Filters.Add(new TL.Filters.PortalAccessFilter())));
 
 var app = builder.Build();
 
