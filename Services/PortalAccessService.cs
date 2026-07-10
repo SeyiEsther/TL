@@ -18,12 +18,15 @@ public class PortalAccessService
 
     public Task EnsureReadyAsync() => _people.EnsureLoadedAsync();
 
-    public bool CanAccessHod() => _admin.IsAdmin() || MatchesList(_people.Hods);
+    public bool CanAccessHod() =>
+        _admin.IsAdmin()
+        || MatchesList(_people.Hods)
+        || IsShiftManager();
 
     public bool CanAccessSenior() =>
         _admin.IsAdmin()
         || MatchesList(_people.Seniors)
-        || MatchesList(ShiftManagerList.Names);
+        || IsShiftManager();
 
     /// <summary>Factory-wide dashboards and full history — not for general team leaders.</summary>
     public bool CanAccessManagement() =>
@@ -39,6 +42,8 @@ public class PortalAccessService
         "/Admin" => _admin.IsAdmin(),
         _ => true,
     };
+
+    bool IsShiftManager() => MatchesList(ShiftManagerList.Names);
 
     bool MatchesList(IReadOnlyList<string> names)
     {
