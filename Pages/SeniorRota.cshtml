@@ -6,7 +6,7 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title">Senior audit rota — @Model.Year</div>
-            <div class="page-sub">Group 1s &amp; Directors, split into @SeniorRota.GroupCount teams of @SeniorRota.GroupSize — one team on duty each week for the Senior Weekly Audit. Teams re-draw automatically every January.</div>
+            <div class="page-sub">Group 1s &amp; Directors, split into @SeniorRota.GroupCountFor(Model.SeniorNames) teams of @SeniorRota.GroupSize — one team on duty each week for the Senior Weekly Audit. Teams re-draw automatically every January.</div>
         </div>
         <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
     </div>
@@ -68,7 +68,7 @@
                             @foreach (var person in w.Team)
                             {
                                 <div style="display:flex;align-items:center;gap:9px">
-                                    <div style="width:26px;height:26px;border-radius:50%;background:@SeniorRota.AvatarColor(person);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">
+                                    <div style="width:26px;height:26px;border-radius:50%;background:@SeniorRota.AvatarColor(person, Model.SeniorNames);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0">
                                         @SeniorRota.Initials(person)
                                     </div>
                                     <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@person</span>

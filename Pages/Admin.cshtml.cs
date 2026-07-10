@@ -10,7 +10,7 @@ namespace TL.Pages;
 public class AdminModel : PageModel
 {
     private static readonly HashSet<string> ValidTabs = new(StringComparer.OrdinalIgnoreCase)
-        { "sessions", "teamleaders", "hod" };
+        { "sessions", "teamleaders", "hod", "senior" };
 
     private readonly AppDbContext _db;
     private readonly AdminService _admin;
@@ -30,8 +30,7 @@ public class AdminModel : PageModel
     public string? StatusMessage { get; set; }
     public string? Error { get; set; }
     public List<InProgressShiftRow> InProgressShifts { get; set; } = [];
-    public IReadOnlyList<PickerPerson> TeamLeaderPeople { get; set; } = [];
-    public IReadOnlyList<PickerPerson> HodPeople { get; set; } = [];
+    public IReadOnlyList<PickerPerson> People { get; set; } = [];
     public bool PeopleReadOnly { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string? tab, string? saved, string? error)
@@ -68,11 +67,17 @@ public class AdminModel : PageModel
         if (!_admin.IsAdmin())
             return RedirectToPage("/Index");
 
-        var kind = listKind == PersonListKinds.Hod ? PersonListKinds.Hod : PersonListKinds.TeamLeader;
+        var kind = listKind switch
+        {
+            PersonListKinds.Hod => PersonListKinds.Hod,
+            PersonListKinds.Senior => PersonListKinds.Senior,
+            _ => PersonListKinds.TeamLeader,
+        };
         var ok = await _people.AddPersonAsync(kind, name);
         var redirectTab = tab switch
         {
             "hod" => "hod",
+            "senior" => "senior",
             _ => "teamleaders",
         };
         return RedirectToPage(new
@@ -91,7 +96,7 @@ public class AdminModel : PageModel
         var ok = await _people.RemovePersonAsync(id);
         return RedirectToPage(new
         {
-            tab = tab == "hod" ? "hod" : "teamleaders",
+            tab = tab switch { "hod" => "hod", "senior" => "senior", _ => "teamleaders" },
             saved = ok ? "removed" : null,
         });
     }
@@ -115,22 +120,42 @@ public class AdminModel : PageModel
                     s.HoursCompleted,
                     s.LastEditedAt ?? s.SubmittedAt))
                 .ToListAsync();
+            return;
         }
-        else
-        {
-            var (teamLeaders, hods, fromDatabase) = await _people.LoadPickerPeopleAsync();
-            TeamLeaderPeople = teamLeaders;
-            HodPeople = hods;
-            PeopleReadOnly = !fromDatabase;
-        }
+
+        var (people, fromDatabase) = await _people.LoadPeopleByKindAsync(ListKindForTab(Tab));
+        People = people;
+        PeopleReadOnly = !fromDatabase;
     }
+
+    public static string ListKindForTab(string tab) => tab switch
+    {
+        "hod" => PersonListKinds.Hod,
+        "senior" => PersonListKinds.Senior,
+        _ => PersonListKinds.TeamLeader,
+    };
 
     public string TabLabel(string t) => t switch
     {
         "sessions" => "In-progress shifts",
         "teamleaders" => "Team leaders",
         "hod" => "HoD / Shift Mgr",
+        "senior" => "Senior management",
         _ => t,
+    };
+
+    public string PeopleTitle => Tab switch
+    {
+        "hod" => "HoD / Shift Mgr names",
+        "senior" => "Senior management names",
+        _ => "Team leader names",
+    };
+
+    public string PeopleHelp => Tab switch
+    {
+        "hod" => "Names appear on the HoD audit start screen.",
+        "senior" => "Names feed the senior weekly audit duty rota (teams of 4, reshuffled each January).",
+        _ => "Names appear on the Home team leader picker.",
     };
 
     public static string PersonLabel(string teamLeader, string? coveringFor) =>

@@ -4,26 +4,22 @@ namespace TL.Models;
 
 /// <summary>
 /// Weekly duty rota for the Senior Weekly Audit, covering Group 1s and Directors.
-/// The 12 names are split into 3 fixed teams of 4, and one team is on duty each
-/// week (cycling every 3 weeks). The teams are re-drawn automatically every January
-/// (seeded by ISO year) so they stay fresh year to year without any manual upkeep.
+/// Names come from <see cref="PersonListService"/> in production; built-in defaults otherwise.
 /// </summary>
 public static class SeniorRota
 {
     public const int GroupSize = 4;
 
-    public static readonly string[] Names =
-    [
-        "Jim Gray", "John Fisher", "Steven Hawkins", "Vic Ward",
-        "Simon Graham", "Lukasz Jaworski", "Dean Campbell", "Glen Atkinson",
-        "Kyle Anderson", "Jonathan Maynard", "Mark Tapp", "Tony Bent",
-    ];
+    public static IReadOnlyList<string> ResolveNames(IReadOnlyList<string>? names) =>
+        names is { Count: > 0 } ? names : SeniorManagementList.Names;
 
-    public static int GroupCount => Names.Length / GroupSize;
+    public static int GroupCountFor(IReadOnlyList<string> names) =>
+        Math.Max(1, ResolveNames(names).Count / GroupSize);
 
-    public static string[] OrderForYear(int year)
+    public static string[] OrderForYear(int year, IReadOnlyList<string>? names = null)
     {
-        var order = (string[])Names.Clone();
+        var source = ResolveNames(names);
+        var order = source.ToArray();
         var rng = new Random(year);
         for (int i = order.Length - 1; i > 0; i--)
         {
@@ -33,25 +29,24 @@ public static class SeniorRota
         return order;
     }
 
-    /// <summary>The fixed teams of 4 for the given year, drawn from that year's shuffle.</summary>
-    public static List<string[]> TeamsForYear(int year) =>
-        OrderForYear(year)
+    public static List<string[]> TeamsForYear(int year, IReadOnlyList<string>? names = null) =>
+        OrderForYear(year, names)
             .Select((name, i) => (name, i))
             .GroupBy(x => x.i / GroupSize)
             .Select(g => g.Select(x => x.name).ToArray())
             .ToList();
 
-    /// <summary>Zero-based index of the team on duty for a given ISO week.</summary>
-    public static int TeamIndexForWeek(int isoWeek) => (isoWeek - 1) % GroupCount;
+    public static int TeamIndexForWeek(int isoWeek, IReadOnlyList<string>? names = null) =>
+        (isoWeek - 1) % GroupCountFor(ResolveNames(names));
 
-    public static string[] TeamForWeek(int isoYear, int isoWeek) =>
-        TeamsForYear(isoYear)[TeamIndexForWeek(isoWeek)];
+    public static string[] TeamForWeek(int isoYear, int isoWeek, IReadOnlyList<string>? names = null) =>
+        TeamsForYear(isoYear, names)[TeamIndexForWeek(isoWeek, names)];
 
     public record RotaWeek(int IsoWeek, DateOnly WeekStart, DateOnly WeekEnd, string[] Team, int TeamNumber, bool IsCurrent, bool IsPast);
 
-    /// <summary>One row per week from the first week of the given date's year through 31 December.</summary>
-    public static List<RotaWeek> WeeksThisYear(DateOnly today)
+    public static List<RotaWeek> WeeksThisYear(DateOnly today, IReadOnlyList<string>? names = null)
     {
+        var resolved = ResolveNames(names);
         var daysSinceMonday = ((int)today.DayOfWeek + 6) % 7;
         var currentMonday = today.AddDays(-daysSinceMonday);
         var yearStart = new DateOnly(today.Year, 1, 1);
@@ -67,20 +62,20 @@ public static class SeniorRota
             var isoWeek = ISOWeek.GetWeekOfYear(dt);
             var weekEnd = cursor.AddDays(6);
             result.Add(new RotaWeek(isoWeek, cursor, weekEnd,
-                TeamForWeek(isoYear, isoWeek), TeamIndexForWeek(isoWeek) + 1,
+                TeamForWeek(isoYear, isoWeek, resolved), TeamIndexForWeek(isoWeek, resolved) + 1,
                 cursor == currentMonday, weekEnd < today));
         }
         return result;
     }
 
-    public static RotaWeek? CurrentWeek(DateOnly today) =>
-        WeeksThisYear(today).FirstOrDefault(w => w.IsCurrent);
+    public static RotaWeek? CurrentWeek(DateOnly today, IReadOnlyList<string>? names = null) =>
+        WeeksThisYear(today, names).FirstOrDefault(w => w.IsCurrent);
 
-    public static RotaWeek? WeekForDate(DateOnly date)
+    public static RotaWeek? WeekForDate(DateOnly date, IReadOnlyList<string>? names = null)
     {
         var daysSinceMonday = ((int)date.DayOfWeek + 6) % 7;
         var weekStart = date.AddDays(-daysSinceMonday);
-        return WeeksThisYear(date).FirstOrDefault(w => w.WeekStart == weekStart);
+        return WeeksThisYear(date, names).FirstOrDefault(w => w.WeekStart == weekStart);
     }
 
     static readonly string[] AvatarPalette =
@@ -90,9 +85,9 @@ public static class SeniorRota
         "#ea580c", "#4338ca", "#0d9488", "#9333ea",
     ];
 
-    public static string AvatarColor(string person)
+    public static string AvatarColor(string person, IReadOnlyList<string>? names = null)
     {
-        var idx = Array.IndexOf(Names, person);
+        var idx = Array.IndexOf(ResolveNames(names).ToArray(), person);
         return AvatarPalette[(idx < 0 ? 0 : idx) % AvatarPalette.Length];
     }
 

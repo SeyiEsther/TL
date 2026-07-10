@@ -9,6 +9,7 @@ public class PersonListService
 {
     private const string TeamLeaderCacheKey = "picker-names-tl";
     private const string HodCacheKey = "picker-names-hod";
+    private const string SeniorCacheKey = "picker-names-senior";
 
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
@@ -26,6 +27,9 @@ public class PersonListService
 
     public IReadOnlyList<string> Hods =>
         _cache.Get<IReadOnlyList<string>>(HodCacheKey) ?? HodList.Names;
+
+    public IReadOnlyList<string> Seniors =>
+        _cache.Get<IReadOnlyList<string>>(SeniorCacheKey) ?? SeniorManagementList.Names;
 
     public async Task EnsureLoadedAsync()
     {
@@ -48,12 +52,14 @@ public class PersonListService
 
             _cache.Set(TeamLeaderCacheKey, RowsForKind(rows, PersonListKinds.TeamLeader));
             _cache.Set(HodCacheKey, RowsForKind(rows, PersonListKinds.Hod));
+            _cache.Set(SeniorCacheKey, RowsForKind(rows, PersonListKinds.Senior));
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Could not load picker names from database — using built-in defaults.");
             _cache.Set(TeamLeaderCacheKey, TeamLeaderList.Names);
             _cache.Set(HodCacheKey, HodList.Names);
+            _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
         }
     }
 
@@ -95,8 +101,7 @@ public class PersonListService
         return true;
     }
 
-    public async Task<(IReadOnlyList<PickerPerson> TeamLeaders, IReadOnlyList<PickerPerson> Hods, bool FromDatabase)>
-        LoadPickerPeopleAsync()
+    public async Task<(IReadOnlyList<PickerPerson> People, bool FromDatabase)> LoadPeopleByKindAsync(string listKind)
     {
         try
         {
@@ -104,22 +109,21 @@ public class PersonListService
                 await SeedFromDefaultsAsync();
 
             var people = await _db.PickerPersons
+                .Where(p => p.ListKind == listKind)
                 .OrderBy(p => p.SortOrder)
                 .ThenBy(p => p.Name)
                 .ToListAsync();
 
-            return (
-                people.Where(p => p.ListKind == PersonListKinds.TeamLeader).ToList(),
-                people.Where(p => p.ListKind == PersonListKinds.Hod).ToList(),
-                true);
+            if (people.Count == 0)
+                return (FallbackPeople(listKind, FallbackNames(listKind)), true);
+
+            return (people, true);
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Could not load picker people for admin — showing built-in defaults.");
+            _log.LogWarning(ex, "Could not load {Kind} picker people for admin — showing built-in defaults.", listKind);
             await ReloadAsync();
-            return (FallbackPeople(PersonListKinds.TeamLeader, TeamLeaders),
-                FallbackPeople(PersonListKinds.Hod, Hods),
-                false);
+            return (FallbackPeople(listKind, FallbackNames(listKind)), false);
         }
     }
 
@@ -132,26 +136,31 @@ public class PersonListService
             SortOrder = i + 1,
         }).ToList();
 
+    static IReadOnlyList<string> FallbackNames(string kind) => kind switch
+    {
+        PersonListKinds.Hod => HodList.Names,
+        PersonListKinds.Senior => SeniorManagementList.Names,
+        _ => TeamLeaderList.Names,
+    };
+
     async Task SeedFromDefaultsAsync()
     {
-        var seed = TeamLeaderList.Names
-            .Select((name, i) => new PickerPerson
-            {
-                ListKind = PersonListKinds.TeamLeader,
-                Name = name,
-                SortOrder = i + 1,
-            })
-            .Concat(HodList.Names.Select((name, i) => new PickerPerson
-            {
-                ListKind = PersonListKinds.Hod,
-                Name = name,
-                SortOrder = i + 1,
-            }))
+        var seed = BuildSeedRows(PersonListKinds.TeamLeader, TeamLeaderList.Names)
+            .Concat(BuildSeedRows(PersonListKinds.Hod, HodList.Names))
+            .Concat(BuildSeedRows(PersonListKinds.Senior, SeniorManagementList.Names))
             .ToList();
 
         _db.PickerPersons.AddRange(seed);
         await _db.SaveChangesAsync();
     }
+
+    static IEnumerable<PickerPerson> BuildSeedRows(string kind, IReadOnlyList<string> names) =>
+        names.Select((name, i) => new PickerPerson
+        {
+            ListKind = kind,
+            Name = name,
+            SortOrder = i + 1,
+        });
 
     static IReadOnlyList<string> RowsForKind(List<PickerPerson> rows, string kind) =>
         rows.Where(p => p.ListKind == kind).Select(p => p.Name).ToList();

@@ -29,7 +29,7 @@
                     @foreach (var person in duty.Team)
                     {
                         <span class="senior-duty-person" title="@person">
-                            <span class="senior-duty-avatar" style="background:@SeniorRota.AvatarColor(person)">@SeniorRota.Initials(person)</span>
+                            <span class="senior-duty-avatar" style="background:@SeniorRota.AvatarColor(person, Model.SeniorNames)">@SeniorRota.Initials(person)</span>
                             @person
                         </span>
                     }

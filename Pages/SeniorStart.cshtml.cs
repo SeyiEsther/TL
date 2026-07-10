@@ -11,33 +11,44 @@ public class SeniorStartModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly UserService _users;
+    private readonly PersonListService _people;
 
-    public SeniorStartModel(AppDbContext db, UserService users) { _db = db; _users = users; }
+    public SeniorStartModel(AppDbContext db, UserService users, PersonListService people)
+    {
+        _db = db;
+        _users = users;
+        _people = people;
+    }
 
     public string AuditorName { get; set; } = "";
     public string AuditDate { get; set; } = "";
     public List<AreaPerformanceSuggestion> SuggestedAreas { get; set; } = [];
     public SeniorRota.RotaWeek? DutyWeek { get; set; }
+    public IReadOnlyList<string> SeniorNames { get; set; } = SeniorManagementList.Names;
     public string? Error { get; set; }
 
     public async Task OnGetAsync(string? auditor, string? date)
     {
+        await _people.EnsureLoadedAsync();
+        SeniorNames = _people.Seniors;
         var user = _users.GetCurrentUser();
         AuditorName = string.IsNullOrWhiteSpace(auditor) ? user.DisplayName : auditor;
         AuditDate = string.IsNullOrWhiteSpace(date) ? DateTime.Today.ToString("yyyy-MM-dd") : date;
         var refDate = DateOnly.TryParse(AuditDate, out var ad) ? ad : DateOnly.FromDateTime(DateTime.Today);
-        DutyWeek = SeniorRota.WeekForDate(refDate) ?? SeniorRota.CurrentWeek(refDate);
+        DutyWeek = SeniorRota.WeekForDate(refDate, SeniorNames) ?? SeniorRota.CurrentWeek(refDate, SeniorNames);
         SuggestedAreas = await LoadSuggestedAreasAsync();
     }
 
     public async Task<IActionResult> OnPostAsync(string auditDate, string auditorName, string area)
     {
+        await _people.EnsureLoadedAsync();
+        SeniorNames = _people.Seniors;
         if (string.IsNullOrWhiteSpace(auditorName) || string.IsNullOrWhiteSpace(area))
         {
             AuditorName = auditorName ?? "";
             AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
             var refDate = DateOnly.TryParse(AuditDate, out var ad) ? ad : DateOnly.FromDateTime(DateTime.Today);
-            DutyWeek = SeniorRota.WeekForDate(refDate) ?? SeniorRota.CurrentWeek(refDate);
+            DutyWeek = SeniorRota.WeekForDate(refDate, SeniorNames) ?? SeniorRota.CurrentWeek(refDate, SeniorNames);
             SuggestedAreas = await LoadSuggestedAreasAsync();
             Error = "Please fill in all fields.";
             return Page();

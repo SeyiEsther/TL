@@ -13,4 +13,5 @@ public static class PersonListKinds
 {
     public const string TeamLeader = "TeamLeader";
     public const string Hod = "Hod";
+    public const string Senior = "Senior";
 }
