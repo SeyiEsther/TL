@@ -22,7 +22,7 @@ namespace TL.Services
             _cache = cache;
         }
 
-        public AppUser GetCurrentUser()
+        public virtual AppUser GetCurrentUser()
         {
             if (_current != null) return _current;
 
