@@ -24,7 +24,7 @@
                     <a class="edit-btn" asp-page="/Form" asp-route-id="@s.Id">Edit this shift</a>
                 </div>
                 <div class="meta-row">
-                    <div class="meta-item"><div class="meta-label">Team leader</div><div class="meta-val">@s.TeamLeaderDisplay</div></div>
+                    <div class="meta-item"><div class="meta-label">Team leader</div><div class="meta-val">@s.TeamLeaderDisplay@if (!string.IsNullOrWhiteSpace(s.CoveringFor)) { <span style="font-weight:400;color:var(--muted)"> (covering for @s.CoveringFor)</span> }</div></div>
                     <div class="meta-item"><div class="meta-label">Hours completed</div><div class="meta-val">@s.HoursCompleted</div></div>
                     <div class="meta-item"><div class="meta-label">Submitted</div><div class="meta-val">@s.SubmittedAt.ToLocalTime().ToString("HH:mm")</div></div>
                     @if (s.LastEditedBy != null)

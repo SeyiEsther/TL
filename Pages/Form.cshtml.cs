@@ -37,11 +37,12 @@ public class FormModel : PageModel
     [BindProperty] public string? KeyRisks { get; set; }
     [BindProperty] public string? Priorities { get; set; }
     [BindProperty] public string? OutgoingTLSignature { get; set; }
+    [BindProperty] public string? CoveringFor { get; set; }
     public string? ValidationError { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? shift, string? area, string? tl,
-        int? id, int hours = 8, string? saved = null)
+        int? id, int hours = 8, string? saved = null, string? coveringFor = null)
     {
         Hours = Math.Clamp(hours, 1, 8);
         SaveMessage = saved switch
@@ -77,10 +78,12 @@ public class FormModel : PageModel
             if (existing != null)
                 return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName });
 
+            CoveringFor = string.IsNullOrWhiteSpace(coveringFor) ? null : coveringFor.Trim();
             var stub = new ShiftSubmission
             {
                 SubmittedBy = user.Username,
                 TeamLeaderDisplay = tlName,
+                CoveringFor = CoveringFor,
                 ShiftDate = d,
                 Shift = Shift,
                 Area = Area,
@@ -219,15 +222,19 @@ public class FormModel : PageModel
                 logs.Add(new AuditLog { SubmissionId = sub.Id, ChangedBy = editorName, FieldName = field, OldValue = oldVal, NewValue = newVal });
         }
 
+        var covering = string.IsNullOrWhiteSpace(CoveringFor) ? null : CoveringFor.Trim();
+
         Track("Escalations", sub.Escalations, Escalations);
         Track("KeyRisks", sub.KeyRisks, KeyRisks);
         Track("Priorities", sub.Priorities, Priorities);
+        Track("CoveringFor", sub.CoveringFor, covering);
         if (!string.IsNullOrWhiteSpace(outgoingTLSignature))
             Track("OutgoingTLSignature", sub.OutgoingTLSignature, outgoingTLSignature);
 
         sub.Escalations = Escalations;
         sub.KeyRisks = KeyRisks;
         sub.Priorities = Priorities;
+        sub.CoveringFor = covering;
         if (!string.IsNullOrWhiteSpace(outgoingTLSignature))
             sub.OutgoingTLSignature = outgoingTLSignature;
         sub.HoursCompleted = (byte)Hours;
@@ -311,6 +318,7 @@ public class FormModel : PageModel
         KeyRisks = sub.KeyRisks;
         Priorities = sub.Priorities;
         OutgoingTLSignature = sub.OutgoingTLSignature;
+        CoveringFor = sub.CoveringFor;
 
         H = new List<HourInput>();
         for (int hourNum = 1; hourNum <= Hours; hourNum++)

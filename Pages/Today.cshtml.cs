@@ -27,6 +27,7 @@ public class TodayModel : PageModel
             Shift = s.Shift,
             Area = s.Area,
             TeamLeaderDisplay = s.TeamLeaderDisplay,
+            CoveringFor = s.CoveringFor,
             HoursCompleted = s.HoursCompleted,
             ShiftDate = s.ShiftDate,
             SubmittedAt = s.SubmittedAt,
@@ -47,6 +48,7 @@ public class TodayModel : PageModel
         public string Shift { get; set; } = "";
         public string? Area { get; set; }
         public string TeamLeaderDisplay { get; set; } = "";
+        public string? CoveringFor { get; set; }
         public int HoursCompleted { get; set; }
         public DateOnly ShiftDate { get; set; }
         public DateTime SubmittedAt { get; set; }

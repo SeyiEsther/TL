@@ -221,6 +221,9 @@ namespace TL.Migrations
                     b.Property<string>("Area")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CoveringFor")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Escalations")
                         .HasColumnType("nvarchar(max)");
 

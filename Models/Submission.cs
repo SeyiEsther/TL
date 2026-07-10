@@ -10,6 +10,8 @@ namespace TL.Models
         public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         public string SubmittedBy { get; set; } = "";
         public string TeamLeaderDisplay { get; set; } = "";
+        /// <summary>When someone (e.g. a HoD) fills in on behalf of a TL, the TL they are covering for. Null for the normal case.</summary>
+        public string? CoveringFor { get; set; }
         public DateOnly ShiftDate { get; set; }
         public string Shift { get; set; } = "";
         public string? Area { get; set; }

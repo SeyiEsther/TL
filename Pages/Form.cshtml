@@ -13,7 +13,14 @@
     <div class="session-bar">
         <div class="sf"><label>Date</label><input type="text" value="@Model.ShiftDate" readonly></div>
         <div class="sf"><label>Shift</label><input type="text" value="@Model.Shift" readonly></div>
-        <div class="sf"><label>Team leader</label><input type="text" value="@Model.TeamLeader" readonly></div>
+        <div class="sf">
+            <label>Team leader</label>
+            <input type="text" value="@Model.TeamLeader" readonly>
+            @if (!string.IsNullOrWhiteSpace(Model.CoveringFor))
+            {
+                <div style="font-size:10px;color:var(--muted);margin-top:3px">covering for <strong>@Model.CoveringFor</strong></div>
+            }
+        </div>
         <div class="sf">
             <label>Area</label>
             <input type="text" value="@Model.Area" readonly style="font-weight:700;color:var(--red)">
@@ -76,6 +83,7 @@
         <input type="hidden" name="Shift" value="@Model.Shift">
         <input type="hidden" name="TeamLeader" value="@Model.TeamLeader">
         <input type="hidden" name="Area" value="@Model.Area">
+        <input type="hidden" name="CoveringFor" value="@Model.CoveringFor">
         <input type="hidden" name="HoursCount" value="@H">
         <input type="hidden" name="EditingId" value="@(Model.EditingId?.ToString() ?? "")">
 

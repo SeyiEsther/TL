@@ -545,7 +545,9 @@ namespace TL.Services
                         t.Cell().Element(LabelCell).Text("Shift");
                         t.Cell().Element(ValueCell).Text(s.Shift);
                         t.Cell().Element(LabelCell).Text("Team Leader");
-                        t.Cell().Element(ValueCell).Text(s.TeamLeaderDisplay);
+                        t.Cell().Element(ValueCell).Text(string.IsNullOrWhiteSpace(s.CoveringFor)
+                            ? s.TeamLeaderDisplay
+                            : $"{s.TeamLeaderDisplay} (covering for {s.CoveringFor})");
                         t.Cell().Element(LabelCell).Text("Area");
                         t.Cell().Element(ValueCell).Text(s.Area ?? "—");
                         t.Cell().Element(LabelCell).Text("Hours completed");

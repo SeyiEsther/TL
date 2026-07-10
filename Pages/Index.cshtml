@@ -32,6 +32,23 @@
                 <partial name="_TeamLeaderPicker" model='new FilterDropdownModel("TeamLeader", "Team leader", Model.TeamLeader, "Select your name…")' />
             </div>
 
+            <div id="coveringPanel" style="display:none;margin-bottom:14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px">
+                <div class="fl" style="margin-bottom:10px">
+                    <label>Your name <span style="color:var(--red)">*</span></label>
+                    <input type="text" name="OtherName" value="@(Model.OtherName ?? "")" placeholder="Who is filling this in" autocomplete="name">
+                </div>
+                <div class="fl">
+                    <label>Covering for <span style="color:var(--muted);font-weight:400;text-transform:none">(optional)</span></label>
+                    <select name="CoveringFor">
+                        <option value="">— Not covering for anyone —</option>
+                        @foreach (var name in TeamLeaderList.Names)
+                        {
+                            <option value="@name" selected="@(Model.CoveringFor == name ? "selected" : null)">@name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
             <div class="fl" style="margin-bottom:6px">
                 <label>Area <span style="color:var(--red)">*</span></label>
                 <select name="Area" required>
@@ -60,3 +77,17 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var picker = document.getElementById('fs-TeamLeader');
+    var panel = document.getElementById('coveringPanel');
+    if (!picker || !panel) return;
+    var hidden = picker.querySelector('.fs-input');
+    function sync() { panel.style.display = (hidden && hidden.value === '__other__') ? 'block' : 'none'; }
+    // The searchable picker sets the hidden value on option click without firing an event,
+    // so re-check after any click, then reflect the current selection.
+    document.addEventListener('click', function () { setTimeout(sync, 0); });
+    sync();
+})();
+</script>

@@ -63,6 +63,7 @@ public class HistoryModel : PageModel
                 s.Shift,
                 s.Area,
                 s.TeamLeaderDisplay,
+                s.CoveringFor,
                 s.SubmittedAt,
                 s.Escalations,
                 Safety = s.Hours.Where(h => h.OverallSafetyStatus != null).OrderByDescending(h => h.HourNumber).Select(h => h.OverallSafetyStatus).FirstOrDefault(),
@@ -72,7 +73,7 @@ public class HistoryModel : PageModel
             .ToListAsync();
 
         return items.Select(s => new HistoryRow(
-            "Shift", "shifts", s.Id, s.ShiftDate, s.Shift, s.Area ?? "—", s.TeamLeaderDisplay,
+            "Shift", "shifts", s.Id, s.ShiftDate, s.Shift, s.Area ?? "—", PersonDisplay(s.TeamLeaderDisplay, s.CoveringFor),
             s.Safety, s.Quality, s.Perf, null,
             !string.IsNullOrEmpty(s.Escalations), false, s.SubmittedAt)).ToList();
     }
@@ -170,11 +171,14 @@ public class HistoryModel : PageModel
             var pending = string.IsNullOrEmpty(s.IncomingTLSignature);
             return new HistoryRow(
                 pending ? "Handover (pending)" : "Handover", "handovers", s.Id, s.ShiftDate, s.Shift,
-                s.Area ?? "—", s.TeamLeaderDisplay,
+                s.Area ?? "—", PersonDisplay(s.TeamLeaderDisplay, s.CoveringFor),
                 h?.OverallSafetyStatus, h?.OverallQualityStatus, h?.OverallPerfStatus, null,
                 false, pending, s.SubmittedAt);
         }).ToList();
     }
+
+    static string PersonDisplay(string teamLeader, string? coveringFor) =>
+        string.IsNullOrWhiteSpace(coveringFor) ? teamLeader : $"{teamLeader} (covering for {coveringFor})";
 
     public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
 

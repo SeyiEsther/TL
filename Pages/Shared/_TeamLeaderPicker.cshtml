@@ -2,7 +2,11 @@
 @{
     var id = $"fs-{Model.Name}";
     var current = Model.Value ?? "";
-    var display = string.IsNullOrEmpty(current) ? Model.Placeholder : current;
+    const string otherValue = "__other__";
+    const string otherLabel = "Other / Covering for someone";
+    var display = string.IsNullOrEmpty(current)
+        ? Model.Placeholder
+        : (current == otherValue ? otherLabel : current);
 }
 <div class="fs" id="@id" data-name="@Model.Name" data-placeholder="@Model.Placeholder">
     <span class="fs-label">@Model.Label</span>
@@ -19,6 +23,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
             <input type="text" class="fs-search" placeholder="Search names…" autocomplete="off">
         </div>
+        <button type="button" class="fs-option @(current == otherValue ? "active" : "")" data-value="@otherValue" data-search="other covering someone else" role="option">
+            <span class="fs-option-label" style="font-weight:600">@otherLabel</span>
+        </button>
         <div class="fs-group">
             @foreach (var name in TeamLeaderList.Names)
             {
