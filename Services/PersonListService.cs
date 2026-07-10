@@ -95,6 +95,43 @@ public class PersonListService
         return true;
     }
 
+    public async Task<(IReadOnlyList<PickerPerson> TeamLeaders, IReadOnlyList<PickerPerson> Hods, bool FromDatabase)>
+        LoadPickerPeopleAsync()
+    {
+        try
+        {
+            if (!await _db.PickerPersons.AnyAsync())
+                await SeedFromDefaultsAsync();
+
+            var people = await _db.PickerPersons
+                .OrderBy(p => p.SortOrder)
+                .ThenBy(p => p.Name)
+                .ToListAsync();
+
+            return (
+                people.Where(p => p.ListKind == PersonListKinds.TeamLeader).ToList(),
+                people.Where(p => p.ListKind == PersonListKinds.Hod).ToList(),
+                true);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not load picker people for admin — showing built-in defaults.");
+            await ReloadAsync();
+            return (FallbackPeople(PersonListKinds.TeamLeader, TeamLeaders),
+                FallbackPeople(PersonListKinds.Hod, Hods),
+                false);
+        }
+    }
+
+    static List<PickerPerson> FallbackPeople(string kind, IReadOnlyList<string> names) =>
+        names.Select((name, i) => new PickerPerson
+        {
+            Id = -(i + 1),
+            ListKind = kind,
+            Name = name,
+            SortOrder = i + 1,
+        }).ToList();
+
     async Task SeedFromDefaultsAsync()
     {
         var seed = TeamLeaderList.Names

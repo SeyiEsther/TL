@@ -32,6 +32,7 @@ public class AdminModel : PageModel
     public List<InProgressShiftRow> InProgressShifts { get; set; } = [];
     public IReadOnlyList<PickerPerson> TeamLeaderPeople { get; set; } = [];
     public IReadOnlyList<PickerPerson> HodPeople { get; set; } = [];
+    public bool PeopleReadOnly { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string? tab, string? saved, string? error)
     {
@@ -117,12 +118,10 @@ public class AdminModel : PageModel
         }
         else
         {
-            var people = await _db.PickerPersons
-                .OrderBy(p => p.SortOrder)
-                .ThenBy(p => p.Name)
-                .ToListAsync();
-            TeamLeaderPeople = people.Where(p => p.ListKind == PersonListKinds.TeamLeader).ToList();
-            HodPeople = people.Where(p => p.ListKind == PersonListKinds.Hod).ToList();
+            var (teamLeaders, hods, fromDatabase) = await _people.LoadPickerPeopleAsync();
+            TeamLeaderPeople = teamLeaders;
+            HodPeople = hods;
+            PeopleReadOnly = !fromDatabase;
         }
     }
 
