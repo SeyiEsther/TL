@@ -6,15 +6,15 @@
     <div class="page-head" style="margin-bottom:14px">
         <div>
             <div class="page-title">Senior audit rota — @Model.Year</div>
-            <div class="page-sub">Group 1s &amp; Directors, split into @SeniorRota.GroupCountFor(Model.SeniorNames) teams of @SeniorRota.GroupSize — one team on duty each week for the Senior Weekly Audit. Teams re-draw automatically every January.</div>
+            <div class="page-sub">Groups of @SeniorRota.GroupSize rotate weekly through the senior list — combinations change each week so duty is shared evenly across the year. Order reshuffles every January.</div>
         </div>
         <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
     </div>
 
     <div class="card" style="margin-bottom:20px;padding:18px 20px">
         <div class="card-head" style="padding:0 0 14px;margin-bottom:14px;border-bottom:1px solid var(--border)">
-            <span class="card-title">@Model.Year duty teams</span>
-            <span class="card-sub">@SeniorRota.GroupCountFor(Model.SeniorNames) teams — reshuffled each January</span>
+            <span class="card-title">@Model.Year opening rotation</span>
+            <span class="card-sub">First @SeniorRota.GroupCountFor(Model.SeniorNames) duty groups of @SeniorRota.GroupSize — weekly assignments continue in the calendar below</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
             @for (var t = 0; t < Model.YearTeams.Length; t++)
@@ -39,7 +39,7 @@
                         <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.72);font-weight:700;margin-bottom:2px">
                             On duty now &bull; Week @tw.IsoWeek &bull; @tw.WeekStart.ToString("dd MMM") &ndash; @tw.WeekEnd.ToString("dd MMM")
                         </div>
-                        <div style="font-size:23px;font-weight:800;color:#fff">Team @tw.TeamNumber</div>
+                        <div style="font-size:23px;font-weight:800;color:#fff">Week @tw.IsoWeek</div>
                     </div>
                     <a asp-page="/SeniorStart" asp-route-date="@tw.WeekStart.ToString("yyyy-MM-dd")"
                        class="sbtn primary" style="background:#fff;color:#1e2a4a;border:none;font-weight:700;white-space:nowrap">
@@ -76,7 +76,7 @@
                         : "border:1px solid var(--border);";
                     <div class="card" style="@borderCls @isPastCls padding:14px 16px;display:flex;flex-direction:column;gap:12px;margin-bottom:0">
                         <div style="display:flex;align-items:center;gap:8px">
-                            <div style="font-size:13px;font-weight:800;color:var(--accent)">Team @w.TeamNumber</div>
+                            <div style="font-size:13px;font-weight:800;color:var(--accent)">Week @w.IsoWeek</div>
                             <div style="font-size:10px;color:var(--muted)">Wk @w.IsoWeek &bull; @w.WeekStart.ToString("dd MMM") &ndash; @w.WeekEnd.ToString("dd MMM")</div>
                             @if (w.IsCurrent)
                             {
