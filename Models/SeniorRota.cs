@@ -32,18 +32,40 @@ public static class SeniorRota
         return order;
     }
 
-    public static List<string[]> TeamsForYear(int year, IReadOnlyList<string>? names = null) =>
-        OrderForYear(year, names)
-            .Select((name, i) => (name, i))
-            .GroupBy(x => x.i / GroupSize)
-            .Select(g => g.Select(x => x.name).ToArray())
+    /// <summary>Exactly <see cref="GroupSize"/> seniors on duty (wraps fairly when headcount is not a multiple of 4).</summary>
+    public static string[] DutyGroupForWeek(int isoYear, int isoWeek, IReadOnlyList<string>? names = null)
+    {
+        var order = OrderForYear(isoYear, names);
+        var n = order.Length;
+        if (n == 0) return [];
+        var size = Math.Min(GroupSize, n);
+        var start = ((isoWeek - 1) * GroupSize) % n;
+        return Enumerable.Range(0, size).Select(k => order[(start + k) % n]).ToArray();
+    }
+
+    /// <summary>First rotation groups for the year (each padded to 4 via wrap).</summary>
+    public static List<string[]> TeamsForYear(int year, IReadOnlyList<string>? names = null)
+    {
+        var order = OrderForYear(year, names);
+        var n = order.Length;
+        if (n == 0) return [];
+
+        var teamCount = GroupCountFor(order);
+        return Enumerable.Range(0, teamCount)
+            .Select(t =>
+            {
+                var start = (t * GroupSize) % n;
+                var size = Math.Min(GroupSize, n);
+                return Enumerable.Range(0, size).Select(k => order[(start + k) % n]).ToArray();
+            })
             .ToList();
+    }
 
     public static int TeamIndexForWeek(int isoWeek, IReadOnlyList<string>? names = null) =>
         (isoWeek - 1) % GroupCountFor(ResolveNames(names));
 
     public static string[] TeamForWeek(int isoYear, int isoWeek, IReadOnlyList<string>? names = null) =>
-        TeamsForYear(isoYear, names)[TeamIndexForWeek(isoWeek, names)];
+        DutyGroupForWeek(isoYear, isoWeek, names);
 
     public record RotaWeek(int IsoWeek, DateOnly WeekStart, DateOnly WeekEnd, string[] Team, int TeamNumber, bool IsCurrent, bool IsPast);
 
