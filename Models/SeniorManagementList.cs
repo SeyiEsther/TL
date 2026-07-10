@@ -3,7 +3,9 @@ namespace TL.Models;
 /// <summary>Default Group 1 / Director names for the senior weekly audit rota.</summary>
 public static class SeniorManagementList
 {
-  public static readonly string[] Names =
+    public const int Group1Count = 11;
+
+    public static readonly string[] Names =
   [
       // Group 1
       "Lukasz Jaworski", "Nicky Gleeson", "Vic Ward", "Simon Graham",

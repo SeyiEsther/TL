@@ -33,8 +33,14 @@ public class PersonListService
 
     public async Task EnsureLoadedAsync()
     {
+        await SyncSeniorRosterFromDefaultsAsync();
+
         if (_cache.TryGetValue(TeamLeaderCacheKey, out _))
+        {
+            await RefreshSeniorCacheAsync();
             return;
+        }
+
         await ReloadAsync();
     }
 
@@ -44,6 +50,8 @@ public class PersonListService
         {
             if (!await _db.PickerPersons.AnyAsync())
                 await SeedFromDefaultsAsync();
+            else
+                await SyncSeniorRosterFromDefaultsAsync();
 
             var rows = await _db.PickerPersons
                 .OrderBy(p => p.SortOrder)
@@ -152,6 +160,71 @@ public class PersonListService
 
         _db.PickerPersons.AddRange(seed);
         await _db.SaveChangesAsync();
+    }
+
+    async Task SyncSeniorRosterFromDefaultsAsync()
+    {
+        try
+        {
+            var existing = await _db.PickerPersons
+                .Where(p => p.ListKind == PersonListKinds.Senior)
+                .ToListAsync();
+            var byName = existing.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
+            var changed = false;
+
+            for (var i = 0; i < SeniorManagementList.Names.Length; i++)
+            {
+                var name = SeniorManagementList.Names[i];
+                var order = i + 1;
+                if (byName.TryGetValue(name, out var person))
+                {
+                    if (person.SortOrder != order)
+                    {
+                        person.SortOrder = order;
+                        changed = true;
+                    }
+                }
+                else
+                {
+                    _db.PickerPersons.Add(new PickerPerson
+                    {
+                        ListKind = PersonListKinds.Senior,
+                        Name = name,
+                        SortOrder = order,
+                    });
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await _db.SaveChangesAsync();
+                _log.LogInformation("Synced senior rota to {Count} names.", SeniorManagementList.Names.Length);
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not sync senior rota names to database.");
+        }
+    }
+
+    async Task RefreshSeniorCacheAsync()
+    {
+        try
+        {
+            var names = await _db.PickerPersons
+                .Where(p => p.ListKind == PersonListKinds.Senior)
+                .OrderBy(p => p.SortOrder)
+                .ThenBy(p => p.Name)
+                .Select(p => p.Name)
+                .ToListAsync();
+            if (names.Count > 0)
+                _cache.Set(SeniorCacheKey, names);
+        }
+        catch
+        {
+            _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
+        }
     }
 
     static IEnumerable<PickerPerson> BuildSeedRows(string kind, IReadOnlyList<string> names) =>
