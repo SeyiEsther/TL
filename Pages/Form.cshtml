@@ -219,7 +219,7 @@
         </div>
 
         <div class="submit-bar">
-            <button type="submit" class="sbtn primary" id="shift-submit-btn" formaction="?handler=SaveProgress" formmethod="post">
+            <button type="button" class="sbtn primary" id="shift-submit-btn">
                 Save progress
             </button>
             <button type="submit" class="sbtn primary" id="shift-final-btn">
@@ -326,11 +326,14 @@
     async function saveToServer(reason) {
         if (!form || serverSaveInFlight) return;
         serverSaveInFlight = true;
+        if (progressBtn) progressBtn.disabled = true;
         try {
             ensureEditingIdInput();
             const formData = new FormData(form);
             const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
-            const pageId = new URLSearchParams(location.search).get('id');
+            const pageId = new URLSearchParams(location.search).get('id')
+                || form.dataset.editingId
+                || form.querySelector('input[name="EditingId"]')?.value;
             const saveUrl = pageId ? `?handler=SaveProgress&id=${pageId}` : '?handler=SaveProgress';
             const resp = await fetch(saveUrl, {
                 method: 'POST',
@@ -343,18 +346,21 @@
                 }
             });
             const saveText = await resp.text();
-            if (!resp.ok) {
-                throw new Error('Server returned ' + resp.status + (saveText ? ': ' + saveText.slice(0, 120) : ''));
-            }
             let data;
             try { data = JSON.parse(saveText); } catch (e) {
-                throw new Error('Unexpected server response — use Save progress button');
+                if (!resp.ok) {
+                    throw new Error('Server returned ' + resp.status + (saveText ? ': ' + saveText.slice(0, 120) : ''));
+                }
+                throw new Error('Unexpected server response — try again in a moment');
+            }
+            if (!resp.ok) {
+                throw new Error(data.error || data.message || ('Server returned ' + resp.status));
             }
             if (data.id) {
                 ensureEditingIdInput().value = data.id;
                 form.dataset.editingId = String(data.id);
-                if (!pageId) {
-                    const url = new URL(location.href);
+                const url = new URL(location.href);
+                if (url.searchParams.get('id') !== String(data.id)) {
                     url.searchParams.set('id', data.id);
                     history.replaceState(null, '', url);
                 }
@@ -368,9 +374,10 @@
                 try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
             }
         } catch (e) {
-            statusEl.textContent = e.message || 'Could not save to server — use Save progress';
+            statusEl.textContent = e.message || 'Could not save to server — try Save progress again';
         } finally {
             serverSaveInFlight = false;
+            if (progressBtn) progressBtn.disabled = false;
         }
     }
 
@@ -381,6 +388,12 @@
             idInput.type = 'hidden';
             idInput.name = 'EditingId';
             form.appendChild(idInput);
+        }
+        if (!idInput.value) {
+            const fromDataset = form.dataset.editingId;
+            const fromUrl = new URLSearchParams(location.search).get('id');
+            if (fromDataset) idInput.value = fromDataset;
+            else if (fromUrl) idInput.value = fromUrl;
         }
         return idInput;
     }
@@ -420,17 +433,15 @@
 
     setInterval(saveDraft, 60 * 1000);
 
+    progressBtn?.addEventListener('click', function () {
+        saveToServer('manual');
+    });
+
     // clear draft on successful final submit
     form.addEventListener('submit', function (e) {
         const submitter = e.submitter;
         if (submitter && submitter.id === 'shift-final-btn') {
             try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
-            return;
-        }
-        if (submitter && submitter.id === 'shift-submit-btn') {
-            try { localStorage.removeItem(DRAFT_KEY); } catch (err) {}
-            ensureEditingIdInput();
-            return;
         }
     });
 

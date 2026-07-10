@@ -27,6 +27,7 @@ public class AuditModel : PageModel
     public string AuditType { get; set; } = "";
     public string AuditTypeLabel { get; set; } = "";
     public int? EditingId { get; set; }
+    public string? SaveMessage { get; set; }
 
     public List<HodAuditQuestion> Questions { get; set; } = [];
     public List<HodAuditAnswer> Answers { get; set; } = [];
@@ -43,8 +44,15 @@ public class AuditModel : PageModel
     [BindProperty] public string? TeamLeaderSignature { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
-        string? date, string? auditor, string? department, string? effectivenessArea, string? area, string? type, int? id)
+        string? date, string? auditor, string? department, string? effectivenessArea, string? area, string? type, int? id,
+        string? saved = null)
     {
+        SaveMessage = saved switch
+        {
+            "progress" => "Changes saved.",
+            _ => null,
+        };
+
         if (id.HasValue)
         {
             var audit = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == id.Value);
@@ -120,6 +128,78 @@ public class AuditModel : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostSaveProgressAsync(
+        string auditDate, string auditorName, string department, string effectivenessArea, string auditType,
+        int? editingId, string? auditorSignature, string? teamLeaderSignature)
+    {
+        if (!editingId.HasValue)
+            return RedirectToPage("/AuditStart");
+
+        AuditDate = auditDate;
+        AuditorName = auditorName;
+        Department = department;
+        EffectivenessArea = effectivenessArea;
+        AuditType = auditType;
+        EditingId = editingId;
+        AuditorSignature = auditorSignature;
+        TeamLeaderSignature = teamLeaderSignature;
+        AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
+        Questions = HodAuditDefinitions.GetQuestions(AuditType, Department);
+
+        try
+        {
+            var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
+            if (existing == null)
+                return RedirectToPage("/AuditStart");
+
+            if (!DateOnly.TryParse(auditDate, out var auditD))
+            {
+                ModelState.AddModelError("", "Invalid audit date.");
+                await RepopulateForErrorAsync(MergeAnswersWithExisting(existing.AnswersJson));
+                return Page();
+            }
+
+            var answers = MergeAnswersWithExisting(existing.AnswersJson);
+            (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
+            var user = _users.GetCurrentUser();
+            var effectiveness = await _effectiveness.GetFindingsAsync(
+                Department, EffectivenessArea, auditD, AuditType);
+            effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
+            Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
+
+            existing.AuditorName = auditorName ?? user.DisplayName;
+            existing.AuditDate = auditD;
+            existing.Department = department;
+            existing.EffectivenessArea = effectivenessArea;
+            existing.Area = effectivenessArea;
+            existing.AuditType = auditType;
+            existing.AnswersJson = HodAuditSerializer.ToJson(answers);
+            existing.TotalScore = TotalScore;
+            existing.MaxScore = MaxScore;
+            existing.EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness);
+            existing.ActionsRaised = Actions;
+            existing.GoodPractice = GoodPractice;
+            if (!string.IsNullOrWhiteSpace(auditorSignature))
+                existing.AuditorSignature = auditorSignature;
+            if (!string.IsNullOrWhiteSpace(teamLeaderSignature))
+                existing.TeamLeaderSignature = teamLeaderSignature;
+            existing.LastEditedBy = auditorName ?? user.DisplayName;
+            existing.LastEditedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+            return RedirectToPage("/Audit", new { id = editingId, saved = "progress" });
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
+                .LogError(ex, "Audit save progress failed for id {EditingId}", editingId);
+            ModelState.AddModelError("", "Could not save changes — please try again.");
+            var fallback = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
+            await RepopulateForErrorAsync(MergeAnswersWithExisting(fallback?.AnswersJson));
+            return Page();
+        }
+    }
+
     public async Task<IActionResult> OnPostAsync(
         string auditDate, string auditorName, string department, string effectivenessArea, string auditType,
         int? editingId, string? auditorSignature, string? teamLeaderSignature)
@@ -172,54 +252,65 @@ public class AuditModel : PageModel
         effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
         Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
-        if (editingId.HasValue)
+        try
         {
-            var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
-            if (existing == null) return RedirectToPage("/AuditStart");
+            if (editingId.HasValue)
+            {
+                var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
+                if (existing == null) return RedirectToPage("/AuditStart");
 
-            existing.AuditorName = auditorName ?? user.DisplayName;
-            existing.AuditDate = auditD;
-            existing.Department = department;
-            existing.EffectivenessArea = effectivenessArea;
-            existing.Area = effectivenessArea;
-            existing.AuditType = auditType;
-            existing.AnswersJson = HodAuditSerializer.ToJson(answers);
-            existing.TotalScore = TotalScore;
-            existing.MaxScore = MaxScore;
-            existing.EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness);
-            existing.ActionsRaised = Actions;
-            existing.GoodPractice = GoodPractice;
-            existing.AuditorSignature = auditorSignature;
-            existing.TeamLeaderSignature = teamLeaderSignature;
-            existing.LastEditedBy = auditorName ?? user.DisplayName;
-            existing.LastEditedAt = DateTime.UtcNow;
+                existing.AuditorName = auditorName ?? user.DisplayName;
+                existing.AuditDate = auditD;
+                existing.Department = department;
+                existing.EffectivenessArea = effectivenessArea;
+                existing.Area = effectivenessArea;
+                existing.AuditType = auditType;
+                existing.AnswersJson = HodAuditSerializer.ToJson(answers);
+                existing.TotalScore = TotalScore;
+                existing.MaxScore = MaxScore;
+                existing.EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness);
+                existing.ActionsRaised = Actions;
+                existing.GoodPractice = GoodPractice;
+                existing.AuditorSignature = auditorSignature;
+                existing.TeamLeaderSignature = teamLeaderSignature;
+                existing.LastEditedBy = auditorName ?? user.DisplayName;
+                existing.LastEditedAt = DateTime.UtcNow;
 
+                await _db.SaveChangesAsync();
+                return RedirectToPage("/Success", new { hodAuditId = editingId });
+            }
+
+            var audit = new HodDailyAudit
+            {
+                SubmittedBy = user.Username,
+                AuditorName = auditorName ?? user.DisplayName,
+                AuditDate = auditD,
+                Department = department,
+                EffectivenessArea = effectivenessArea,
+                Area = effectivenessArea,
+                AuditType = auditType,
+                AnswersJson = HodAuditSerializer.ToJson(answers),
+                TotalScore = TotalScore,
+                MaxScore = MaxScore,
+                EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness),
+                ActionsRaised = Actions,
+                GoodPractice = GoodPractice,
+                AuditorSignature = auditorSignature,
+                TeamLeaderSignature = teamLeaderSignature,
+            };
+
+            _db.HodDailyAudits.Add(audit);
             await _db.SaveChangesAsync();
-            return RedirectToPage("/Success", new { hodAuditId = editingId });
+            return RedirectToPage("/Success", new { hodAuditId = audit.Id });
         }
-
-        var audit = new HodDailyAudit
+        catch (Exception ex)
         {
-            SubmittedBy = user.Username,
-            AuditorName = auditorName ?? user.DisplayName,
-            AuditDate = auditD,
-            Department = department,
-            EffectivenessArea = effectivenessArea,
-            Area = effectivenessArea,
-            AuditType = auditType,
-            AnswersJson = HodAuditSerializer.ToJson(answers),
-            TotalScore = TotalScore,
-            MaxScore = MaxScore,
-            EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness),
-            ActionsRaised = Actions,
-            GoodPractice = GoodPractice,
-            AuditorSignature = auditorSignature,
-            TeamLeaderSignature = teamLeaderSignature,
-        };
-
-        _db.HodDailyAudits.Add(audit);
-        await _db.SaveChangesAsync();
-        return RedirectToPage("/Success", new { hodAuditId = audit.Id });
+            HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
+                .LogError(ex, "Audit submit failed for id {EditingId}", editingId);
+            ModelState.AddModelError("", "Could not save audit — please try again.");
+            await RepopulateForErrorAsync(answers);
+            return Page();
+        }
     }
 
     async Task RepopulateForErrorAsync(List<HodAuditAnswer> answers)
@@ -237,6 +328,33 @@ public class AuditModel : PageModel
         if (DateOnly.TryParse(AuditDate, out var ad))
             EffectivenessFindings = await _effectiveness.GetFindingsAsync(
                 Department, EffectivenessArea, ad, AuditType);
+    }
+
+    List<HodAuditAnswer> MergeAnswersWithExisting(string? existingJson)
+    {
+        var stored = HodAuditSerializer.ParseAnswers(existingJson);
+        var storedById = stored.ToDictionary(a => a.QuestionId);
+        var inputById = A
+            .Where(a => !string.IsNullOrEmpty(a.QuestionId))
+            .GroupBy(a => a.QuestionId)
+            .ToDictionary(g => g.Key, g => g.Last());
+
+        return Questions.Select(q =>
+        {
+            inputById.TryGetValue(q.Id, out var inp);
+            storedById.TryGetValue(q.Id, out var prev);
+            var pass = inp?.Pass ?? prev?.Pass;
+            var evidence = !string.IsNullOrWhiteSpace(inp?.Evidence) ? inp.Evidence : prev?.Evidence;
+            return new HodAuditAnswer
+            {
+                QuestionId = q.Id,
+                Section = q.Section,
+                Label = q.Label,
+                MachineName = q.MachineName,
+                Pass = pass,
+                Evidence = evidence,
+            };
+        }).ToList();
     }
 
     List<HodAuditAnswer> BuildAnswers()

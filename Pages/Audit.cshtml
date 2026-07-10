@@ -41,6 +41,13 @@
         </nav>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.SaveMessage))
+    {
+        <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:12px;color:#047857">
+            @Model.SaveMessage
+        </div>
+    }
+
     @if (!ViewData.ModelState.IsValid)
     {
         <div class="err" style="margin-bottom:14px">
@@ -274,9 +281,21 @@
         </div>
 
         <div class="audit-footer">
-            <button type="submit" class="sbtn primary">
-                @(Model.EditingId.HasValue ? "Save changes" : "Submit audit")
-            </button>
+            @if (Model.EditingId.HasValue)
+            {
+                <button type="submit" class="sbtn primary" formaction="?handler=SaveProgress&amp;id=@Model.EditingId" formmethod="post">
+                    Save changes
+                </button>
+                <button type="submit" class="sbtn">
+                    Submit &amp; close audit
+                </button>
+            }
+            else
+            {
+                <button type="submit" class="sbtn primary">
+                    Submit audit
+                </button>
+            }
             <a asp-page="/AuditStart" class="sbtn">Cancel</a>
         </div>
     </form>

@@ -101,11 +101,23 @@ public class FormModel : PageModel
         return Page();
     }
 
-    public Task<IActionResult> OnPostSaveProgressAsync()
-        => SaveAsync(finalSubmit: false);
+    public Task<IActionResult> OnPostSaveProgressAsync(int? id)
+    {
+        ApplyRouteId(id);
+        return SaveAsync(finalSubmit: false);
+    }
 
-    public Task<IActionResult> OnPostAsync()
-        => SaveAsync(finalSubmit: true);
+    public Task<IActionResult> OnPostAsync(int? id)
+    {
+        ApplyRouteId(id);
+        return SaveAsync(finalSubmit: true);
+    }
+
+    void ApplyRouteId(int? id)
+    {
+        if (!EditingId.HasValue && id.HasValue)
+            EditingId = id;
+    }
 
     async Task<IActionResult> SaveAsync(bool finalSubmit)
     {
@@ -117,43 +129,70 @@ public class FormModel : PageModel
         {
             ValidationError = "Team leader name is required — go back to Home and enter your name.";
             PadHours();
-            return Page();
+            return await SaveErrorResultAsync(finalSubmit, "Team leader name is required.");
         }
         TeamLeader = editorName;
         var hours = H.Take(Hours).ToList();
 
-        var sub = await ResolveSubmissionAsync(user, editorName);
-        EditingId = sub.Id;
-
-        var logs = new List<AuditLog>();
-        ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
-        var hoursMerged = MergeHours(sub, hours, editorName, logs);
-
-        sub.TeamLeaderDisplay = editorName;
-        sub.LastEditedBy = editorName;
-        sub.LastEditedAt = DateTime.UtcNow;
-        _db.AuditLogs.AddRange(logs);
-        await _db.SaveChangesAsync();
-
-        if (finalSubmit)
-            return RedirectToPage("/Success", new { id = sub.Id });
-
-        if (Request.Headers.Accept.Any(h =>
-            !string.IsNullOrEmpty(h) && h.Contains("application/json", StringComparison.OrdinalIgnoreCase)))
+        try
         {
-            var progress = _completion.Evaluate(sub);
-            return new JsonResult(new
-            {
-                id = sub.Id,
-                savedAt = DateTime.UtcNow,
-                hoursComplete = progress.HoursComplete,
-                hoursTotal = progress.HoursTotal,
-                hoursMerged,
-                message = hoursMerged > 0 ? "Progress saved" : "Shift record saved (no hour data in request)",
-            });
-        }
+            var sub = await ResolveSubmissionAsync(user, editorName);
+            EditingId = sub.Id;
 
-        return RedirectToPage("/Form", new { id = sub.Id, hours = Hours, saved = "progress" });
+            var logs = new List<AuditLog>();
+            ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
+            var hoursMerged = MergeHours(sub, hours, editorName, logs);
+
+            sub.TeamLeaderDisplay = editorName;
+            sub.LastEditedBy = editorName;
+            sub.LastEditedAt = DateTime.UtcNow;
+            _db.AuditLogs.AddRange(logs);
+            await _db.SaveChangesAsync();
+
+            if (finalSubmit)
+                return RedirectToPage("/Success", new { id = sub.Id });
+
+            if (WantsJsonResponse())
+            {
+                var progress = _completion.Evaluate(sub);
+                return new JsonResult(new
+                {
+                    id = sub.Id,
+                    savedAt = DateTime.UtcNow,
+                    hoursComplete = progress.HoursComplete,
+                    hoursTotal = progress.HoursTotal,
+                    hoursMerged,
+                    message = hoursMerged > 0 ? "Progress saved" : "Shift record saved (no hour data in request)",
+                });
+            }
+
+            return RedirectToPage("/Form", new { id = sub.Id, hours = Hours, saved = "progress" });
+        }
+        catch (Exception ex)
+        {
+            return await SaveErrorResultAsync(
+                finalSubmit,
+                "Could not save — please try again. If this keeps happening, contact IT.",
+                ex);
+        }
+    }
+
+    bool WantsJsonResponse() =>
+        Request.Headers.Accept.Any(h =>
+            !string.IsNullOrEmpty(h) && h.Contains("application/json", StringComparison.OrdinalIgnoreCase));
+
+    Task<IActionResult> SaveErrorResultAsync(bool finalSubmit, string message, Exception? ex = null)
+    {
+        if (ex != null)
+            HttpContext.RequestServices.GetRequiredService<ILogger<FormModel>>()
+                .LogError(ex, "Form save failed (finalSubmit={FinalSubmit}, editingId={EditingId})", finalSubmit, EditingId);
+
+        if (!finalSubmit && WantsJsonResponse())
+            return Task.FromResult<IActionResult>(new JsonResult(new { error = message }) { StatusCode = 500 });
+
+        ValidationError = message;
+        PadHours();
+        return Task.FromResult<IActionResult>(Page());
     }
 
     async Task<ShiftSubmission> ResolveSubmissionAsync(AppUser user, string editorName)
@@ -168,7 +207,7 @@ public class FormModel : PageModel
             var byId = await _db.ShiftSubmissions
                 .Include(s => s.Hours)
                 .FirstOrDefaultAsync(s => s.Id == EditingId.Value);
-            if (byId != null && SubmissionMatchesSlot(byId, slotDate, Shift, Area))
+            if (byId != null)
                 return byId;
         }
 
@@ -185,11 +224,6 @@ public class FormModel : PageModel
 
         return await CreateSubmissionAsync(ShiftDate, Shift, editorName, Area, user);
     }
-
-    static bool SubmissionMatchesSlot(ShiftSubmission sub, DateOnly date, string shift, string area) =>
-        sub.ShiftDate == date
-        && string.Equals(sub.Shift, shift, StringComparison.OrdinalIgnoreCase)
-        && string.Equals(sub.Area, area, StringComparison.OrdinalIgnoreCase);
 
     async Task<ShiftSubmission> CreateSubmissionAsync(string shiftDate, string shift, string teamLeader, string area, AppUser user)
     {

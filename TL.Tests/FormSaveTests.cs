@@ -134,6 +134,67 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task SaveProgress_html_post_redirects_back_to_form()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+
+        var body = BuildHourOneSaveBody(id, today, area, token, includeEditingId: true);
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/Form?handler=SaveProgress&id={id}")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+
+        var saveResp = await client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.Redirect, saveResp.StatusCode);
+        var location = saveResp.Headers.Location?.ToString() ?? "";
+        Assert.Contains($"id={id}", location);
+        Assert.Contains("saved=progress", location);
+    }
+
+    [Fact]
+    public async Task SaveProgress_trusts_EditingId_even_when_slot_fields_differ()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+
+        var body = BuildHourOneSaveBody(id, today, area, token, includeEditingId: true).ToList();
+        var shiftDateIdx = body.FindIndex(p => p.Key == "ShiftDate");
+        body[shiftDateIdx] = new("ShiftDate", DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd"));
+
+        var req = new HttpRequestMessage(HttpMethod.Post, $"/Form?id={id}&handler=SaveProgress")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+        req.Headers.Add("Accept", "application/json");
+        req.Headers.Add("RequestVerificationToken", token);
+
+        var saveResp = await client.SendAsync(req);
+        Assert.True(saveResp.IsSuccessStatusCode, await saveResp.Content.ReadAsStringAsync());
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
+        Assert.Single((await db.ShiftSubmissions.Include(s => s.Hours).SingleAsync()).Hours);
+    }
+
+    [Fact]
     public async Task Different_team_leader_name_resumes_same_slot_shift()
     {
         await ResetDbAsync();
