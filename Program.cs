@@ -24,8 +24,20 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Database");
     if (db.Database.IsRelational())
-        db.Database.Migrate();
+    {
+        try
+        {
+            db.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Database migration failed — run dotnet ef database update on the server.");
+            throw;
+        }
+    }
 }
 
 app.UseStaticFiles();
