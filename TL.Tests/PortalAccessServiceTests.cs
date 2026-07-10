@@ -45,6 +45,29 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/SeniorRota"));
     }
 
+    [Fact]
+    public void Shift_manager_sees_senior_and_management_like_group1()
+    {
+        var access = CreateAccess("Mike Tregillis", grantAll: false);
+        Assert.False(access.CanAccessHod());
+        Assert.True(access.CanAccessSenior());
+        Assert.True(access.CanAccessManagement());
+        Assert.True(access.CanAccessPage("/SeniorStart"));
+        Assert.True(access.CanAccessPage("/SeniorDashboard"));
+        Assert.True(access.CanAccessPage("/History"));
+        Assert.False(access.CanAccessPage("/AuditStart"));
+    }
+
+    [Theory]
+    [InlineData("Piotr Pelka")]
+    [InlineData("alison gilley")]
+    public void All_shift_managers_match_case_insensitively(string displayName)
+    {
+        var access = CreateAccess(displayName, grantAll: false);
+        Assert.True(access.CanAccessSenior());
+        Assert.True(access.CanAccessPage("/Dashboard"));
+    }
+
     static PortalAccessService CreateAccess(string displayName, bool grantAll)
     {
         var config = new ConfigurationBuilder()

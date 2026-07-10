@@ -20,7 +20,10 @@ public class PortalAccessService
 
     public bool CanAccessHod() => _admin.IsAdmin() || MatchesList(_people.Hods);
 
-    public bool CanAccessSenior() => _admin.IsAdmin() || MatchesList(_people.Seniors);
+    public bool CanAccessSenior() =>
+        _admin.IsAdmin()
+        || MatchesList(_people.Seniors)
+        || MatchesList(ShiftManagerList.Names);
 
     /// <summary>Factory-wide dashboards and full history — not for general team leaders.</summary>
     public bool CanAccessManagement() =>
