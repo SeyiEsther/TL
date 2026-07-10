@@ -14,6 +14,29 @@
         </div>
         <div class="welcome-time">@DateTime.Now.ToString("dddd d MMMM yyyy")</div>
 
+        @if (Model.DutyWeek is { } duty)
+        {
+            <div class="senior-duty-reminder">
+                <div class="senior-duty-head">
+                    <div>
+                        <div class="senior-duty-label">On duty this week &bull; Week @duty.IsoWeek</div>
+                        <div class="senior-duty-team">Team @duty.TeamNumber</div>
+                        <div class="senior-duty-dates">@duty.WeekStart.ToString("dd MMM") &ndash; @duty.WeekEnd.ToString("dd MMM yyyy")</div>
+                    </div>
+                    <a asp-page="/SeniorRota" class="senior-duty-rota-link">Full rota</a>
+                </div>
+                <div class="senior-duty-people">
+                    @foreach (var person in duty.Team)
+                    {
+                        <span class="senior-duty-person" title="@person">
+                            <span class="senior-duty-avatar" style="background:@SeniorRota.AvatarColor(person)">@SeniorRota.Initials(person)</span>
+                            @person
+                        </span>
+                    }
+                </div>
+            </div>
+        }
+
         @if (Model.SuggestedAreas.Count > 0)
         {
             <div class="area-rec-box">

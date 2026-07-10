@@ -17,6 +17,7 @@ public class SeniorStartModel : PageModel
     public string AuditorName { get; set; } = "";
     public string AuditDate { get; set; } = "";
     public List<AreaPerformanceSuggestion> SuggestedAreas { get; set; } = [];
+    public SeniorRota.RotaWeek? DutyWeek { get; set; }
     public string? Error { get; set; }
 
     public async Task OnGetAsync(string? auditor, string? date)
@@ -24,6 +25,7 @@ public class SeniorStartModel : PageModel
         var user = _users.GetCurrentUser();
         AuditorName = string.IsNullOrWhiteSpace(auditor) ? user.DisplayName : auditor;
         AuditDate = string.IsNullOrWhiteSpace(date) ? DateTime.Today.ToString("yyyy-MM-dd") : date;
+        DutyWeek = SeniorRota.CurrentWeek(DateOnly.FromDateTime(DateTime.Today));
         SuggestedAreas = await LoadSuggestedAreasAsync();
     }
 
@@ -33,6 +35,7 @@ public class SeniorStartModel : PageModel
         {
             AuditorName = auditorName ?? "";
             AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
+            DutyWeek = SeniorRota.CurrentWeek(DateOnly.FromDateTime(DateTime.Today));
             SuggestedAreas = await LoadSuggestedAreasAsync();
             Error = "Please fill in all fields.";
             return Page();

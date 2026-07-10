@@ -14,8 +14,8 @@ public class SeniorRotaModel : PageModel
         var today = DateOnly.FromDateTime(DateTime.Today);
         Year = today.Year;
 
+        ThisWeek = SeniorRota.CurrentWeek(today);
         var weeks = SeniorRota.WeeksThisYear(today).Where(w => !w.IsPast).ToList();
-        ThisWeek = weeks.FirstOrDefault(w => w.IsCurrent);
         Months = weeks.GroupBy(w => w.WeekStart.ToString("MMMM yyyy")).ToList();
     }
 }

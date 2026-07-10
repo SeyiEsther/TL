@@ -73,6 +73,9 @@ public static class SeniorRota
         return result;
     }
 
+    public static RotaWeek? CurrentWeek(DateOnly today) =>
+        WeeksThisYear(today).FirstOrDefault(w => w.IsCurrent);
+
     static readonly string[] AvatarPalette =
     [
         "#2B5AED", "#CC1F2C", "#16a34a", "#b45309",
