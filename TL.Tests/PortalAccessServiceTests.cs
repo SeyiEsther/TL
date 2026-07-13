@@ -73,7 +73,28 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/Today"));
     }
 
-    static PortalAccessService CreateAccess(string displayName, bool grantAll)
+    [Theory]
+    [InlineData("Kenneth Fenn", "Kenneth Fenn")]
+    [InlineData("ken", "Kenneth Fenn")]
+    public void Hod_kenneth_fenn_matches_display_name_and_username(string username, string displayName)
+    {
+        var access = CreateAccess(displayName, username, grantAll: false);
+        Assert.True(access.CanAccessHod());
+        Assert.True(access.CanAccessPage("/HodDashboard"));
+    }
+
+    [Fact]
+    public void PortalNameMatcher_treats_ken_and_kenneth_as_same_person_with_surname()
+    {
+        Assert.True(PortalNameMatcher.Matches("Ken Fenn", "Kenneth Fenn"));
+        Assert.True(PortalNameMatcher.Matches("Kenneth Fenn", "Ken Fenn"));
+        Assert.True(PortalNameMatcher.Matches("Ken Fenn", "ken"));
+    }
+
+    static PortalAccessService CreateAccess(string displayName, bool grantAll) =>
+        CreateAccess(displayName, "testuser", grantAll);
+
+    static PortalAccessService CreateAccess(string displayName, string username, bool grantAll)
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -82,7 +103,7 @@ public class PortalAccessServiceTests
             })
             .Build();
 
-        var users = new StubUserService(displayName);
+        var users = new StubUserService(displayName, username);
         var admin = new AdminService(config, users, NullLogger<AdminService>.Instance, new MemoryCache(new MemoryCacheOptions()));
         var people = new PersonListService(
             new InMemoryPortalDb(),
@@ -96,12 +117,12 @@ public class PortalAccessServiceTests
     {
         readonly AppUser _user;
 
-        public StubUserService(string displayName)
+        public StubUserService(string displayName, string username = "testuser")
             : base(new HttpContextAccessor(), NullLogger<UserService>.Instance, new MemoryCache(new MemoryCacheOptions()))
         {
             _user = new AppUser
             {
-                Username = "testuser",
+                Username = username,
                 DisplayName = displayName,
                 IsManager = true,
             };

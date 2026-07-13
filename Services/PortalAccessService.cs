@@ -63,10 +63,49 @@ public static class PortalNameMatcher
     {
         var a = Normalize(configured);
         var b = Normalize(actual);
-        return !string.IsNullOrEmpty(a) &&
-               string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b))
+            return false;
+
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (FullNamesEquivalent(a, b))
+            return true;
+
+        // AD username is often a short first name (e.g. "ken") while lists use full names.
+        if (!b.Contains(' ') && a.Contains(' '))
+            return FirstNamesCompatible(b, FirstNameOf(a));
+
+        return false;
     }
 
     public static string Normalize(string? value) =>
         string.Join(' ', (value ?? "").Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    static bool FullNamesEquivalent(string configured, string actual)
+    {
+        if (!configured.Contains(' ') || !actual.Contains(' '))
+            return false;
+
+        if (!string.Equals(LastNameOf(configured), LastNameOf(actual), StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return FirstNamesCompatible(FirstNameOf(configured), FirstNameOf(actual));
+    }
+
+    static bool FirstNamesCompatible(string a, string b)
+    {
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var (shorter, longer) = a.Length <= b.Length ? (a, b) : (b, a);
+        return shorter.Length >= 3 &&
+               longer.StartsWith(shorter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    static string FirstNameOf(string fullName) =>
+        fullName[..fullName.LastIndexOf(' ')];
+
+    static string LastNameOf(string fullName) =>
+        fullName[(fullName.LastIndexOf(' ') + 1)..];
 }
