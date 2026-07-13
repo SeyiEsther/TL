@@ -13,9 +13,8 @@
         </div>
         <div class="welcome-time">Daily effectiveness audit &mdash; @DateTime.Now.ToString("dddd d MMMM yyyy")</div>
         <div style="font-size:12px;color:var(--muted);text-align:center;margin:8px 0 16px;line-height:1.5">
-            <strong>Area to audit</strong> = whole department (e.g. all of Assembly).
-            <strong>Effectiveness check</strong> = one specific zone/line within that area.
-            <br>Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
+            Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
+            <span style="display:block;margin-top:6px">Shift form status is reviewed on the audit form and on the Dashboard.</span>
         </div>
 
         <form method="post" class="start-form">
@@ -71,33 +70,11 @@
                 </div>
             </div>
 
-            <div id="compliancePanel" style="display:none;margin-bottom:16px">
-                <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Effectiveness check preview</div>
-                <div id="complianceSummary" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;margin-bottom:10px"></div>
-                <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px">
-                    <table class="dash-table" style="min-width:640px;font-size:12px;margin:0">
-                        <thead>
-                            <tr>
-                                <th>Team leader</th>
-                                <th>Shift</th>
-                                <th>Date</th>
-                                <th>Form</th>
-                                <th>Sign-off</th>
-                                <th>Close status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="complianceBody"></tbody>
-                    </table>
-                </div>
-                <div style="font-size:11px;color:var(--muted);margin-top:6px" id="complianceWeek"></div>
-            </div>
-
             @if (!string.IsNullOrEmpty(Model.Error))
             {
                 <div class="err">@Model.Error</div>
             }
 
-            <a asp-page="/HodDashboard" class="welcome-btn secondary" style="margin-bottom:10px">HoD dashboard</a>
             <button type="submit" class="welcome-btn primary" style="margin-top:16px">Start audit &rarr;</button>
             <a asp-page="/Index" class="welcome-btn secondary">Back to home</a>
         </form>
@@ -110,10 +87,6 @@
     var area = document.getElementById('areaSelect');
     var dateInput = document.getElementById('auditDateInput');
     var typeSelect = document.querySelector('select[name="auditType"]');
-    var panel = document.getElementById('compliancePanel');
-    var summary = document.getElementById('complianceSummary');
-    var body = document.getElementById('complianceBody');
-    var weekLabel = document.getElementById('complianceWeek');
     var rotation = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
         HodAuditTypes.All.ToDictionary(t => t.Value, t => t.Label)));
 
@@ -126,71 +99,6 @@
         if (rotation[suggested]) typeSelect.value = suggested;
     }
 
-    function closeStatusClass(status) {
-        if (status === 'Closed correctly') return 'g';
-        return 'r';
-    }
-
-    function loadCompliance() {
-        if (!area || !dateInput || !area.value || !dateInput.value) {
-            if (panel) panel.style.display = 'none';
-            return;
-        }
-        var deptVal = dept ? dept.value : '';
-        var url = '?handler=Compliance&effectivenessArea=' + encodeURIComponent(area.value)
-            + '&date=' + encodeURIComponent(dateInput.value)
-            + (deptVal ? '&department=' + encodeURIComponent(deptVal) : '');
-        fetch(url)
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (!panel || !body || !summary) return;
-                if (data.error) { panel.style.display = 'none'; return; }
-
-                var problems = data.notClosedCorrectly || 0;
-                if (data.totalShifts === 0) {
-                    summary.style.background = '#fef2f2';
-                    summary.style.borderColor = '#fecaca';
-                    summary.innerHTML = '<strong>No shift forms submitted</strong> for this zone during the audit week. '
-                        + 'TLs must complete and sign off shift forms before the effectiveness check can verify claims.';
-                } else if (problems > 0) {
-                    summary.style.background = '#fef2f2';
-                    summary.style.borderColor = '#fecaca';
-                    summary.innerHTML = '<strong>' + problems + ' of ' + data.totalShifts + ' shift(s) not closed correctly this week.</strong> '
-                        + (data.incompleteForms ? data.incompleteForms + ' incomplete form(s). ' : '')
-                        + (data.unsigned ? data.unsigned + ' unsigned. ' : '');
-                } else {
-                    summary.style.background = '#f0fdf4';
-                    summary.style.borderColor = '#bbf7d0';
-                    summary.innerHTML = '<strong>All ' + data.totalShifts + ' shift form(s) closed correctly</strong> for this zone this week.';
-                }
-
-                body.innerHTML = '';
-                (data.findings || []).forEach(function (f) {
-                    if (!f.teamLeader) return;
-                    var tr = document.createElement('tr');
-                    if (f.isAuditFinding) tr.style.background = '#fef2f2';
-                    var formHtml = f.formComplete
-                        ? '<span class="rag g">Complete</span>'
-                        : '<span class="rag r">' + f.hoursComplete + '/' + f.hoursTotal + ' hrs</span>';
-                    var signHtml = f.outgoingSignedOff
-                        ? '<span class="rag g">Signed</span>'
-                        : '<span class="rag r">Unsigned</span>';
-                    var closeCls = closeStatusClass(f.closeStatus);
-                    tr.innerHTML = '<td style="font-weight:600">' + f.teamLeader + '</td>'
-                        + '<td>' + (f.shift || '—') + '</td>'
-                        + '<td>' + (f.shiftDate || '—') + '</td>'
-                        + '<td>' + formHtml + '</td>'
-                        + '<td>' + signHtml + '</td>'
-                        + '<td><span class="rag ' + closeCls + '">' + (f.closeStatus || '—') + '</span></td>';
-                    body.appendChild(tr);
-                });
-
-                if (weekLabel) weekLabel.textContent = 'Audit week: ' + data.weekStart + ' – ' + data.weekEnd;
-                panel.style.display = 'block';
-            })
-            .catch(function () { if (panel) panel.style.display = 'none'; });
-    }
-
     if (dept && area) {
         function filterAreas() {
             var d = dept.value;
@@ -199,15 +107,13 @@
                 opt.hidden = d && opt.dataset.dept !== d;
             });
             if (area.selectedOptions[0]?.hidden) area.value = '';
-            loadCompliance();
         }
         dept.addEventListener('change', filterAreas);
         filterAreas();
     }
 
-    if (area) area.addEventListener('change', loadCompliance);
     if (dateInput) {
-        dateInput.addEventListener('change', function () { suggestType(); loadCompliance(); });
+        dateInput.addEventListener('change', suggestType);
     }
 })();
 </script>

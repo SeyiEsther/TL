@@ -10,10 +10,13 @@ public class DashboardModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly ShiftCompletionService _completion;
-    public DashboardModel(AppDbContext db, ShiftCompletionService completion)
+    private readonly TlShiftComplianceService _tlCompliance;
+
+    public DashboardModel(AppDbContext db, ShiftCompletionService completion, TlShiftComplianceService tlCompliance)
     {
         _db = db;
         _completion = completion;
+        _tlCompliance = tlCompliance;
     }
 
     public string? From { get; set; }
@@ -48,6 +51,8 @@ public class DashboardModel : PageModel
     public string[] AreaLabels { get; set; } = [];
     public int[] AreaData { get; set; } = [];
     public List<WorstAreaDto> WorstAreas { get; set; } = [];
+    public TlShiftComplianceSnapshot? ShiftFollowUp { get; set; }
+    public string ShiftFollowUpPeriodLabel { get; set; } = "";
 
     public async Task OnGetAsync(string? from, string? to, string? shift, string? area, string? tl)
     {
@@ -154,6 +159,15 @@ public class DashboardModel : PageModel
         if (!string.IsNullOrEmpty(from)) csvParams.Add("from=" + from);
         if (!string.IsNullOrEmpty(to)) csvParams.Add("to=" + to);
         CsvQuery = csvParams.Any() ? "?" + string.Join("&", csvParams) : "";
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var (weekStart, weekEnd) = HodEffectivenessService.WeekRange(today);
+        var followUpStart = !string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var cf) ? cf : weekStart;
+        var followUpEnd = !string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var ct) ? ct : weekEnd;
+        ShiftFollowUpPeriodLabel = followUpStart == followUpEnd
+            ? followUpStart.ToString("dd/MM/yyyy")
+            : $"{followUpStart:dd/MM/yyyy} – {followUpEnd:dd/MM/yyyy}";
+        ShiftFollowUp = await _tlCompliance.LoadAsync(followUpStart, followUpEnd, area);
     }
 
     public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };

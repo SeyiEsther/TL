@@ -1,0 +1,149 @@
+@model TL.Services.TlShiftComplianceSnapshot
+@{
+    var periodLabel = ViewData["CompliancePeriodLabel"] as string ?? "";
+}
+
+@if (Model.Accountability.Count > 0 || Model.ShiftIssues.Count > 0)
+{
+    <div class="card" style="margin-bottom:14px;border-color:#fecaca">
+        <div class="card-head" style="background:#fef2f2">
+            <div>
+                <span class="card-title" style="color:#991b1b">Shifts needing follow-up</span>
+                @if (!string.IsNullOrEmpty(periodLabel))
+                {
+                    <span class="card-sub" style="margin-left:8px">@periodLabel</span>
+                }
+            </div>
+        </div>
+
+        @if (Model.Accountability.Count > 0)
+        {
+            <div style="padding:12px 18px 0;font-size:12px;color:var(--muted)">
+                Ranked by number of problem shifts. Open a shift to fix it on the form.
+            </div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:760px">
+                    <thead>
+                        <tr>
+                            <th style="width:36px">#</th>
+                            <th>Team leader</th>
+                            <th>Area(s)</th>
+                            <th>Problem shifts</th>
+                            <th>Incomplete</th>
+                            <th>Unsigned</th>
+                            <th>What's wrong</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ var rank = 0; }
+                        @foreach (var tl in Model.Accountability)
+                        {
+                            rank++;
+                            <tr style="background:#fffbfb">
+                                <td style="text-align:center;font-weight:700;color:#CC1F2C">@rank</td>
+                                <td style="font-weight:700">@tl.TeamLeader</td>
+                                <td>@tl.Area</td>
+                                <td><span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span></td>
+                                <td><span class="rag @(tl.Incomplete > 0 ? "r" : "g")">@tl.Incomplete</span></td>
+                                <td><span class="rag @(tl.Unsigned > 0 ? "r" : "g")">@tl.Unsigned</span></td>
+                                <td style="font-size:11px;color:var(--muted)">@string.Join(" · ", tl.IssueSummary)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.ShiftIssues.Count > 0)
+        {
+            <div style="padding:16px 18px 8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">
+                Every problem shift
+            </div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:900px">
+                    <thead>
+                        <tr>
+                            <th>Team leader</th>
+                            <th>Date</th>
+                            <th>Shift</th>
+                            <th>Area</th>
+                            <th>Status</th>
+                            <th>Form</th>
+                            <th>What's missing / wrong</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.ShiftIssues)
+                        {
+                            var closeCls = s.CloseStatus == "Closed correctly" ? "g" : "r";
+                            <tr>
+                                <td style="font-weight:700">@s.TeamLeader</td>
+                                <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
+                                <td>@s.Shift</td>
+                                <td>@s.Area</td>
+                                <td><span class="rag @closeCls">@s.CloseStatus</span></td>
+                                <td>
+                                    @if (s.CloseStatus == "Incomplete form")
+                                    {
+                                        <span class="rag r">@s.HoursComplete/@s.HoursTotal hrs</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rag a">@s.HoursComplete/@s.HoursTotal hrs</span>
+                                    }
+                                </td>
+                                <td style="font-size:11px;color:#991b1b">@string.Join(" · ", s.Issues)</td>
+                                <td><a asp-page="/Form" asp-route-id="@s.ShiftId" class="sbtn sm">Open form</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+else if (Model.ShiftCount > 0)
+{
+    <div class="card" style="margin-bottom:14px">
+        <div style="padding:16px 18px;font-size:13px;color:#166534;background:#f0fdf4">
+            No shift form issues@if (!string.IsNullOrEmpty(periodLabel)) { <span> in @periodLabel</span> } — all @Model.ShiftCount shift form(s) closed correctly.
+        </div>
+    </div>
+}
+
+@if (Model.ShiftCount > 0 && Model.AreaCompliance.Count > 0 && Model.NotClosed > 0)
+{
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+            <div>
+                <span class="card-title">Shift compliance by area</span>
+                @if (!string.IsNullOrEmpty(periodLabel))
+                {
+                    <span class="card-sub" style="margin-left:8px">@periodLabel</span>
+                }
+            </div>
+        </div>
+        <div style="padding:12px 18px;font-size:12px;color:#991b1b;background:#fef2f2;border-bottom:1px solid #fecaca">
+            <strong>@Model.NotClosed</strong> of <strong>@Model.ShiftCount</strong> shifts need attention —
+            @Model.Incomplete incomplete,
+            @Model.Unsigned unsigned.
+        </div>
+        <table class="dash-table">
+            <thead>
+                <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.AreaCompliance)
+                {
+                    <tr>
+                        <td style="font-weight:600">@a.Area</td>
+                        <td>@a.TotalShifts</td>
+                        <td><span class="rag @(a.Incomplete > 0 ? "r" : "g")">@a.Incomplete</span></td>
+                        <td><span class="rag @(a.Unsigned > 0 ? "r" : "g")">@a.Unsigned</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

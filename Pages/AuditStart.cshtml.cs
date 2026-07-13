@@ -8,12 +8,10 @@ namespace TL.Pages;
 public class AuditStartModel : PageModel
 {
     private readonly UserService _users;
-    private readonly HodEffectivenessService _effectiveness;
 
-    public AuditStartModel(UserService users, HodEffectivenessService effectiveness)
+    public AuditStartModel(UserService users)
     {
         _users = users;
-        _effectiveness = effectiveness;
     }
 
     public string AuditorName { get; set; } = "";
@@ -29,39 +27,6 @@ public class AuditStartModel : PageModel
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
         SuggestedType = HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
-    }
-
-    public async Task<IActionResult> OnGetComplianceAsync(string effectivenessArea, string date, string? department)
-    {
-        if (string.IsNullOrWhiteSpace(effectivenessArea) || !DateOnly.TryParse(date, out var auditDate))
-            return new JsonResult(new { error = "Select a zone and audit date." });
-
-        var dept = department ?? AreaList.GetDepartment(effectivenessArea) ?? "";
-        var summary = await _effectiveness.GetComplianceSummaryAsync(dept, effectivenessArea, auditDate);
-
-        return new JsonResult(new
-        {
-            weekStart = summary.WeekStart.ToString("dd/MM/yyyy"),
-            weekEnd = summary.WeekEnd.ToString("dd/MM/yyyy"),
-            summary.TotalShifts,
-            summary.NotClosedCorrectly,
-            summary.IncompleteForms,
-            summary.Unsigned,
-            summary.ClosedCorrectly,
-            findings = summary.Findings.Select(f => new
-            {
-                f.TeamLeader,
-                f.Shift,
-                shiftDate = f.ShiftDate == default ? "" : f.ShiftDate.ToString("dd/MM/yyyy"),
-                f.FormComplete,
-                f.HoursComplete,
-                f.HoursTotal,
-                f.OutgoingSignedOff,
-                f.CloseStatus,
-                f.IsAuditFinding,
-                issues = f.Issues,
-            }),
-        });
     }
 
     public IActionResult OnPost(

@@ -9,12 +9,10 @@ namespace TL.Pages;
 public class HodDashboardModel : PageModel
 {
     private readonly AppDbContext _db;
-    private readonly ShiftCompletionService _completion;
 
-    public HodDashboardModel(AppDbContext db, ShiftCompletionService completion)
+    public HodDashboardModel(AppDbContext db)
     {
         _db = db;
-        _completion = completion;
     }
 
     public string? From { get; set; }
@@ -41,17 +39,8 @@ public class HodDashboardModel : PageModel
     public string TodaysSuggestedLabel { get; set; } = "";
     public List<HodRotationRow> WeekRotation { get; set; } = [];
 
-    public int TlShiftCount { get; set; }
-    public int TlNotClosed { get; set; }
-    public int TlIncomplete { get; set; }
-    public int TlUnsigned { get; set; }
-    public List<HodAreaComplianceRow> AreaCompliance { get; set; } = [];
     public List<HodAreaAuditRow> AreaAuditScores { get; set; } = [];
-    public List<HodTlAccountabilityRow> TlAccountability { get; set; } = [];
-    public List<HodTlShiftIssueRow> TlShiftIssues { get; set; } = [];
     public List<HodTlAuditCatchRow> TlAuditCatches { get; set; } = [];
-    public int TlWithIssues { get; set; }
-    public string CompliancePeriodLabel { get; set; } = "";
 
     public string[] ActivityLabels { get; set; } = [];
     public int[] ActivityData { get; set; } = [];
@@ -121,14 +110,6 @@ public class HodDashboardModel : PageModel
         }
 
         BuildWeekRotation(weekStart, weekEnd);
-
-        var complianceStart = !string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var cf) ? cf : weekStart;
-        var complianceEnd = !string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var ct) ? ct : weekEnd;
-        CompliancePeriodLabel = complianceStart == complianceEnd
-            ? complianceStart.ToString("dd/MM/yyyy")
-            : $"{complianceStart:dd/MM/yyyy} – {complianceEnd:dd/MM/yyyy}";
-
-        await LoadTlComplianceAsync(complianceStart, complianceEnd, area, department);
         BuildTlAuditCatches();
         BuildAreaAuditScores();
         BuildActivityCharts();
@@ -149,129 +130,6 @@ public class HodDashboardModel : PageModel
                 done.Count,
                 done.Select(a => $"{a.Department} / {a.ResolveEffectivenessArea()} ({HodAuditTypes.LabelFor(a.AuditType)})").ToList()));
         }
-    }
-
-    async Task LoadTlComplianceAsync(DateOnly rangeStart, DateOnly rangeEnd, string? area, string? department)
-    {
-        var deptAreas = AreaList.All
-            .Where(a => a.Group == department)
-            .Select(a => a.Label)
-            .ToHashSet();
-
-        var q = _db.ShiftSubmissions
-            .Include(s => s.Hours)
-            .ExcludeAudits()
-            .Where(s => s.ShiftDate >= rangeStart && s.ShiftDate <= rangeEnd);
-
-        if (!string.IsNullOrEmpty(area))
-            q = q.Where(s => s.Area == area);
-        else if (!string.IsNullOrEmpty(department))
-            q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));
-
-        var shifts = await q.OrderByDescending(s => s.ShiftDate).ThenBy(s => s.Shift).ToListAsync();
-        TlShiftCount = shifts.Count;
-
-        var issueRows = new List<HodTlShiftIssueRow>();
-        var tlStats = new Dictionary<string, (int Total, int Problems, int Incomplete, int Unsigned, HashSet<string> Areas, List<string> Summaries)>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var shift in shifts)
-        {
-            var comp = _completion.Evaluate(shift);
-            var signed = comp.SignedOff;
-            var closeStatus = ResolveCloseStatus(comp, signed);
-            var hasProblem = !comp.IsComplete || !signed;
-
-            if (!comp.IsComplete) TlIncomplete++;
-            if (!signed) TlUnsigned++;
-
-            var tl = string.IsNullOrWhiteSpace(shift.TeamLeaderDisplay) ? "Unknown TL" : shift.TeamLeaderDisplay.Trim();
-            if (!tlStats.TryGetValue(tl, out var stat))
-                stat = (0, 0, 0, 0, new HashSet<string>(), new List<string>());
-            stat.Total++;
-            stat.Areas.Add(shift.Area ?? "Unknown");
-            if (hasProblem)
-            {
-                stat.Problems++;
-                if (!comp.IsComplete) stat.Incomplete++;
-                if (!signed) stat.Unsigned++;
-
-                var issues = BuildShiftIssues(comp, signed);
-                issueRows.Add(new HodTlShiftIssueRow(
-                    shift.Id,
-                    tl,
-                    shift.ShiftDate,
-                    shift.Shift,
-                    shift.Area ?? "—",
-                    closeStatus,
-                    comp.HoursComplete,
-                    comp.HoursTotal,
-                    issues));
-
-                var headline = $"{shift.ShiftDate:dd/MM} {shift.Shift}: {closeStatus}";
-                if (!stat.Summaries.Contains(headline))
-                    stat.Summaries.Add(headline);
-            }
-            tlStats[tl] = stat;
-        }
-
-        TlNotClosed = issueRows.Count;
-        TlShiftIssues = issueRows;
-        TlWithIssues = tlStats.Count(kv => kv.Value.Problems > 0);
-
-        TlAccountability = tlStats
-            .Where(kv => kv.Value.Problems > 0)
-            .Select(kv => new HodTlAccountabilityRow(
-                kv.Key,
-                kv.Value.Areas.Count == 1 ? kv.Value.Areas.First() : $"{kv.Value.Areas.Count} areas",
-                kv.Value.Total,
-                kv.Value.Problems,
-                kv.Value.Incomplete,
-                kv.Value.Unsigned,
-                kv.Value.Summaries.Take(5).ToList()))
-            .OrderByDescending(r => r.ProblemShifts)
-            .ThenByDescending(r => r.Incomplete)
-            .ThenBy(r => r.TeamLeader)
-            .ToList();
-
-        AreaCompliance = shifts
-            .GroupBy(s => s.Area ?? "Unknown")
-            .Select(g =>
-            {
-                var areaIssues = issueRows.Where(r => r.Area == (g.Key == "Unknown" ? "—" : g.Key) || r.Area == g.Key).ToList();
-                if (areaIssues.Count == 0) return null;
-                return new HodAreaComplianceRow(
-                    g.Key,
-                    g.Count(),
-                    areaIssues.Count(x => x.CloseStatus == "Incomplete form"),
-                    areaIssues.Count(x => x.CloseStatus == "Not signed off"));
-            })
-            .Where(r => r != null)
-            .Cast<HodAreaComplianceRow>()
-            .OrderByDescending(r => r.Problems)
-            .ThenBy(r => r.Area)
-            .Take(12)
-            .ToList();
-    }
-
-    static string ResolveCloseStatus(ShiftCompletionResult comp, bool signed)
-    {
-        if (comp.IsComplete && signed) return "Closed correctly";
-        if (!signed) return "Not signed off";
-        return "Incomplete form";
-    }
-
-    static List<string> BuildShiftIssues(ShiftCompletionResult comp, bool signed)
-    {
-        var issues = new List<string>();
-        if (!comp.IsComplete)
-        {
-            issues.AddRange(comp.MissingItems.Take(4));
-            if (comp.MissingItems.Count > 4)
-                issues.Add($"+{comp.MissingItems.Count - 4} more");
-        }
-        if (!signed)
-            issues.Add("Outgoing TL sign-off missing");
-        return issues;
     }
 
     void BuildTlAuditCatches()
@@ -366,38 +224,4 @@ public record HodRotationRow(
     int AuditsDone,
     List<string> CompletedDetail);
 
-public record HodAreaComplianceRow(string Area, int TotalShifts, int Incomplete, int Unsigned)
-{
-    public int Problems => Incomplete + Unsigned;
-}
-
 public record HodAreaAuditRow(string Area, int AuditCount, int AvgScorePct, int PoorCount);
-
-public record HodTlAccountabilityRow(
-    string TeamLeader,
-    string Area,
-    int TotalShifts,
-    int ProblemShifts,
-    int Incomplete,
-    int Unsigned,
-    List<string> IssueSummary);
-
-public record HodTlShiftIssueRow(
-    int ShiftId,
-    string TeamLeader,
-    DateOnly ShiftDate,
-    string Shift,
-    string Area,
-    string CloseStatus,
-    int HoursComplete,
-    int HoursTotal,
-    List<string> Issues);
-
-public record HodTlAuditCatchRow(
-    string TeamLeader,
-    DateOnly ShiftDate,
-    string Shift,
-    string Area,
-    DateOnly AuditDate,
-    string AuditType,
-    List<string> Issues);
