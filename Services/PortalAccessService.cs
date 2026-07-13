@@ -70,7 +70,6 @@ public static class PortalNameMatcher
         if (FullNamesEquivalent(a, b))
             return true;
 
-        // AD username is often a short first name (e.g. "ken") while lists use full names.
         if (!b.Contains(' ') && a.Contains(' '))
             return FirstNamesCompatible(b, FirstNameOf(a));
 

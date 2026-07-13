@@ -2,10 +2,6 @@ using TL.Models;
 
 namespace TL.Services;
 
-/// <summary>
-/// Merges hourly form input into persisted <see cref="HourlyCheck"/> rows without wiping
-/// fields omitted from partial saves (unchecked radios are not posted).
-/// </summary>
 public static class HourMergeHelper
 {
     public static bool IsHourComplete(HourInput inp) =>

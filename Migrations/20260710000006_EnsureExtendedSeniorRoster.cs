@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TL.Migrations
 {
-    /// <summary>Syncs full Group 1 + Directors senior roster (18 names).</summary>
     public partial class EnsureExtendedSeniorRoster : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

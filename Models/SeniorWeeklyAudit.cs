@@ -37,7 +37,6 @@ public class SeniorWeeklyAudit
     public byte? ImprovementActionsProgressing { get; set; }
     public string? PerformanceNotes { get; set; }
 
-    // Legacy columns — retained for older audit records
     public byte? SafetyActionLogCurrent { get; set; }
     public byte? NcCaptureTrended { get; set; }
     public byte? AbsenceManagedProactively { get; set; }

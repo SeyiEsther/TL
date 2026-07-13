@@ -15,7 +15,6 @@ namespace TL.Migrations
     [Migration("20260522000000_AddIncomingTLSignedAt")]
     partial class AddIncomingTLSignedAt
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

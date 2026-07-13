@@ -4,9 +4,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TL.Migrations
 {
-    /// <summary>
-    /// Idempotent — creates PickerPersons and seeds defaults when missing on deploy.
-    /// </summary>
     public partial class EnsurePickerPersons : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

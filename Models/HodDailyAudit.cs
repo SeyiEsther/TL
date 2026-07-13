@@ -12,7 +12,6 @@ public class HodDailyAudit
     public DateOnly AuditDate { get; set; }
     public string Department { get; set; } = "";
     public string EffectivenessArea { get; set; } = "";
-    /// <summary>Legacy mirror of EffectivenessArea for older queries/exports.</summary>
     public string Area { get; set; } = "";
     public string AuditType { get; set; } = "";
 

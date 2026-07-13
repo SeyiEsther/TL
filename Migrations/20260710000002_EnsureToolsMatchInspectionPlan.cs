@@ -4,9 +4,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TL.Migrations
 {
-    /// <summary>
-    /// Idempotent — safe when an earlier migration was skipped or the column is missing on deploy.
-    /// </summary>
     public partial class EnsureToolsMatchInspectionPlan : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

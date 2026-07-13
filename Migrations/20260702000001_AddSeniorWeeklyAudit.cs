@@ -20,37 +20,30 @@ namespace TL.Migrations
                     AuditorName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AuditDate = table.Column<DateOnly>(type: "date", nullable: false),
                     Area = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    // Leadership & Governance
                     HandoverStandardsFollowed = table.Column<bool>(type: "bit", nullable: true),
                     VisualManagementCurrent = table.Column<bool>(type: "bit", nullable: true),
                     EscalationPathsUsed = table.Column<bool>(type: "bit", nullable: true),
                     GovernanceNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // Safety Culture
                     PpeComplianceFull = table.Column<bool>(type: "bit", nullable: true),
                     NearMissesReported = table.Column<bool>(type: "bit", nullable: true),
                     SafetyActionLogCurrent = table.Column<bool>(type: "bit", nullable: true),
                     SafetyNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // Quality Governance
                     FirstOffRecordsComplete = table.Column<bool>(type: "bit", nullable: true),
                     NcCaptureTrended = table.Column<bool>(type: "bit", nullable: true),
                     QualityGatesMaintained = table.Column<bool>(type: "bit", nullable: true),
                     QualityNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // People & Wellbeing
                     AbsenceManagedProactively = table.Column<bool>(type: "bit", nullable: true),
                     TlsCoachingTeams = table.Column<bool>(type: "bit", nullable: true),
                     TrainingMatrixCurrent = table.Column<bool>(type: "bit", nullable: true),
                     PeopleNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // Standards & Housekeeping
                     SixSStandardMaintained = table.Column<bool>(type: "bit", nullable: true),
                     TpmScheduleFollowed = table.Column<bool>(type: "bit", nullable: true),
                     StandardWorkVisible = table.Column<bool>(type: "bit", nullable: true),
                     StandardsNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // Performance
                     TrackingAgainstWeeklyPlan = table.Column<bool>(type: "bit", nullable: true),
                     MetricsVisibleAndOwned = table.Column<bool>(type: "bit", nullable: true),
                     ImprovementActionsProgressing = table.Column<bool>(type: "bit", nullable: true),
                     PerformanceNotes = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    // Findings
                     GoodPracticeObserved = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AreasForImprovement = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ActionsRaised = table.Column<string>(type: "nvarchar(max)", nullable: true),

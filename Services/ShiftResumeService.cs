@@ -18,7 +18,6 @@ public class ShiftResumeService
     public static bool IsInProgress(ShiftSubmission s) =>
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
-    // One shift per date/shift/area slot — team leader name is not used for matching.
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader = null)
     {

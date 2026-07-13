@@ -47,7 +47,6 @@ namespace TL.Services
                 return _current;
             }
 
-            // IIS app pool / anonymous — not the person at the keyboard; don't pre-fill names.
             _current = new AppUser
             {
                 Username = Environment.UserName ?? "unknown",

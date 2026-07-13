@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TL.Migrations
 {
-    /// <summary>Backfills senior management names and any missing default picker names.</summary>
     public partial class EnsureSeniorAndMissingPickerNames : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
