@@ -331,13 +331,6 @@ td.hour-incomplete { background: #fef2f2 !important; box-shadow: inset 0 0 0 1px
 .audit-field { color: var(--muted); }
 .audit-time { margin-left: auto; color: var(--muted); font-size: 11px; flex-shrink: 0; white-space: nowrap; }
 .escl-banner { padding: 10px 18px; font-size: 12px; color: var(--red-text); background: var(--red-bg); }
-.draft-restore-banner {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    background: #1e3a5f; color: #fff; padding: 12px 20px; border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.3); z-index: 9999; font-size: 13px;
-    display: none; align-items: center; gap: 12px;
-}
-.draft-restore-banner.is-visible { display: flex; }
 
 /* DASHBOARD / HISTORY */
 .kpi-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 14px; }

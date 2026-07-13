@@ -226,70 +226,21 @@
                 Submit &amp; close shift
             </button>
             <a asp-page="/Index" class="sbtn">Cancel</a>
-            <span id="draft-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
+            <span id="save-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
         </div>
     </form>
 </div>
 
-<div id="draft-restore-banner" class="draft-restore-banner" hidden>
-    <span>Restore unsaved draft?</span>
-    <button type="button" id="draft-restore-btn" style="background:#fff;color:#1e3a5f;border:none;border-radius:4px;padding:4px 12px;cursor:pointer;font-weight:600">Restore</button>
-    <button type="button" id="draft-dismiss-btn" style="background:transparent;color:#aaa;border:none;cursor:pointer">Discard</button>
-</div>
-
 <script>
 (function () {
-    const DRAFT_BASE = 'tl_draft_@(Model.ShiftDate)_@(Model.Shift)_@(Uri.EscapeDataString(Model.Area))_@(Uri.EscapeDataString(Model.TeamLeader))';
-    const KEEPALIVE_MS = 10 * 60 * 1000;
-    const DRAFT_DEBOUNCE_MS = 1500;
-    const DRAFT_BACKUP_MS = 2 * 60 * 1000;
-    const DRAFT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
-
     const form = document.getElementById('shift-form') || document.querySelector('form[method="post"]');
     if (!form) return;
 
-    const statusEl = document.getElementById('draft-status');
-    const banner = document.getElementById('draft-restore-banner');
-    const submitBtn = document.getElementById('shift-final-btn');
+    const statusEl = document.getElementById('save-status');
     const progressBtn = document.getElementById('shift-submit-btn');
     const progressText = document.getElementById('shift-progress-text');
     const progressFill = document.getElementById('shift-progress-fill');
     const hoursCount = parseInt(form?.dataset.hours || '@H', 10);
-    let savedDraft = null;
-    let lastSavedJson = null;
-    let draftSaveTimer = null;
-    let draftDirty = false;
-    let keepaliveTimer = null;
-
-    function draftKey() {
-        const id = form.dataset.editingId
-            || new URLSearchParams(location.search).get('id')
-            || form.querySelector('input[name="EditingId"]')?.value
-            || '';
-        return id ? `${DRAFT_BASE}_edit${id}` : DRAFT_BASE;
-    }
-
-    function ping() {
-        fetch('/api/ping', { credentials: 'same-origin', cache: 'no-store' }).catch(() => {});
-    }
-
-    function scheduleKeepalive() {
-        clearInterval(keepaliveTimer);
-        if (document.hidden) return;
-        keepaliveTimer = setInterval(ping, KEEPALIVE_MS);
-    }
-
-    ping();
-    scheduleKeepalive();
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            clearInterval(keepaliveTimer);
-            if (draftDirty) saveDraft(false);
-        } else {
-            ping();
-            scheduleKeepalive();
-        }
-    });
 
     const hourFields = ['Haz','Uns','Pos','Qchk','Dev','Nc','Qiplan','Tgt','Maint','Mat','Tools','Escl','Pconf','Pid','Ncp','Wb','Sup','Acc'];
     const statusFields = ['Ss','Qs','Ps'];
@@ -347,7 +298,6 @@
 
     form?.addEventListener('change', function (e) {
         updateCompletion();
-        scheduleDraftSave();
         const hourMatch = e.target?.name?.match(/^H\[(\d+)\]/);
         if (hourMatch) {
             const h = parseInt(hourMatch[1], 10);
@@ -358,7 +308,6 @@
     });
     form?.addEventListener('input', function (e) {
         updateCompletion();
-        scheduleDraftSave();
         if (!/^H\[/.test(e.target?.name || '')) scheduleServerSave();
     });
     updateCompletion();
@@ -413,10 +362,6 @@
                 ? (reason === 'hour' ? 'Hour saved' : 'Saved')
                 : 'Connected (fill an hour to save data)';
             statusEl.textContent = label + ' to server at ' + t;
-            if (data.hoursMerged > 0) {
-                try { localStorage.removeItem(draftKey()); } catch (e) {}
-                lastSavedJson = null;
-            }
         } catch (e) {
             statusEl.textContent = e.message || 'Could not save to server — try Save progress again';
         } finally {
@@ -447,122 +392,8 @@
         serverSaveTimer = setTimeout(() => saveToServer('auto'), 3000);
     }
 
-    function collectFormData() {
-        const data = Object.create(null);
-        new FormData(form).forEach((v, k) => {
-            if (k === '__RequestVerificationToken') return;
-            data[k] = v;
-        });
-        form.querySelectorAll('input[type="radio"]').forEach(r => {
-            if (!(r.name in data)) data[r.name] = null;
-        });
-        return data;
-    }
-
-    function draftPayload() {
-        return JSON.stringify({ ts: Date.now(), data: collectFormData() });
-    }
-
-    function saveDraft(showStatus) {
-        try {
-            const payload = draftPayload();
-            if (payload === lastSavedJson) return;
-            localStorage.setItem(draftKey(), payload);
-            lastSavedJson = payload;
-            draftDirty = false;
-            if (showStatus !== false && statusEl && !statusEl.textContent.includes('to server')) {
-                const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                statusEl.textContent = 'Draft saved at ' + t;
-            }
-        } catch (e) {}
-    }
-
-    function scheduleDraftSave() {
-        draftDirty = true;
-        clearTimeout(draftSaveTimer);
-        draftSaveTimer = setTimeout(() => saveDraft(true), DRAFT_DEBOUNCE_MS);
-    }
-
-    setInterval(() => { if (draftDirty) saveDraft(true); }, DRAFT_BACKUP_MS);
-    window.addEventListener('pagehide', () => { if (draftDirty) saveDraft(false); });
-
-    function draftsDiffer(stored) {
-        const current = collectFormData();
-        const keys = new Set([...Object.keys(stored), ...Object.keys(current)]);
-        for (const key of keys) {
-            if ((stored[key] ?? '') !== (current[key] ?? '')) return true;
-        }
-        return false;
-    }
-
-    function showBanner() {
-        if (!banner) return;
-        banner.hidden = false;
-        banner.classList.add('is-visible');
-    }
-
-    function hideBanner() {
-        if (!banner) return;
-        banner.hidden = true;
-        banner.classList.remove('is-visible');
-    }
-
-    function applyDraft(data) {
-        Object.entries(data).forEach(([name, value]) => {
-            const els = form.querySelectorAll('[name="' + CSS.escape(name) + '"]');
-            els.forEach(el => {
-                if (el.type === 'radio') {
-                    el.checked = value !== null && el.value === value;
-                } else if (el.tagName === 'SELECT') {
-                    el.value = value ?? '';
-                } else {
-                    el.value = value ?? '';
-                }
-            });
-        });
-        lastSavedJson = draftPayload();
-        draftDirty = false;
-        updateCompletion();
-    }
-
     progressBtn?.addEventListener('click', function () {
         saveToServer('manual');
-    });
-
-    form.addEventListener('submit', function (e) {
-        const submitter = e.submitter;
-        if (submitter && submitter.id === 'shift-final-btn') {
-            try { localStorage.removeItem(draftKey()); } catch (err) {}
-            lastSavedJson = null;
-        }
-    });
-
-    const hasServerShift = !!(form?.dataset.editingId);
-    if (hasServerShift) {
-        try { localStorage.removeItem(draftKey()); } catch (e) {}
-    } else try {
-        const raw = localStorage.getItem(draftKey());
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Date.now() - parsed.ts < DRAFT_MAX_AGE_MS && parsed.data && draftsDiffer(parsed.data)) {
-                savedDraft = parsed.data;
-                showBanner();
-            }
-        }
-    } catch (e) {}
-
-    document.getElementById('draft-restore-btn')?.addEventListener('click', () => {
-        if (!savedDraft) return;
-        applyDraft(savedDraft);
-        hideBanner();
-        if (statusEl) statusEl.textContent = 'Draft restored';
-    });
-
-    document.getElementById('draft-dismiss-btn')?.addEventListener('click', () => {
-        try { localStorage.removeItem(draftKey()); } catch (e) {}
-        hideBanner();
-        savedDraft = null;
-        lastSavedJson = draftPayload();
     });
 })();
 </script>
