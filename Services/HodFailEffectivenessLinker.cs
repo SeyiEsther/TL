@@ -14,6 +14,8 @@ public static class HodFailEffectivenessLinker
 
         foreach (var finding in findings.Where(f => f.ShiftSubmissionId.HasValue))
         {
+            finding.Issues ??= [];
+            finding.LinkedAuditFailures ??= [];
             var relevantFails = failed.Where(f => MatchesAuditType(f, auditType)).ToList();
             if (relevantFails.Count == 0) continue;
 

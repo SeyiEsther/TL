@@ -105,32 +105,42 @@ public class SeniorAuditModel : PageModel
 
         var user = _users.GetCurrentUser();
 
-        if (editingId.HasValue)
+        try
         {
-            var sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == editingId.Value);
-            if (sub == null) return RedirectToPage("/SeniorStart");
+            if (editingId.HasValue)
+            {
+                var sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == editingId.Value);
+                if (sub == null) return RedirectToPage("/SeniorStart");
 
-            ApplyInput(sub, A);
-            sub.AuditorSignature = auditorSignature;
+                ApplyInput(sub, A);
+                sub.AuditorSignature = auditorSignature;
+                await _db.SaveChangesAsync();
+                return RedirectToPage("/SeniorSuccess", new { id = editingId });
+            }
+
+            if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
+
+            var audit = new SeniorWeeklyAudit
+            {
+                SubmittedBy = user.Username,
+                AuditorName = auditorName ?? user.DisplayName,
+                AuditDate = d,
+                Area = area,
+                AuditorSignature = auditorSignature,
+            };
+            ApplyInput(audit, A);
+
+            _db.SeniorWeeklyAudits.Add(audit);
             await _db.SaveChangesAsync();
-            return RedirectToPage("/SeniorSuccess", new { id = editingId });
+            return RedirectToPage("/SeniorSuccess", new { id = audit.Id });
         }
-
-        if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
-
-        var audit = new SeniorWeeklyAudit
+        catch (Exception ex)
         {
-            SubmittedBy = user.Username,
-            AuditorName = auditorName ?? user.DisplayName,
-            AuditDate = d,
-            Area = area,
-            AuditorSignature = auditorSignature,
-        };
-        ApplyInput(audit, A);
-
-        _db.SeniorWeeklyAudits.Add(audit);
-        await _db.SaveChangesAsync();
-        return RedirectToPage("/SeniorSuccess", new { id = audit.Id });
+            HttpContext.RequestServices.GetRequiredService<ILogger<SeniorAuditModel>>()
+                .LogError(ex, "Senior audit save failed for id {EditingId}", editingId);
+            ModelState.AddModelError("", "Could not save audit — please try again.");
+            return Page();
+        }
     }
 
     static int CountMissingScores(SeniorAuditInputModel a) =>

@@ -78,8 +78,16 @@ public class IndexModel : PageModel
         {
             if (!string.IsNullOrWhiteSpace(covering) && string.IsNullOrWhiteSpace(existing.CoveringFor))
             {
-                existing.CoveringFor = covering;
-                await _db.SaveChangesAsync();
+                try
+                {
+                    existing.CoveringFor = covering;
+                    await _db.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    HttpContext.RequestServices.GetRequiredService<ILogger<IndexModel>>()
+                        .LogWarning(ex, "Could not save covering-for on resume for shift {Id}", existing.Id);
+                }
             }
             return RedirectToPage("/Form", new { id = existing.Id, tl = actualName, coveringFor = covering });
         }

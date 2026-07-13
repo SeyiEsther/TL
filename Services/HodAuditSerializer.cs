@@ -20,7 +20,16 @@ public static class HodAuditSerializer
     public static List<HodEffectivenessFinding> ParseEffectiveness(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return [];
-        try { return JsonSerializer.Deserialize<List<HodEffectivenessFinding>>(json, Options) ?? []; }
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<HodEffectivenessFinding>>(json, Options) ?? [];
+            foreach (var f in list)
+            {
+                f.Issues ??= [];
+                f.LinkedAuditFailures ??= [];
+            }
+            return list;
+        }
         catch { return []; }
     }
 

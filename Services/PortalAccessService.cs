@@ -103,9 +103,15 @@ public static class PortalNameMatcher
                longer.StartsWith(shorter, StringComparison.OrdinalIgnoreCase);
     }
 
-    static string FirstNameOf(string fullName) =>
-        fullName[..fullName.LastIndexOf(' ')];
+    static string FirstNameOf(string fullName)
+    {
+        var i = fullName.LastIndexOf(' ');
+        return i <= 0 ? fullName : fullName[..i];
+    }
 
-    static string LastNameOf(string fullName) =>
-        fullName[(fullName.LastIndexOf(' ') + 1)..];
+    static string LastNameOf(string fullName)
+    {
+        var i = fullName.LastIndexOf(' ');
+        return i < 0 ? fullName : fullName[(i + 1)..];
+    }
 }

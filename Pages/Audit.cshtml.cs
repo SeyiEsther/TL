@@ -69,11 +69,8 @@ public class AuditModel : PageModel
             AuditorSignature = audit.AuditorSignature;
             TeamLeaderSignature = audit.TeamLeaderSignature;
             Answers = HodAuditSerializer.ParseAnswers(audit.AnswersJson);
-            if (DateOnly.TryParse(AuditDate, out var editDate))
-                EffectivenessFindings = await _effectiveness.GetFindingsAsync(
-                    Department, EffectivenessArea, editDate, AuditType);
-            else
-                EffectivenessFindings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
+            EffectivenessFindings = await LoadEffectivenessFindingsAsync(
+                Department, EffectivenessArea, AuditDate, AuditType, audit.EffectivenessJson);
             TotalScore = audit.TotalScore;
             MaxScore = audit.MaxScore;
         }
@@ -94,8 +91,8 @@ public class AuditModel : PageModel
                 return RedirectToPage("/AuditStart");
 
             if (DateOnly.TryParse(AuditDate, out var ad))
-                EffectivenessFindings = await _effectiveness.GetFindingsAsync(
-                    Department, EffectivenessArea, ad, AuditType);
+                EffectivenessFindings = await LoadEffectivenessFindingsAsync(
+                    Department, EffectivenessArea, AuditDate, AuditType, null);
         }
 
         AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
@@ -247,13 +244,14 @@ public class AuditModel : PageModel
 
         (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
         var user = _users.GetCurrentUser();
-        var effectiveness = await _effectiveness.GetFindingsAsync(
-            Department, EffectivenessArea, auditD, AuditType);
-        effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
-        Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
         try
         {
+            var effectiveness = await _effectiveness.GetFindingsAsync(
+                Department, EffectivenessArea, auditD, AuditType);
+            effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
+            Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
+
             if (editingId.HasValue)
             {
                 var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
@@ -326,14 +324,36 @@ public class AuditModel : PageModel
         RatingBand = HodAuditScoring.RatingBand(TotalScore, MaxScore);
         RatingDetail = HodAuditScoring.RatingDetail(TotalScore, MaxScore);
         if (DateOnly.TryParse(AuditDate, out var ad))
-            EffectivenessFindings = await _effectiveness.GetFindingsAsync(
-                Department, EffectivenessArea, ad, AuditType);
+            EffectivenessFindings = await LoadEffectivenessFindingsAsync(
+                Department, EffectivenessArea, AuditDate, AuditType, null);
+    }
+
+    async Task<List<HodEffectivenessFinding>> LoadEffectivenessFindingsAsync(
+        string department, string effectivenessArea, string auditDate, string auditType, string? storedJson)
+    {
+        if (DateOnly.TryParse(auditDate, out var d))
+        {
+            try
+            {
+                return await _effectiveness.GetFindingsAsync(department, effectivenessArea, d, auditType);
+            }
+            catch (Exception ex)
+            {
+                HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
+                    .LogWarning(ex, "Could not load live effectiveness findings — using stored data if available.");
+            }
+        }
+
+        return HodAuditSerializer.ParseEffectiveness(storedJson);
     }
 
     List<HodAuditAnswer> MergeAnswersWithExisting(string? existingJson)
     {
         var stored = HodAuditSerializer.ParseAnswers(existingJson);
-        var storedById = stored.ToDictionary(a => a.QuestionId);
+        var storedById = stored
+            .Where(a => !string.IsNullOrEmpty(a.QuestionId))
+            .GroupBy(a => a.QuestionId)
+            .ToDictionary(g => g.Key, g => g.Last());
         var inputById = A
             .Where(a => !string.IsNullOrEmpty(a.QuestionId))
             .GroupBy(a => a.QuestionId)

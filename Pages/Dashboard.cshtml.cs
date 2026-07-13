@@ -62,6 +62,21 @@ public class DashboardModel : PageModel
         AreaFilter = area;
         TlFilter = tl;
 
+        try
+        {
+            await LoadDashboardDataAsync(from, to, shift, area, tl);
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<DashboardModel>>()
+                .LogError(ex, "Dashboard load failed");
+            Shifts = [];
+            ShiftFollowUp = null;
+        }
+    }
+
+    async Task LoadDashboardDataAsync(string? from, string? to, string? shift, string? area, string? tl)
+    {
         var q = _db.ShiftSubmissions.ExcludeAudits();
         if (!string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)) q = q.Where(s => s.ShiftDate >= f);
         if (!string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)) q = q.Where(s => s.ShiftDate <= t);

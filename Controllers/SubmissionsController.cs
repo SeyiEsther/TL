@@ -25,6 +25,7 @@ namespace TL.Controllers
         public async Task<IActionResult> Create([FromBody] ShiftSubmissionRequest req)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            req.Hours ??= [];
             var user = _users.GetCurrentUser();
 
             if (!DateOnly.TryParse(req.ShiftDate, out var shiftDate))
@@ -74,6 +75,7 @@ namespace TL.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] ShiftSubmissionRequest req)
         {
+            req.Hours ??= [];
             var user = _users.GetCurrentUser();
             var editorName = req.TeamLeader ?? user.DisplayName;
 

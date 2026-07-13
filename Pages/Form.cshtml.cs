@@ -82,19 +82,30 @@ public class FormModel : PageModel
                 return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName, coveringFor });
 
             CoveringFor = string.IsNullOrWhiteSpace(coveringFor) ? null : coveringFor.Trim();
-            var stub = new ShiftSubmission
+            try
             {
-                SubmittedBy = user.Username,
-                TeamLeaderDisplay = tlName,
-                CoveringFor = CoveringFor,
-                ShiftDate = d,
-                Shift = Shift,
-                Area = Area,
-                HoursCompleted = (byte)Hours,
-            };
-            _db.ShiftSubmissions.Add(stub);
-            await _db.SaveChangesAsync();
-            return RedirectToPage("/Form", new { id = stub.Id, hours = Hours, tl = tlName });
+                var stub = new ShiftSubmission
+                {
+                    SubmittedBy = user.Username,
+                    TeamLeaderDisplay = tlName,
+                    CoveringFor = CoveringFor,
+                    ShiftDate = d,
+                    Shift = Shift,
+                    Area = Area,
+                    HoursCompleted = (byte)Hours,
+                };
+                _db.ShiftSubmissions.Add(stub);
+                await _db.SaveChangesAsync();
+                return RedirectToPage("/Form", new { id = stub.Id, hours = Hours, tl = tlName });
+            }
+            catch (Exception ex)
+            {
+                HttpContext.RequestServices.GetRequiredService<ILogger<FormModel>>()
+                    .LogError(ex, "Could not create shift stub for {Area} {Shift} {Date}", Area, Shift, ShiftDate);
+                ValidationError = "Could not start this shift — please try again.";
+                PadHours();
+                return Page();
+            }
         }
 
         PadHours();

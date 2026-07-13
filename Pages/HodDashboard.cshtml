@@ -273,6 +273,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 (function () {
+    if (typeof Chart === 'undefined') return;
     const C = { navy: '#1e3a5f', blue: '#3b82f6', amber: '#f59e0b', green: '#16a34a', gray: '#e9ebee', red: '#CC1F2C' };
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
     Chart.defaults.font.size = 11;
