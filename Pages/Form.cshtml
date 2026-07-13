@@ -9,7 +9,6 @@
 
 <div class="page">
 
-    <!-- Session info bar -->
     <div class="session-bar">
         <div class="sf"><label>Date</label><input type="text" value="@Model.ShiftDate" readonly></div>
         <div class="sf"><label>Shift</label><input type="text" value="@Model.Shift" readonly></div>
@@ -31,7 +30,6 @@
             }
         </div>
 
-        <!-- Hours selector — pure GET form, no JS -->
         <div class="sf" style="margin-left:auto">
             <label>Hours in shift</label>
             <form method="get" style="display:flex;gap:6px;align-items:center">
@@ -76,7 +74,6 @@
         </div>
     </div>
 
-    <!-- Main data entry form -->
     <form method="post" id="shift-form" data-shift-form data-hours="@H" data-editing-id="@(Model.EditingId?.ToString() ?? "")">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
@@ -100,7 +97,6 @@
                 </thead>
                 <tbody>
 
-                    <!-- HEALTH & SAFETY -->
                     <tr class="sec-row safety"><td class="acc"></td><td colspan="@H">Health &amp; Safety</td></tr>
                     @{ await RenderYN("Any hazards observed?", "Haz", h => hd(h).Haz,
                         "Slips, trips, blocked exits or unsafe conditions anywhere in the area"); }
@@ -110,7 +106,6 @@
                         "Proactive safety actions worth calling out and sharing with the team"); }
                     @{ await RenderNote("Description", "Snote", h => hd(h).Snote); }
 
-                    <!-- QUALITY -->
                     <tr class="sec-row quality"><td class="acc"></td><td colspan="@H">Quality</td></tr>
                     @{ await RenderYN("All quality checks completed?", "Qchk", h => hd(h).Qchk,
                         "All scheduled inspections and verification checks were carried out this hour"); }
@@ -122,7 +117,6 @@
                         "No non-conforming tools e.g. tape measure"); }
                     @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
 
-                    <!-- PERFORMANCE -->
                     <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>
                     @{ await RenderYN("Hourly target achieved?", "Tgt", h => hd(h).Tgt,
                         "Output met the planned production target for this hour"); }
@@ -143,7 +137,6 @@
                         "Non-conforming parts are clearly labelled and moved to the dedicated NC zone"); }
                     @{ await RenderNote("Actions taken", "Pnote", h => hd(h).Pnote); }
 
-                    <!-- MORALE -->
                     <tr class="sec-row morale"><td class="acc"></td><td colspan="@H">Morale Check</td></tr>
                     @{ await RenderYN("Operator wellbeing confirmed?", "Wb", h => hd(h).Wb,
                         "Checked in with each team member — everyone is fit, comfortable and not struggling"); }
@@ -151,7 +144,6 @@
                         "Anyone raising a concern, finding it difficult or asking for additional help"); }
                     @{ await RenderNote("Detail support required", "Mnote", h => hd(h).Mnote); }
 
-                    <!-- FINAL STATUS -->
                     <tr class="sec-row final"><td class="acc"></td><td colspan="@H">Final Shift Status</td></tr>
                     @{ await RenderYN("Any accidents reported this shift?", "Acc", h => hd(h).Acc,
                         "Any RTA, near-miss or first-aid incident recorded in the accident book this shift"); }
@@ -163,7 +155,6 @@
             </table>
         </div>
 
-        <!-- Once-per-shift activities -->
         <div class="shift-once-card">
             <div class="shift-once-head">End-of-shift activities</div>
             <div class="shift-once-body">
@@ -190,7 +181,6 @@
             </div>
         </div>
 
-        <!-- Shift summary -->
         <div class="summary-grid">
             <h3>Shift summary &amp; handover</h3>
             <div class="sfield full">
@@ -207,7 +197,6 @@
             </div>
         </div>
 
-        <!-- Outgoing TL signature -->
         <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:14px">Outgoing TL sign-off</div>
             <div class="sfield full">

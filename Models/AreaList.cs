@@ -4,7 +4,6 @@ public static class AreaList
 {
     public static readonly (string Group, string Label, string Machines)[] All =
     [
-        // ── Assembly ──────────────────────────────────────────────────────────
         ("Assembly", "1 — HP",                    ""),
         ("Assembly", "2 — OZEKI",                 ""),
         ("Assembly", "3 — META",                  ""),
@@ -17,14 +16,10 @@ public static class AreaList
         ("Assembly", "10 — E40001",               ""),
         ("Assembly", "11 — FLAT PARTS",           ""),
         ("Assembly", "12 — ACCESSORIES",          ""),
-
-        // ── Paint ─────────────────────────────────────────────────────────────
         ("Paint", "13 — Black Line",  ""),
         ("Paint", "14 — White Line",  ""),
         ("Paint", "15 — Back Booth",  ""),
         ("Paint", "16 — Re-Work",     ""),
-
-        // ── Sheet Metal ───────────────────────────────────────────────────────
         ("Sheet Metal", "Zone 1",  "Trumpf Laser, Trubend F35"),
         ("Sheet Metal", "Zone 2",  "T500, T5000, T5000–S10, T5000–S11, T7000"),
         ("Sheet Metal", "Zone 3",  "T5000–S13, T5000–S14"),
@@ -41,24 +36,16 @@ public static class AreaList
         ("Sheet Metal", "Zone 17", "Trubend F32, F33, F34"),
         ("Sheet Metal", "Zone 20", "Robot Folding Cell F28, Bystronic F29, F30, F31, F36"),
         ("Sheet Metal", "Zone 22", "F37, EP3"),
-
-        // ── Phase 1 Sheetmetal (200143/200249/200250/300308 cost codes) ────────
         ("Phase 1 Sheetmetal", "Zone 4",  "Heilbronn"),
         ("Phase 1 Sheetmetal", "Zone 5",  "Salv 1"),
         ("Phase 1 Sheetmetal", "Zone 6",  "Salv 3"),
         ("Phase 1 Sheetmetal", "Zone 23", "Galv Grindbay"),
-
-        // ── Phase 3 Sheetmetal (100253/200212/200239/300289 cost codes) ────────
         ("Phase 3 Sheetmetal", "Zone 18", "Grind Master PH1"),
         ("Phase 3 Sheetmetal", "Zone 19", "Automatic TX Stud Weld Cell"),
         ("Phase 3 Sheetmetal", "Zone 21", "Sciaky Spot Weld, Spotwelder E11/2 (Serial 770066)"),
-
-        // ── Dispatch ──────────────────────────────────────────────────────────
         ("Dispatch", "Loading Bays",    ""),
         ("Dispatch", "Mez Floor Above", ""),
         ("Dispatch", "Mez Floor Below", ""),
-
-        // ── Stores ────────────────────────────────────────────────────────────
         ("Stores", "DP1", ""),
         ("Stores", "DP3", ""),
     ];

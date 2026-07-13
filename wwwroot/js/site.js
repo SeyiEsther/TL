@@ -34,8 +34,6 @@
         return a && b && a.getFullYear() === b.getFullYear()
             && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
     }
-
-    /* ── Floating popover portal (fixes card overflow clipping) ── */
     function positionFloating(trigger, popover) {
         var rect = trigger.getBoundingClientRect();
         var gap = 6;
@@ -111,8 +109,6 @@
             if (fs !== except) closeFilter(fs);
         });
     }
-
-    /* ── Smooth navigation (fade out before full page load) ── */
     function initSmoothNavigation() {
         function markNavigating() {
             document.documentElement.classList.add('is-navigating');
@@ -138,8 +134,6 @@
             markNavigating();
         }, true);
     }
-
-    /* ── Tab bar sliding indicator ── */
     function initTabBars() {
         document.querySelectorAll('.sd-tab-bar').forEach(function (bar) {
             var tabs = bar.querySelectorAll('.sd-tab');
@@ -171,8 +165,6 @@
             });
         });
     }
-
-    /* ── Senior dashboard panels ── */
     function initSdPanels() {
         var tabs = document.querySelectorAll('.sd-tab[data-tab]');
         var panels = document.querySelectorAll('.sd-panel');
@@ -188,8 +180,6 @@
             });
         });
     }
-
-    /* ── Date picker ── */
     function getPopover(dp) {
         return dp._portaledPopover || dp.querySelector('.dp-popover');
     }
@@ -379,8 +369,6 @@
             }
         });
     }
-
-    /* ── Filter dropdowns (shift / area) ── */
     function getFilterPopover(fs) {
         return fs._portaledPopover || fs.querySelector('.fs-popover');
     }
@@ -473,8 +461,6 @@
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') closeAllDropdowns(null);
     });
-
-    /* ── PDF downloads (iPad / cross-device) ── */
     function isIOSDevice() {
         return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -541,8 +527,6 @@
                 });
         });
     }
-
-    /* ── Audit form progress & section nav ── */
     function initAuditForms() {
         document.querySelectorAll('[data-audit-form]').forEach(function (wrap) {
             var form = wrap.querySelector('form');

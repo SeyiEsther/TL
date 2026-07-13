@@ -47,7 +47,6 @@ namespace TL.Services
                     {
                         col.Spacing(8);
 
-                        // Audit details
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background(LightGray).Padding(6)
@@ -70,7 +69,6 @@ namespace TL.Services
                             });
                         });
 
-                        // H&S
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background("#14532d").Padding(6)
@@ -87,7 +85,6 @@ namespace TL.Services
                                     .Background(LightGray).Padding(4).Text(a.SafetyNotes).FontSize(8);
                         });
 
-                        // Quality
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background("#1e3a5f").Padding(6)
@@ -104,7 +101,6 @@ namespace TL.Services
                                     .Background(LightGray).Padding(4).Text(a.QualityNotes).FontSize(8);
                         });
 
-                        // Performance
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background("#1e1b4b").Padding(6)
@@ -128,7 +124,6 @@ namespace TL.Services
                                     .Background(LightGray).Padding(4).Text(a.PerformanceNotes).FontSize(8);
                         });
 
-                        // Morale
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background("#4a1d1d").Padding(6)
@@ -144,7 +139,6 @@ namespace TL.Services
                                     .Background(LightGray).Padding(4).Text(a.MoraleNotes).FontSize(8);
                         });
 
-                        // Verdict
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background(DarkGray).Padding(6)
@@ -159,7 +153,6 @@ namespace TL.Services
                             });
                         });
 
-                        // Findings & Actions
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background("#78350f").Padding(6)
@@ -192,7 +185,6 @@ namespace TL.Services
                             });
                         });
 
-                        // Sign-off
                         col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                         {
                             inner.Item().Background(LightGray).Padding(6)
@@ -532,7 +524,6 @@ namespace TL.Services
             {
                 col.Spacing(10);
 
-                // Session
                 col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
                 {
                     inner.Item().Background("#f3f4f6").Padding(6)
@@ -557,7 +548,6 @@ namespace TL.Services
                     });
                 });
 
-                // Hourly checks summary
                 if (s.Hours?.Any() == true)
                 {
                     col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
@@ -608,7 +598,6 @@ namespace TL.Services
                     });
                 }
 
-                // Handover summary
                 col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
                 {
                     inner.Item().Background("#1a0a0a").Padding(6)
@@ -635,7 +624,6 @@ namespace TL.Services
                     });
                 });
 
-                // Signatures
                 col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
                 {
                     inner.Item().Background("#f3f4f6").Padding(6)

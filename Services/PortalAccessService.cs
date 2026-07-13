@@ -2,7 +2,6 @@ using TL.Models;
 
 namespace TL.Services;
 
-/// <summary>Role-based visibility for HoD, Senior, Dashboard, and History.</summary>
 public class PortalAccessService
 {
     private readonly AdminService _admin;
@@ -28,7 +27,6 @@ public class PortalAccessService
         || MatchesList(_people.Seniors)
         || IsShiftManager();
 
-    /// <summary>Factory-wide dashboards and full history — not for general team leaders.</summary>
     public bool CanAccessManagement() =>
         _admin.IsAdmin() || CanAccessHod() || CanAccessSenior();
 

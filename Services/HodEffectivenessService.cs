@@ -15,7 +15,6 @@ public class HodEffectivenessService
         _completion = completion;
     }
 
-    /// <summary>Week containing auditDate (Mon–Sun).</summary>
     public static (DateOnly Start, DateOnly End) WeekRange(DateOnly auditDate)
     {
         var dow = auditDate.DayOfWeek;

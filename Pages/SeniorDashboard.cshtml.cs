@@ -46,8 +46,6 @@ public class SeniorDashboardModel : PageModel
         }
         catch
         {
-            // If the database is unreachable, degrade gracefully by showing an
-            // empty dashboard instead of a 500 error.
             Audits = new List<SeniorWeeklyAudit>();
         }
 

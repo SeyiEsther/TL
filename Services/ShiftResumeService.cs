@@ -15,14 +15,10 @@ public class ShiftResumeService
     public static bool TlEquals(string? a, string? b) =>
         string.Equals(NormalizeTl(a), NormalizeTl(b), StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Shift still being filled — not signed off by outgoing TL.</summary>
     public static bool IsInProgress(ShiftSubmission s) =>
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
-    /// <summary>
-    /// Find an in-progress shift to resume for this date/shift/area slot.
-    /// Team leader name is not used for matching — one shift per slot regardless of spelling.
-    /// </summary>
+    // One shift per date/shift/area slot — team leader name is not used for matching.
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader = null)
     {

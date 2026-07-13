@@ -11,18 +11,15 @@ public class HodDailyAudit
     public string AuditorName { get; set; } = "";
     public DateOnly AuditDate { get; set; }
     public string Department { get; set; } = "";
-    /// <summary>Zone/line for TL form effectiveness check (AreaList.Label).</summary>
     public string EffectivenessArea { get; set; } = "";
     /// <summary>Legacy mirror of EffectivenessArea for older queries/exports.</summary>
     public string Area { get; set; } = "";
     public string AuditType { get; set; } = "";
 
-  /// <summary>JSON array of HodAuditAnswer.</summary>
     public string AnswersJson { get; set; } = "[]";
     public int TotalScore { get; set; }
     public int MaxScore { get; set; }
 
-  /// <summary>JSON: TL effectiveness findings for the audit week.</summary>
     public string? EffectivenessJson { get; set; }
 
     public string? ActionsRaised { get; set; }
@@ -56,7 +53,6 @@ public class HodEffectivenessFinding
     public int HoursTotal { get; set; }
     public bool OutgoingSignedOff { get; set; }
     public bool IncomingHandoverAcknowledged { get; set; }
-    /// <summary>Closed correctly, Incomplete form, Not signed off, or No forms.</summary>
     public string CloseStatus { get; set; } = "";
     public List<string> Issues { get; set; } = new();
     public bool TlClaimedSixS { get; set; }
@@ -99,7 +95,6 @@ public static class HodAuditTypes
     public static string LabelFor(string type) =>
         All.FirstOrDefault(t => t.Value == type).Label ?? type;
 
-    /// <summary>Suggested audit type by weekday (Mon–Thu rotation, Fri=catch-up).</summary>
     public static string SuggestedForDay(DayOfWeek day) => day switch
     {
         DayOfWeek.Monday => SixS,

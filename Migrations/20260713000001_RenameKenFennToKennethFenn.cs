@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace TL.Migrations
 {
-    /// <summary>HoD list used "Ken Fenn" but AD / sign-in is Kenneth.</summary>
     public partial class RenameKenFennToKennethFenn : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

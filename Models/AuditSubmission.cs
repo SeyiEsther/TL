@@ -8,26 +8,22 @@ public class AuditSubmission
     public string? LastEditedBy { get; set; }
     public DateTime? LastEditedAt { get; set; }
 
-    // Who & where
     public string AuditorName { get; set; } = "";
     public DateOnly AuditDate { get; set; }
     public string Area { get; set; } = "";
     public string? TLOnShift { get; set; }
-    public string? ShiftObserved { get; set; }   // Day / Afternoon / Night
+    public string? ShiftObserved { get; set; }
 
-    // Health & Safety
     public bool? HazardsObserved { get; set; }
     public bool? UnsafeBehavioursObserved { get; set; }
     public bool? PositiveBehavioursPraised { get; set; }
     public string? SafetyNotes { get; set; }
 
-    // Quality
     public bool? QualityChecksCompleted { get; set; }
     public bool? DeviationsEscalated { get; set; }
     public bool? NonComplianceAddressed { get; set; }
     public string? QualityNotes { get; set; }
 
-    // Performance
     public bool? HourlyTargetAchieved { get; set; }
     public bool? MaintenanceIssues { get; set; }
     public bool? MaterialsAvailable { get; set; }
@@ -40,24 +36,20 @@ public class AuditSubmission
     public bool? TPMCompleted { get; set; }
     public string? PerformanceNotes { get; set; }
 
-    // Morale
     public bool? WellbeingConfirmed { get; set; }
     public bool? SupportRequired { get; set; }
     public string? MoraleNotes { get; set; }
 
-    // Verdict
     public bool? AccidentsObserved { get; set; }
     public string? OverallSafetyStatus { get; set; }
     public string? OverallQualityStatus { get; set; }
     public string? OverallPerfStatus { get; set; }
 
-    // Actions & follow-up (senior management specific)
     public string? ActionsRaised { get; set; }
     public string? GoodPracticeObserved { get; set; }
     public string? FollowUpRequired { get; set; }
     public string? ActionOwner { get; set; }
     public DateOnly? ActionDueDate { get; set; }
 
-    // Sign-off
     public string? AuditorSignature { get; set; }
 }

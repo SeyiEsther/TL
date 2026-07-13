@@ -20,7 +20,6 @@ namespace TL.Controllers
             _db = db; _pdf = pdf; _users = users;
         }
 
-        // POST - create new submission
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] ShiftSubmissionRequest req)
         {
@@ -52,7 +51,6 @@ namespace TL.Controllers
             return Ok(new { id = shift.Id });
         }
 
-        // GET find by date/shift/area
         [HttpGet("find")]
         public async Task<IActionResult> Find([FromQuery] string date, [FromQuery] string shift, [FromQuery] string area)
         {
@@ -71,7 +69,6 @@ namespace TL.Controllers
             return Ok(existing);
         }
 
-        // PUT - update existing submission with audit log
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] ShiftSubmissionRequest req)
         {
@@ -174,7 +171,6 @@ namespace TL.Controllers
             return Ok(new { id = shift.Id, auditEntries = logs.Count });
         }
 
-        // GET today's shifts
         [HttpGet("today")]
         public async Task<IActionResult> Today()
         {
@@ -207,7 +203,6 @@ namespace TL.Controllers
             return Ok(result);
         }
 
-        // GET audit log for a submission
         [HttpGet("{id:int}/audit")]
         public async Task<IActionResult> Audit(int id)
         {
@@ -218,7 +213,6 @@ namespace TL.Controllers
             return Ok(logs);
         }
 
-        // GET list
         [HttpGet]
         public async Task<IActionResult> List(
             [FromQuery] string? from,
@@ -261,7 +255,6 @@ namespace TL.Controllers
             return Ok(new { total, page, pageSize, items });
         }
 
-        // GET single submission
         [HttpGet("{id:int}")]
         public async Task<IActionResult> Get(int id)
         {
@@ -273,7 +266,6 @@ namespace TL.Controllers
             return Ok(shift);
         }
 
-        // GET PDF
         [HttpGet("{id:int}/pdf")]
         public async Task<IActionResult> Pdf(int id)
         {
@@ -299,7 +291,6 @@ namespace TL.Controllers
             }
         }
 
-        // GET CSV export
         [HttpGet("export/csv")]
         public async Task<IActionResult> Csv([FromQuery] string? from, [FromQuery] string? to)
         {

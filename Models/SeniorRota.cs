@@ -2,10 +2,6 @@ using System.Globalization;
 
 namespace TL.Models;
 
-/// <summary>
-/// Weekly duty rota for the Senior Weekly Audit, covering Group 1s and Directors.
-/// Names come from <see cref="PersonListService"/> in production; built-in defaults otherwise.
-/// </summary>
 public static class SeniorRota
 {
     public const int GroupSize = 4;
@@ -32,7 +28,6 @@ public static class SeniorRota
         return order;
     }
 
-    /// <summary>Exactly <see cref="GroupSize"/> seniors on duty (wraps fairly when headcount is not a multiple of 4).</summary>
     public static string[] DutyGroupForWeek(int isoYear, int isoWeek, IReadOnlyList<string>? names = null)
     {
         var order = OrderForYear(isoYear, names);
@@ -43,7 +38,6 @@ public static class SeniorRota
         return Enumerable.Range(0, size).Select(k => order[(start + k) % n]).ToArray();
     }
 
-    /// <summary>First rotation groups for the year (each padded to 4 via wrap).</summary>
     public static List<string[]> TeamsForYear(int year, IReadOnlyList<string>? names = null)
     {
         var order = OrderForYear(year, names);

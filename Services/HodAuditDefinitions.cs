@@ -4,7 +4,6 @@ namespace TL.Services;
 
 public static class HodAuditDefinitions
 {
-    /// <param name="department">Department-wide walkaround scope (AreaList.Group).</param>
     public static List<HodAuditQuestion> GetQuestions(string auditType, string department)
     {
         return auditType switch
