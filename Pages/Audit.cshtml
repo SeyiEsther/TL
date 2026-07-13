@@ -68,7 +68,6 @@
     @{
         var complianceIssues = Model.EffectivenessFindings.Count(f => f.IsAuditFinding && !string.IsNullOrEmpty(f.TeamLeader));
         var unsignedCount = Model.EffectivenessFindings.Count(f => !string.IsNullOrEmpty(f.TeamLeader) && !f.OutgoingSignedOff);
-        var handoverPending = Model.EffectivenessFindings.Count(f => !string.IsNullOrEmpty(f.TeamLeader) && f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged);
     }
     @if (complianceIssues > 0 || Model.EffectivenessFindings.Any(f => f.CloseStatus == "No forms"))
     {
@@ -81,7 +80,6 @@
             {
                 <span>@complianceIssues shift(s) need attention this week</span>
                 if (unsignedCount > 0) { <span> · @unsignedCount unsigned</span> }
-                if (handoverPending > 0) { <span> · @handoverPending handover pending</span> }
             }
         </div>
     }
@@ -226,8 +224,7 @@
                                             }
                                             else
                                             {
-                                                var closeCls = f.CloseStatus == "Closed correctly" ? "g"
-                                                    : f.CloseStatus == "Handover pending" ? "a" : "r";
+                                                var closeCls = f.CloseStatus == "Closed correctly" ? "g" : "r";
                                                 <span class="rag @closeCls">@f.CloseStatus</span>
                                             }
                                         </td>

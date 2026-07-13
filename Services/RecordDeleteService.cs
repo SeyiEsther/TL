@@ -12,7 +12,7 @@ public class RecordDeleteService
     public Task<bool> DeleteAsync(string kind, int id, bool isNewHodAudit) =>
         kind switch
         {
-            "shifts" or "handovers" or "session" => DeleteShiftSubmissionAsync(id),
+            "shifts" or "session" => DeleteShiftSubmissionAsync(id),
             "hod" when isNewHodAudit => DeleteHodAuditAsync(id),
             "hod" => DeleteShiftSubmissionAsync(id),
             "senior" => DeleteSeniorAuditAsync(id),

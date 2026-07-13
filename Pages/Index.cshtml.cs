@@ -84,19 +84,6 @@ public class IndexModel : PageModel
             return RedirectToPage("/Form", new { id = existing.Id, tl = actualName, coveringFor = covering });
         }
 
-        var previousShift = await _resume.FindPendingHandoverForAreaAsync(area, d, shift);
-        if (previousShift != null)
-        {
-            return RedirectToPage("/HandoverAck", new
-            {
-                prevId = previousShift.Id,
-                date = shiftDate,
-                shift,
-                area,
-                tl = actualName
-            });
-        }
-
         return RedirectToPage("/Form", new
         {
             date = shiftDate,

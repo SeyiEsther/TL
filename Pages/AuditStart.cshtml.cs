@@ -47,7 +47,6 @@ public class AuditStartModel : PageModel
             summary.NotClosedCorrectly,
             summary.IncompleteForms,
             summary.Unsigned,
-            summary.HandoverPending,
             summary.ClosedCorrectly,
             findings = summary.Findings.Select(f => new
             {
@@ -58,7 +57,6 @@ public class AuditStartModel : PageModel
                 f.HoursComplete,
                 f.HoursTotal,
                 f.OutgoingSignedOff,
-                f.IncomingHandoverAcknowledged,
                 f.CloseStatus,
                 f.IsAuditFinding,
                 issues = f.Issues,

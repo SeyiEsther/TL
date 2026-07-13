@@ -185,7 +185,6 @@
                                 <th>Problem shifts</th>
                                 <th>Incomplete</th>
                                 <th>Unsigned</th>
-                                <th>Handover</th>
                                 <th>What's wrong</th>
                             </tr>
                         </thead>
@@ -201,7 +200,6 @@
                                     <td><span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span></td>
                                     <td><span class="rag @(tl.Incomplete > 0 ? "r" : "g")">@tl.Incomplete</span></td>
                                     <td><span class="rag @(tl.Unsigned > 0 ? "r" : "g")">@tl.Unsigned</span></td>
-                                    <td><span class="rag @(tl.HandoverPending > 0 ? "a" : "g")">@tl.HandoverPending</span></td>
                                     <td style="font-size:11px;color:var(--muted)">@string.Join(" · ", tl.IssueSummary)</td>
                                 </tr>
                             }
@@ -232,8 +230,7 @@
                         <tbody>
                             @foreach (var s in Model.TlShiftIssues)
                             {
-                                var closeCls = s.CloseStatus == "Closed correctly" ? "g"
-                                    : s.CloseStatus == "Handover pending" ? "a" : "r";
+                                var closeCls = s.CloseStatus == "Closed correctly" ? "g" : "r";
                                 <tr>
                                     <td style="font-weight:700">@s.TeamLeader</td>
                                     <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
@@ -317,12 +314,11 @@
                 <div style="padding:12px 18px;font-size:12px;color:#991b1b;background:#fef2f2;border-bottom:1px solid #fecaca">
                     <strong>@Model.TlNotClosed</strong> of <strong>@Model.TlShiftCount</strong> shifts need attention —
                     @Model.TlIncomplete incomplete,
-                    @Model.TlUnsigned unsigned,
-                    @Model.TlHandoverPending handover pending.
+                    @Model.TlUnsigned unsigned.
                 </div>
                 <table class="dash-table">
                     <thead>
-                        <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th><th>Handover pending</th></tr>
+                        <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var a in Model.AreaCompliance)
@@ -332,7 +328,6 @@
                                 <td>@a.TotalShifts</td>
                                 <td><span class="rag @(a.Incomplete > 0 ? "r" : "g")">@a.Incomplete</span></td>
                                 <td><span class="rag @(a.Unsigned > 0 ? "r" : "g")">@a.Unsigned</span></td>
-                                <td><span class="rag @(a.HandoverPending > 0 ? "a" : "g")">@a.HandoverPending</span></td>
                             </tr>
                         }
                     </tbody>

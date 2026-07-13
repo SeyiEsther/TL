@@ -99,8 +99,7 @@
                                     }
                                     else
                                     {
-                                        var closeCls = f.CloseStatus == "Closed correctly" ? "g"
-                                            : f.CloseStatus == "Handover pending" ? "a" : "r";
+                                        var closeCls = f.CloseStatus == "Closed correctly" ? "g" : "r";
                                         <span class="rag @closeCls">@f.CloseStatus</span>
                                     }
                                 </td>

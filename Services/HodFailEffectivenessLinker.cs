@@ -48,8 +48,6 @@ public static class HodFailEffectivenessLinker
 
             if (!f.OutgoingSignedOff)
                 lines.Add($"{f.TeamLeader} ({f.Shift}, {f.ShiftDate:dd/MM/yyyy}): outgoing TL sign-off missing");
-            else if (!f.IncomingHandoverAcknowledged)
-                lines.Add($"{f.TeamLeader} ({f.Shift}, {f.ShiftDate:dd/MM/yyyy}): handover not acknowledged by incoming TL");
         }
 
         foreach (var f in findings.Where(x => x.TlClaimMismatch))

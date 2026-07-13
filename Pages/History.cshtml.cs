@@ -10,7 +10,7 @@ namespace TL.Pages;
 public class HistoryModel : PageModel
 {
     private static readonly HashSet<string> ValidTabs = new(StringComparer.OrdinalIgnoreCase)
-        { "all", "shifts", "hod", "senior", "handovers" };
+        { "all", "shifts", "hod", "senior" };
 
     private readonly AppDbContext _db;
     private readonly AdminService _admin;
@@ -68,8 +68,6 @@ public class HistoryModel : PageModel
             rows.AddRange(await LoadHodAuditsSafeAsync());
         if (Tab is "all" or "senior")
             rows.AddRange(await LoadSeniorAuditsSafeAsync());
-        if (Tab is "all" or "handovers")
-            rows.AddRange(await LoadHandoversAsync());
 
         Rows = rows
             .OrderByDescending(r => r.Date)
@@ -108,7 +106,7 @@ public class HistoryModel : PageModel
         return items.Select(s => new HistoryRow(
             "Shift", "shifts", s.Id, s.ShiftDate, s.Shift, s.Area ?? "—", PersonDisplay(s.TeamLeaderDisplay, s.CoveringFor),
             s.Safety, s.Quality, s.Perf, null,
-            !string.IsNullOrEmpty(s.Escalations), false, s.SubmittedAt)).ToList();
+            !string.IsNullOrEmpty(s.Escalations), s.SubmittedAt)).ToList();
     }
 
     async Task<List<HistoryRow>> LoadHodAuditsSafeAsync()
@@ -139,7 +137,7 @@ public class HistoryModel : PageModel
             $"HoD — {HodAuditTypes.LabelFor(a.AuditType)}", "hod", a.Id, a.AuditDate,
             a.Department, a.ResolveEffectivenessArea(), a.AuditorName,
             null, null, null, HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore),
-            !string.IsNullOrEmpty(a.ActionsRaised), false, a.SubmittedAt,
+            !string.IsNullOrEmpty(a.ActionsRaised), a.SubmittedAt,
             a.MaxScore > 0 ? a.TotalScore * 100 / a.MaxScore : null,
             IsNewHodAudit: true)));
 
@@ -160,7 +158,7 @@ public class HistoryModel : PageModel
             return new HistoryRow(
                 "HoD / Shift Mgr (legacy)", "hod", s.Id, s.ShiftDate, null, s.Area ?? "—", s.TeamLeaderDisplay,
                 h?.OverallSafetyStatus, h?.OverallQualityStatus, h?.OverallPerfStatus, null,
-                !string.IsNullOrEmpty(s.Escalations), false, s.SubmittedAt);
+                !string.IsNullOrEmpty(s.Escalations), s.SubmittedAt);
         }));
 
         return rows;
@@ -179,35 +177,8 @@ public class HistoryModel : PageModel
         return items.Select(a => new HistoryRow(
             "Senior audit", "senior", a.Id, a.AuditDate, null, a.Area, a.AuditorName,
             null, null, null, a.OverallVerdict,
-            !string.IsNullOrEmpty(a.ActionsRaised), false, a.SubmittedAt,
+            !string.IsNullOrEmpty(a.ActionsRaised), a.SubmittedAt,
             SeniorAuditScoring.OverallScore(a))).ToList();
-    }
-
-    async Task<List<HistoryRow>> LoadHandoversAsync()
-    {
-        var q = _db.ShiftSubmissions
-            .ExcludeAudits()
-            .Where(s => !string.IsNullOrEmpty(s.OutgoingTLSignature));
-        if (!string.IsNullOrEmpty(From) && DateOnly.TryParse(From, out var f)) q = q.Where(s => s.ShiftDate >= f);
-        if (!string.IsNullOrEmpty(To) && DateOnly.TryParse(To, out var t)) q = q.Where(s => s.ShiftDate <= t);
-        if (!string.IsNullOrEmpty(AreaFilter)) q = q.Where(s => s.Area == AreaFilter);
-        if (!string.IsNullOrEmpty(PersonFilter)) q = q.Where(s => s.TeamLeaderDisplay.Contains(PersonFilter));
-
-        var items = await q
-            .Include(s => s.Hours)
-            .OrderByDescending(s => s.ShiftDate)
-            .ToListAsync();
-
-        return items.Select(s =>
-        {
-            var h = s.Hours.OrderByDescending(x => x.HourNumber).FirstOrDefault();
-            var pending = string.IsNullOrEmpty(s.IncomingTLSignature);
-            return new HistoryRow(
-                pending ? "Handover (pending)" : "Handover", "handovers", s.Id, s.ShiftDate, s.Shift,
-                s.Area ?? "—", PersonDisplay(s.TeamLeaderDisplay, s.CoveringFor),
-                h?.OverallSafetyStatus, h?.OverallQualityStatus, h?.OverallPerfStatus, null,
-                false, pending, s.SubmittedAt);
-        }).ToList();
     }
 
     static string PersonDisplay(string teamLeader, string? coveringFor) =>
@@ -221,7 +192,6 @@ public class HistoryModel : PageModel
         "shifts" => "Shifts",
         "hod" => "HoD / Shift Mgr",
         "senior" => "Senior",
-        "handovers" => "Handovers",
         _ => t
     };
 }
@@ -239,7 +209,6 @@ public record HistoryRow(
     string? Perf,
     string? Verdict,
     bool HasActions,
-    bool HandoverPending,
     DateTime SubmittedAt,
     int? Score = null,
     bool IsNewHodAudit = false);

@@ -45,7 +45,6 @@ public class HodDashboardModel : PageModel
     public int TlNotClosed { get; set; }
     public int TlIncomplete { get; set; }
     public int TlUnsigned { get; set; }
-    public int TlHandoverPending { get; set; }
     public List<HodAreaComplianceRow> AreaCompliance { get; set; } = [];
     public List<HodAreaAuditRow> AreaAuditScores { get; set; } = [];
     public List<HodTlAccountabilityRow> TlAccountability { get; set; } = [];
@@ -173,23 +172,21 @@ public class HodDashboardModel : PageModel
         TlShiftCount = shifts.Count;
 
         var issueRows = new List<HodTlShiftIssueRow>();
-        var tlStats = new Dictionary<string, (int Total, int Problems, int Incomplete, int Unsigned, int Handover, HashSet<string> Areas, List<string> Summaries)>(StringComparer.OrdinalIgnoreCase);
+        var tlStats = new Dictionary<string, (int Total, int Problems, int Incomplete, int Unsigned, HashSet<string> Areas, List<string> Summaries)>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var shift in shifts)
         {
             var comp = _completion.Evaluate(shift);
             var signed = comp.SignedOff;
-            var handoverPending = signed && string.IsNullOrWhiteSpace(shift.IncomingTLSignature);
-            var closeStatus = ResolveCloseStatus(comp, signed, handoverPending);
-            var hasProblem = !comp.IsComplete || !signed || handoverPending;
+            var closeStatus = ResolveCloseStatus(comp, signed);
+            var hasProblem = !comp.IsComplete || !signed;
 
             if (!comp.IsComplete) TlIncomplete++;
             if (!signed) TlUnsigned++;
-            if (handoverPending) TlHandoverPending++;
 
             var tl = string.IsNullOrWhiteSpace(shift.TeamLeaderDisplay) ? "Unknown TL" : shift.TeamLeaderDisplay.Trim();
             if (!tlStats.TryGetValue(tl, out var stat))
-                stat = (0, 0, 0, 0, 0, new HashSet<string>(), new List<string>());
+                stat = (0, 0, 0, 0, new HashSet<string>(), new List<string>());
             stat.Total++;
             stat.Areas.Add(shift.Area ?? "Unknown");
             if (hasProblem)
@@ -197,9 +194,8 @@ public class HodDashboardModel : PageModel
                 stat.Problems++;
                 if (!comp.IsComplete) stat.Incomplete++;
                 if (!signed) stat.Unsigned++;
-                if (handoverPending) stat.Handover++;
 
-                var issues = BuildShiftIssues(comp, signed, handoverPending);
+                var issues = BuildShiftIssues(comp, signed);
                 issueRows.Add(new HodTlShiftIssueRow(
                     shift.Id,
                     tl,
@@ -231,7 +227,6 @@ public class HodDashboardModel : PageModel
                 kv.Value.Problems,
                 kv.Value.Incomplete,
                 kv.Value.Unsigned,
-                kv.Value.Handover,
                 kv.Value.Summaries.Take(5).ToList()))
             .OrderByDescending(r => r.ProblemShifts)
             .ThenByDescending(r => r.Incomplete)
@@ -248,8 +243,7 @@ public class HodDashboardModel : PageModel
                     g.Key,
                     g.Count(),
                     areaIssues.Count(x => x.CloseStatus == "Incomplete form"),
-                    areaIssues.Count(x => x.CloseStatus == "Not signed off"),
-                    areaIssues.Count(x => x.CloseStatus == "Handover pending"));
+                    areaIssues.Count(x => x.CloseStatus == "Not signed off"));
             })
             .Where(r => r != null)
             .Cast<HodAreaComplianceRow>()
@@ -259,15 +253,14 @@ public class HodDashboardModel : PageModel
             .ToList();
     }
 
-    static string ResolveCloseStatus(ShiftCompletionResult comp, bool signed, bool handoverPending)
+    static string ResolveCloseStatus(ShiftCompletionResult comp, bool signed)
     {
-        if (comp.IsComplete && signed && !handoverPending) return "Closed correctly";
+        if (comp.IsComplete && signed) return "Closed correctly";
         if (!signed) return "Not signed off";
-        if (handoverPending) return "Handover pending";
         return "Incomplete form";
     }
 
-    static List<string> BuildShiftIssues(ShiftCompletionResult comp, bool signed, bool handoverPending)
+    static List<string> BuildShiftIssues(ShiftCompletionResult comp, bool signed)
     {
         var issues = new List<string>();
         if (!comp.IsComplete)
@@ -278,8 +271,6 @@ public class HodDashboardModel : PageModel
         }
         if (!signed)
             issues.Add("Outgoing TL sign-off missing");
-        if (handoverPending)
-            issues.Add("Incoming TL has not acknowledged handover");
         return issues;
     }
 
@@ -300,8 +291,6 @@ public class HodDashboardModel : PageModel
                     issues.Add("Shift form incomplete when audited");
                 if (!f.OutgoingSignedOff)
                     issues.Add("Not signed off");
-                if (f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged)
-                    issues.Add("Handover not acknowledged");
                 issues.AddRange(f.Issues.Where(i => i.StartsWith("Audit FAIL", StringComparison.OrdinalIgnoreCase)));
 
                 if (issues.Count == 0) continue;
@@ -377,9 +366,9 @@ public record HodRotationRow(
     int AuditsDone,
     List<string> CompletedDetail);
 
-public record HodAreaComplianceRow(string Area, int TotalShifts, int Incomplete, int Unsigned, int HandoverPending)
+public record HodAreaComplianceRow(string Area, int TotalShifts, int Incomplete, int Unsigned)
 {
-    public int Problems => Incomplete + Unsigned + HandoverPending;
+    public int Problems => Incomplete + Unsigned;
 }
 
 public record HodAreaAuditRow(string Area, int AuditCount, int AvgScorePct, int PoorCount);
@@ -391,7 +380,6 @@ public record HodTlAccountabilityRow(
     int ProblemShifts,
     int Incomplete,
     int Unsigned,
-    int HandoverPending,
     List<string> IssueSummary);
 
 public record HodTlShiftIssueRow(

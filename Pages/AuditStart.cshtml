@@ -128,7 +128,6 @@
 
     function closeStatusClass(status) {
         if (status === 'Closed correctly') return 'g';
-        if (status === 'Handover pending') return 'a';
         return 'r';
     }
 
@@ -158,8 +157,7 @@
                     summary.style.borderColor = '#fecaca';
                     summary.innerHTML = '<strong>' + problems + ' of ' + data.totalShifts + ' shift(s) not closed correctly this week.</strong> '
                         + (data.incompleteForms ? data.incompleteForms + ' incomplete form(s). ' : '')
-                        + (data.unsigned ? data.unsigned + ' unsigned. ' : '')
-                        + (data.handoverPending ? data.handoverPending + ' handover pending.' : '');
+                        + (data.unsigned ? data.unsigned + ' unsigned. ' : '');
                 } else {
                     summary.style.background = '#f0fdf4';
                     summary.style.borderColor = '#bbf7d0';

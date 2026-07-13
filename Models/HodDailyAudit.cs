@@ -56,7 +56,7 @@ public class HodEffectivenessFinding
     public int HoursTotal { get; set; }
     public bool OutgoingSignedOff { get; set; }
     public bool IncomingHandoverAcknowledged { get; set; }
-    /// <summary>Closed correctly, Incomplete form, Not signed off, Handover pending, or No forms.</summary>
+    /// <summary>Closed correctly, Incomplete form, Not signed off, or No forms.</summary>
     public string CloseStatus { get; set; } = "";
     public List<string> Issues { get; set; } = new();
     public bool TlClaimedSixS { get; set; }
@@ -76,7 +76,6 @@ public record HodShiftComplianceSummary(
     int NotClosedCorrectly,
     int IncompleteForms,
     int Unsigned,
-    int HandoverPending,
     int ClosedCorrectly,
     List<HodEffectivenessFinding> Findings);
 

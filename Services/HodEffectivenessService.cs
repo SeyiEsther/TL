@@ -39,7 +39,6 @@ public class HodEffectivenessService
             shifts.Count(f => f.CloseStatus != "Closed correctly"),
             shifts.Count(f => !f.FormComplete),
             shifts.Count(f => !f.OutgoingSignedOff),
-            shifts.Count(f => f.OutgoingSignedOff && !f.IncomingHandoverAcknowledged),
             shifts.Count(f => f.CloseStatus == "Closed correctly"),
             findings);
     }
@@ -98,10 +97,9 @@ public class HodEffectivenessService
         var anyQualityFail = hours.Any(h => h.QualityChecksCompleted == false);
 
         var outgoingSigned = completion.SignedOff;
-        var incomingAck = !string.IsNullOrWhiteSpace(shift.IncomingTLSignature);
-        var closeStatus = ResolveCloseStatus(completion, outgoingSigned, incomingAck);
+        var closeStatus = ResolveCloseStatus(completion, outgoingSigned);
 
-        var issues = BuildIssues(completion, outgoingSigned, incomingAck, auditType,
+        var issues = BuildIssues(completion, outgoingSigned, auditType,
             claimedSixS, claimedTpm, allPartsId, anyPartsIdFail, allNcStored, anyNcFail, allQuality, anyQualityFail, endHour);
 
         return new HodEffectivenessFinding
@@ -115,7 +113,7 @@ public class HodEffectivenessService
             HoursComplete = completion.HoursComplete,
             HoursTotal = completion.HoursTotal,
             OutgoingSignedOff = outgoingSigned,
-            IncomingHandoverAcknowledged = incomingAck,
+            IncomingHandoverAcknowledged = true,
             CloseStatus = closeStatus,
             TlClaimedSixS = claimedSixS,
             TlClaimedTpm = claimedTpm,
@@ -124,27 +122,23 @@ public class HodEffectivenessService
             TlClaimedQuality = hours.Count > 0 ? allQuality : null,
             Issues = issues.Distinct().ToList(),
             IsAuditFinding = !completion.IsComplete
-                || (outgoingSigned && !incomingAck)
                 || (auditType == HodAuditTypes.SixS && !claimedSixS)
                 || (auditType == HodAuditTypes.Tpm && !claimedTpm),
         };
     }
 
-    static string ResolveCloseStatus(ShiftCompletionResult completion, bool outgoingSigned, bool incomingAck)
+    static string ResolveCloseStatus(ShiftCompletionResult completion, bool outgoingSigned)
     {
-        if (completion.IsComplete && outgoingSigned && incomingAck)
+        if (completion.IsComplete && outgoingSigned)
             return "Closed correctly";
         if (!outgoingSigned)
             return "Not signed off";
-        if (outgoingSigned && !incomingAck)
-            return "Handover pending";
         return "Incomplete form";
     }
 
     static List<string> BuildIssues(
         ShiftCompletionResult completion,
         bool outgoingSigned,
-        bool incomingAck,
         string auditType,
         bool claimedSixS,
         bool claimedTpm,
@@ -172,8 +166,6 @@ public class HodEffectivenessService
 
         if (!outgoingSigned)
             issues.Add("Outgoing TL sign-off missing — shift not closed");
-        else if (!incomingAck)
-            issues.Add("Incoming TL has not acknowledged handover");
 
         switch (auditType)
         {
