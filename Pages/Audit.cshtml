@@ -276,7 +276,7 @@
         <div class="audit-footer">
             @if (Model.EditingId.HasValue)
             {
-                <button type="submit" class="sbtn primary" formaction="?handler=SaveProgress&amp;id=@Model.EditingId" formmethod="post">
+                <button type="submit" class="sbtn primary" formaction="?handler=SaveProgress&amp;id=@Model.EditingId" formmethod="post" formnovalidate>
                     Save changes
                 </button>
                 <button type="submit" class="sbtn">

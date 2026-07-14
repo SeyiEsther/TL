@@ -19,6 +19,12 @@ builder.Services.AddScoped<ShiftCompletionService>();
 builder.Services.AddScoped<ShiftResumeService>();
 builder.Services.AddScoped<HodEffectivenessService>();
 builder.Services.AddScoped<TlShiftComplianceService>();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueCountLimit = 20_000;
+    options.ValueLengthLimit = 1024 * 1024;
+    options.MultipartBodyLengthLimit = 32 * 1024 * 1024;
+});
 builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");

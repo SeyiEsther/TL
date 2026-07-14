@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using TL.Data;
 using TL.Models;
 using TL.Services;
 
@@ -7,10 +8,12 @@ namespace TL.Pages;
 
 public class AuditStartModel : PageModel
 {
+    private readonly AppDbContext _db;
     private readonly UserService _users;
 
-    public AuditStartModel(UserService users)
+    public AuditStartModel(AppDbContext db, UserService users)
     {
+        _db = db;
         _users = users;
     }
 
@@ -29,7 +32,7 @@ public class AuditStartModel : PageModel
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
     }
 
-    public IActionResult OnPost(
+    public async Task<IActionResult> OnPostAsync(
         string auditDate, string auditorName, string department, string effectivenessArea, string auditType)
     {
         AuditorName = auditorName ?? "";
@@ -58,13 +61,45 @@ public class AuditStartModel : PageModel
             ? (DateOnly.TryParse(auditDate, out var ad) ? HodAuditTypes.SuggestedForDate(ad) : HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek))
             : auditType;
 
-        return RedirectToPage("/Audit", new
+        if (!DateOnly.TryParse(auditDate, out var auditD))
+            auditD = DateOnly.FromDateTime(DateTime.Today);
+
+        try
         {
-            date = auditDate,
-            auditor = auditorName,
-            department,
-            effectivenessArea,
-            type,
-        });
+            var user = _users.GetCurrentUser();
+            var questions = HodAuditDefinitions.GetQuestions(type, department);
+            var blankAnswers = questions.Select(q => new HodAuditAnswer
+            {
+                QuestionId = q.Id,
+                Section = q.Section,
+                Label = q.Label,
+                MachineName = q.MachineName,
+            }).ToList();
+
+            var draft = new HodDailyAudit
+            {
+                SubmittedBy = user.Username,
+                AuditorName = auditorName.Trim(),
+                AuditDate = auditD,
+                Department = department,
+                EffectivenessArea = effectivenessArea,
+                Area = effectivenessArea,
+                AuditType = type,
+                AnswersJson = HodAuditSerializer.ToJson(blankAnswers),
+                TotalScore = 0,
+                MaxScore = questions.Count,
+            };
+
+            _db.HodDailyAudits.Add(draft);
+            await _db.SaveChangesAsync();
+            return RedirectToPage("/Audit", new { id = draft.Id });
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<AuditStartModel>>()
+                .LogError(ex, "Could not create HoD audit draft for {Department}/{Area}", department, effectivenessArea);
+            Error = "Could not start this audit — please try again.";
+            return Page();
+        }
     }
 }

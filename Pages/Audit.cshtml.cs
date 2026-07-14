@@ -127,11 +127,9 @@ public class AuditModel : PageModel
 
     public async Task<IActionResult> OnPostSaveProgressAsync(
         string auditDate, string auditorName, string department, string effectivenessArea, string auditType,
-        int? editingId, string? auditorSignature, string? teamLeaderSignature)
+        int? editingId, int? id, string? auditorSignature, string? teamLeaderSignature)
     {
-        if (!editingId.HasValue)
-            return RedirectToPage("/AuditStart");
-
+        editingId ??= id;
         AuditDate = auditDate;
         AuditorName = auditorName;
         Department = department;
@@ -143,11 +141,22 @@ public class AuditModel : PageModel
         AuditTypeLabel = HodAuditTypes.LabelFor(AuditType);
         Questions = HodAuditDefinitions.GetQuestions(AuditType, Department);
 
+        if (!editingId.HasValue)
+        {
+            ModelState.AddModelError("", "Could not save — this audit session has no ID. Go back to Audit Start and begin again.");
+            await RepopulateForErrorAsync(BuildAnswers());
+            return Page();
+        }
+
         try
         {
             var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
             if (existing == null)
-                return RedirectToPage("/AuditStart");
+            {
+                ModelState.AddModelError("", "Could not save — this audit was not found. Go back to Audit Start and begin again.");
+                await RepopulateForErrorAsync(BuildAnswers());
+                return Page();
+            }
 
             if (!DateOnly.TryParse(auditDate, out var auditD))
             {
@@ -159,8 +168,8 @@ public class AuditModel : PageModel
             var answers = MergeAnswersWithExisting(existing.AnswersJson);
             (TotalScore, MaxScore) = HodAuditScoring.Score(answers);
             var user = _users.GetCurrentUser();
-            var effectiveness = await _effectiveness.GetFindingsAsync(
-                Department, EffectivenessArea, auditD, AuditType);
+            var effectiveness = await SafeGetFindingsAsync(
+                Department, EffectivenessArea, auditD, AuditType, existing.EffectivenessJson);
             effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
             Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
@@ -190,7 +199,7 @@ public class AuditModel : PageModel
         {
             HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
                 .LogError(ex, "Audit save progress failed for id {EditingId}", editingId);
-            ModelState.AddModelError("", "Could not save changes — please try again.");
+            ModelState.AddModelError("", "Could not save changes — please try again. Your answers are still on this page.");
             var fallback = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
             await RepopulateForErrorAsync(MergeAnswersWithExisting(fallback?.AnswersJson));
             return Page();
@@ -199,8 +208,9 @@ public class AuditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(
         string auditDate, string auditorName, string department, string effectivenessArea, string auditType,
-        int? editingId, string? auditorSignature, string? teamLeaderSignature)
+        int? editingId, int? id, string? auditorSignature, string? teamLeaderSignature)
     {
+        editingId ??= id;
         AuditDate = auditDate;
         AuditorName = auditorName;
         Department = department;
@@ -247,15 +257,28 @@ public class AuditModel : PageModel
 
         try
         {
-            var effectiveness = await _effectiveness.GetFindingsAsync(
-                Department, EffectivenessArea, auditD, AuditType);
+            string? storedEffectiveness = null;
+            if (editingId.HasValue)
+            {
+                var existingLookup = await _db.HodDailyAudits.AsNoTracking()
+                    .FirstOrDefaultAsync(a => a.Id == editingId.Value);
+                storedEffectiveness = existingLookup?.EffectivenessJson;
+            }
+
+            var effectiveness = await SafeGetFindingsAsync(
+                Department, EffectivenessArea, auditD, AuditType, storedEffectiveness);
             effectiveness = HodFailEffectivenessLinker.LinkFailures(answers, effectiveness, AuditType);
             Actions = HodFailEffectivenessLinker.MergeActions(Actions, answers, effectiveness);
 
             if (editingId.HasValue)
             {
                 var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
-                if (existing == null) return RedirectToPage("/AuditStart");
+                if (existing == null)
+                {
+                    ModelState.AddModelError("", "Could not submit — this audit was not found. Your answers are still on this page.");
+                    await RepopulateForErrorAsync(answers);
+                    return Page();
+                }
 
                 existing.AuditorName = auditorName ?? user.DisplayName;
                 existing.AuditDate = auditD;
@@ -305,9 +328,24 @@ public class AuditModel : PageModel
         {
             HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
                 .LogError(ex, "Audit submit failed for id {EditingId}", editingId);
-            ModelState.AddModelError("", "Could not save audit — please try again.");
+            ModelState.AddModelError("", "Could not save audit — please try again. Your answers are still on this page.");
             await RepopulateForErrorAsync(answers);
             return Page();
+        }
+    }
+
+    async Task<List<HodEffectivenessFinding>> SafeGetFindingsAsync(
+        string department, string effectivenessArea, DateOnly auditDate, string auditType, string? storedJson)
+    {
+        try
+        {
+            return await _effectiveness.GetFindingsAsync(department, effectivenessArea, auditDate, auditType);
+        }
+        catch (Exception ex)
+        {
+            HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
+                .LogWarning(ex, "Effectiveness load failed during audit save — continuing with stored/empty findings.");
+            return HodAuditSerializer.ParseEffectiveness(storedJson);
         }
     }
 
