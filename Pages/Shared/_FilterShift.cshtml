@@ -4,7 +4,6 @@
     var options = new[] {
         ("", "All", "grid"),
         ("Day", "Day", "sun"),
-        ("Afternoon", "Afternoon", "sunset"),
         ("Night", "Night", "moon")
     };
     var current = Model.Value ?? "";
@@ -23,14 +22,12 @@
     </button>
     <input type="hidden" name="@Model.Name" value="@current" class="fs-input">
     <div class="fs-popover" aria-hidden="true" role="listbox">
-        <div class="fs-quick fs-quick-4">
+        <div class="fs-quick fs-quick-3">
             @foreach (var (val, label, icon) in options)
             {
                 <button type="button" class="fs-quick-btn @(current == val ? "active" : "")" data-value="@val" role="option">
                     @if (icon == "sun") {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-                    } else if (icon == "sunset") {
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 18a5 5 0 0 0-10 0"/><path d="M12 9V2M4.22 10.22l1.42 1.42M18.36 10.22l1.42-1.42"/></svg>
                     } else if (icon == "moon") {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
                     } else {

@@ -43,7 +43,6 @@ public class DashboardModel : PageModel
     public int PerfAmber { get; set; }
     public int PerfRed { get; set; }
     public int DayShifts { get; set; }
-    public int AfternoonShifts { get; set; }
     public int NightShifts { get; set; }
     public int HealthScore { get; set; }
     public string[] ActivityLabels { get; set; } = [];
@@ -124,7 +123,6 @@ public class DashboardModel : PageModel
         PerfRed = Shifts.Count(s => s.OverallPerfStatus == "Red");
 
         DayShifts = Shifts.Count(s => s.Shift == "Day");
-        AfternoonShifts = Shifts.Count(s => s.Shift == "Afternoon");
         NightShifts = Shifts.Count(s => s.Shift == "Night");
 
         var totalStatuses = SafetyGreen + SafetyAmber + SafetyRed + QualityGreen + QualityAmber + QualityRed + PerfGreen + PerfAmber + PerfRed;
