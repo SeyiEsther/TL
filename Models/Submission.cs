@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using TL.Helpers;
 
 namespace TL.Models
 {
@@ -64,7 +63,7 @@ namespace TL.Models
         public int Id { get; set; }
         public int SubmissionId { get; set; }
         public string ChangedBy { get; set; } = "";
-        public DateTime ChangedAt { get; set; } = UkTime.NowFromUtc();
+        public DateTime ChangedAt { get; set; } = DateTime.UtcNow;
         public string FieldName { get; set; } = "";
         public string? OldValue { get; set; }
         public string? NewValue { get; set; }
@@ -83,7 +82,7 @@ namespace TL.Models
         public string? OverallSafetyStatus { get; set; }
         public string? OverallQualityStatus { get; set; }
         public string? OverallPerfStatus { get; set; }
-        public DateTime SubmittedAt { get; set; } = UkTime.NowFromUtc();
+        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
         public string? LastEditedBy { get; set; }
         public DateTime? LastEditedAt { get; set; }
         public string? Escalations { get; set; }

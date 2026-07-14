@@ -77,20 +77,12 @@ public class FormModel : PageModel
 
             var user = _users.GetCurrentUser();
 
-            var existing = await _resume.FindForResumeAsync(d, Shift, Area, tlName);
-            if (existing != null)
-                return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName, coveringFor });
-
-            if (await _resume.SlotHasClosedAsync(d, Shift, Area))
-            {
-                TempData["Error"] = "This shift is already closed. Open it from History if you need to view or edit.";
-                return RedirectToPage("/Index");
-            }
-
             CoveringFor = string.IsNullOrWhiteSpace(coveringFor) ? null : coveringFor.Trim();
+
+            SlotResolution resolution;
             try
             {
-                var stub = new ShiftSubmission
+                resolution = await _resume.ResolveOrCreateOpenAsync(d, Shift, Area, () => new ShiftSubmission
                 {
                     SubmittedBy = user.Username,
                     TeamLeaderDisplay = tlName,
@@ -99,19 +91,24 @@ public class FormModel : PageModel
                     Shift = Shift,
                     Area = Area,
                     HoursCompleted = (byte)Hours,
-                };
-                _db.ShiftSubmissions.Add(stub);
-                await _db.SaveChangesAsync();
-                return RedirectToPage("/Form", new { id = stub.Id, hours = Hours, tl = tlName });
+                });
             }
             catch (Exception ex)
             {
                 HttpContext.RequestServices.GetRequiredService<ILogger<FormModel>>()
-                    .LogError(ex, "Could not create shift stub for {Area} {Shift} {Date}", Area, Shift, ShiftDate);
+                    .LogError(ex, "Could not start shift for {Area} {Shift} {Date}", Area, Shift, ShiftDate);
                 ValidationError = "Could not start this shift — please try again.";
                 PadHours();
                 return Page();
             }
+
+            if (resolution.Closed)
+            {
+                TempData["Error"] = "This shift is already closed. Open it from History if you need to view or edit.";
+                return RedirectToPage("/Index");
+            }
+
+            return RedirectToPage("/Form", new { id = resolution.Shift!.Id, hours = Hours, tl = tlName, coveringFor = CoveringFor });
         }
 
         PadHours();
@@ -237,7 +234,7 @@ public class FormModel : PageModel
 
         if (hasSlot)
         {
-            var existing = await _resume.FindForResumeAsync(slotDate, Shift, Area, editorName);
+            var existing = await _resume.FindForResumeAsync(slotDate, Shift, Area);
             if (existing != null)
             {
                 if (!_db.Entry(existing).Collection(s => s.Hours).IsLoaded)
@@ -258,13 +255,7 @@ public class FormModel : PageModel
         if (string.IsNullOrEmpty(tlName))
             throw new InvalidOperationException("Team leader name is required.");
 
-        var existing = await _resume.FindForResumeAsync(d, shift, area, tlName);
-        if (existing != null) return existing;
-
-        if (await _resume.SlotHasClosedAsync(d, shift, area))
-            throw new InvalidOperationException("This shift is already closed.");
-
-        var sub = new ShiftSubmission
+        var resolution = await _resume.ResolveOrCreateOpenAsync(d, shift, area, () => new ShiftSubmission
         {
             SubmittedBy = user.Username,
             TeamLeaderDisplay = tlName,
@@ -272,10 +263,12 @@ public class FormModel : PageModel
             Shift = shift,
             Area = area,
             HoursCompleted = (byte)Hours,
-        };
-        _db.ShiftSubmissions.Add(sub);
-        await _db.SaveChangesAsync();
-        return sub;
+        });
+
+        if (resolution.Closed)
+            throw new InvalidOperationException("This shift is already closed.");
+
+        return resolution.Shift!;
     }
 
     void ApplyShiftFields(

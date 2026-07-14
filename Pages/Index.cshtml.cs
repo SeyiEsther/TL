@@ -75,7 +75,7 @@ public class IndexModel : PageModel
         if (!DateOnly.TryParse(shiftDate, out var d))
             d = DateOnly.FromDateTime(DateTime.Today);
 
-        var existing = await _resume.FindForResumeAsync(d, shift, area, actualName);
+        var existing = await _resume.FindForResumeAsync(d, shift, area);
         if (existing != null)
         {
             if (!string.IsNullOrWhiteSpace(covering) && string.IsNullOrWhiteSpace(existing.CoveringFor))
