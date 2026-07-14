@@ -14,7 +14,12 @@ public class PortalAccessFilter : IAsyncPageFilter
         await access.EnsureReadyAsync();
 
         if (!access.CanAccessPage(page))
+        {
+            // Short-circuit: setting Result and then calling next() throws in .NET 8,
+            // so return here to redirect unauthorised users cleanly to Home.
             context.Result = new RedirectToPageResult("/Index");
+            return;
+        }
 
         await next();
     }
