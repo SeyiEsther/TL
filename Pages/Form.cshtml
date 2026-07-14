@@ -285,19 +285,26 @@
         if (progressFill) progressFill.style.width = (total ? Math.round(complete / total * 100) : 0) + '%';
     }
 
+    let dirty = false;
+
     form?.addEventListener('change', function (e) {
         updateCompletion();
+        dirty = true;
         const hourMatch = e.target?.name?.match(/^H\[(\d+)\]/);
         if (hourMatch) {
+            // Save the whole hour immediately once it's complete, otherwise
+            // debounce-save the partial progress so nothing is left only in the browser.
             const h = parseInt(hourMatch[1], 10);
             if (hourComplete(h)) saveToServer('hour');
+            else scheduleServerSave();
             return;
         }
         scheduleServerSave();
     });
     form?.addEventListener('input', function (e) {
         updateCompletion();
-        if (!/^H\[/.test(e.target?.name || '')) scheduleServerSave();
+        dirty = true;
+        scheduleServerSave();
     });
     updateCompletion();
 
@@ -337,6 +344,7 @@
                 if (!resp.ok) {
                     throw new Error(data.error || data.message || ('Server returned ' + resp.status));
                 }
+                dirty = false;
                 if (data.id) {
                     ensureEditingIdInput().value = data.id;
                     form.dataset.editingId = String(data.id);
@@ -412,6 +420,28 @@
         const go = () => { location.href = a.href; };
         saveToServer('leave').then(go, go);
     }, true);
+
+    // Last-resort flush for the exits saveToServer('leave') can't catch: closing the
+    // tab, the browser Back button, navigating elsewhere, or the phone/laptop sleeping.
+    // sendBeacon posts the full form (including the antiforgery token field) so the
+    // server-side Save progress handler persists whatever is on screen.
+    function flushOnLeave() {
+        if (!form || !dirty || !navigator.sendBeacon) return;
+        try {
+            ensureEditingIdInput();
+            const formData = new FormData(form);
+            const pageId = new URLSearchParams(location.search).get('id')
+                || form.dataset.editingId
+                || form.querySelector('input[name="EditingId"]')?.value;
+            const saveUrl = pageId ? `?handler=SaveProgress&id=${pageId}` : '?handler=SaveProgress';
+            if (navigator.sendBeacon(saveUrl, formData)) dirty = false;
+        } catch (e) { /* nothing more we can do as the page unloads */ }
+    }
+
+    window.addEventListener('pagehide', flushOnLeave);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') flushOnLeave();
+    });
 })();
 </script>
 
