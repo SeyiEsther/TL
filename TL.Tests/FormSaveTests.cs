@@ -220,6 +220,136 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
         Assert.Single((await db.ShiftSubmissions.Include(s => s.Hours).SingleAsync()).Hours);
     }
 
+    [Fact]
+    public async Task SaveProgress_with_signature_does_not_close_shift_or_create_new_session()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}&tl=Test%20Leader")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+
+        var body = BuildHourOneSaveBody(id, today, area, token, includeEditingId: true).ToList();
+        body.Add(new("OutgoingTLSignature", "Test Leader"));
+        var saveReq = new HttpRequestMessage(HttpMethod.Post, $"/Form?id={id}&handler=SaveProgress")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+        saveReq.Headers.Add("Accept", "application/json");
+        saveReq.Headers.Add("RequestVerificationToken", token);
+        Assert.True((await client.SendAsync(saveReq)).IsSuccessStatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var sub = await db.ShiftSubmissions.SingleAsync(s => s.Id == id);
+            Assert.True(string.IsNullOrWhiteSpace(sub.OutgoingTLSignature));
+        }
+
+        var resume = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        Assert.Equal(id, ParseIdFromLocation(resume.Headers.Location?.ToString()));
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
+        }
+    }
+
+    [Fact]
+    public async Task Index_start_resumes_existing_slot_after_home_instead_of_new_session()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}&tl=Test%20Leader")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+        Assert.True((await client.SendAsync(BuildSaveRequest(id, today, area, token, includeEditingId: true))).IsSuccessStatusCode);
+
+        // Simulate Home → Start again via Index POST with the same slot.
+        var indexHtml = await (await client.GetAsync("/")).Content.ReadAsStringAsync();
+        var indexToken = ExtractAntiforgeryToken(indexHtml)!;
+        var indexBody = new List<KeyValuePair<string, string>>
+        {
+            new("__RequestVerificationToken", indexToken),
+            new("shiftDate", today),
+            new("shift", "Day"),
+            new("teamLeader", "Test Leader"),
+            new("area", area),
+        };
+        var indexResp = await client.PostAsync("/", new FormUrlEncodedContent(indexBody));
+        Assert.Equal(HttpStatusCode.Redirect, indexResp.StatusCode);
+        var location = indexResp.Headers.Location?.ToString() ?? "";
+        Assert.Contains($"id={id}", location);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
+        Assert.Single((await db.ShiftSubmissions.Include(s => s.Hours).SingleAsync()).Hours);
+    }
+
+    [Fact]
+    public async Task Final_submit_closes_slot_and_Index_still_resumes_same_row()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}&tl=Test%20Leader")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+
+        var body = BuildHourOneSaveBody(id, today, area, token, includeEditingId: true).ToList();
+        body.Add(new("OutgoingTLSignature", "Test Leader"));
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/Form?id={id}")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+        var submitResp = await client.SendAsync(submitReq);
+        Assert.Equal(HttpStatusCode.Redirect, submitResp.StatusCode);
+        Assert.Contains("/Success", submitResp.Headers.Location?.ToString() ?? "");
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var sub = await db.ShiftSubmissions.SingleAsync(s => s.Id == id);
+            Assert.Equal("Test Leader", sub.OutgoingTLSignature);
+        }
+
+        var indexHtml = await (await client.GetAsync("/")).Content.ReadAsStringAsync();
+        var indexToken = ExtractAntiforgeryToken(indexHtml)!;
+        var indexResp = await client.PostAsync("/", new FormUrlEncodedContent(new List<KeyValuePair<string, string>>
+        {
+            new("__RequestVerificationToken", indexToken),
+            new("shiftDate", today),
+            new("shift", "Day"),
+            new("teamLeader", "Test Leader"),
+            new("area", area),
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, indexResp.StatusCode);
+        Assert.Contains($"id={id}", indexResp.Headers.Location?.ToString() ?? "");
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
+        }
+    }
+
     static HttpRequestMessage BuildSaveRequest(int id, string date, string area, string token, bool includeEditingId, string teamLeader = "Test Leader")
     {
         var body = BuildHourOneSaveBody(id, date, area, token, includeEditingId, teamLeader);

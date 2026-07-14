@@ -18,18 +18,17 @@ public class ShiftResumeService
     public static bool IsInProgress(ShiftSubmission s) =>
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
-    // One shift per date/shift/area slot — team leader name is not used for matching.
+    // One shift per date/shift/area slot — always resume that row (even after sign-off)
+    // so Home → Start does not create duplicates. Team leader name is not used for matching.
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader = null)
     {
-        var slot = await _db.ShiftSubmissions
+        return await _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
             .Where(s => s.ShiftDate == date && s.Shift == shift && s.Area == area)
             .OrderByDescending(s => s.Hours.Count)
             .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .ToListAsync();
-
-        return slot.FirstOrDefault(IsInProgress);
+            .FirstOrDefaultAsync();
     }
 }
