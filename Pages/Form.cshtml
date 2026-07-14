@@ -302,61 +302,67 @@
     updateCompletion();
 
     let serverSaveTimer = null;
-    let serverSaveInFlight = false;
+    let saveChain = Promise.resolve();
 
-    async function saveToServer(reason) {
-        if (!form || serverSaveInFlight) return;
-        serverSaveInFlight = true;
-        if (progressBtn) progressBtn.disabled = true;
-        try {
-            ensureEditingIdInput();
-            const formData = new FormData(form);
-            const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
-            const pageId = new URLSearchParams(location.search).get('id')
-                || form.dataset.editingId
-                || form.querySelector('input[name="EditingId"]')?.value;
-            const saveUrl = pageId ? `?handler=SaveProgress&id=${pageId}` : '?handler=SaveProgress';
-            const resp = await fetch(saveUrl, {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json',
-                    'RequestVerificationToken': token || '',
-                    'X-CSRF-TOKEN': token || ''
+    function saveToServer(reason) {
+        const job = async () => {
+            if (!form) return;
+            if (progressBtn) progressBtn.disabled = true;
+            try {
+                ensureEditingIdInput();
+                const formData = new FormData(form);
+                const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
+                const pageId = new URLSearchParams(location.search).get('id')
+                    || form.dataset.editingId
+                    || form.querySelector('input[name="EditingId"]')?.value;
+                const saveUrl = pageId ? `?handler=SaveProgress&id=${pageId}` : '?handler=SaveProgress';
+                const resp = await fetch(saveUrl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'RequestVerificationToken': token || '',
+                        'X-CSRF-TOKEN': token || ''
+                    }
+                });
+                const saveText = await resp.text();
+                let data;
+                try { data = JSON.parse(saveText); } catch (e) {
+                    if (!resp.ok) {
+                        throw new Error('Server returned ' + resp.status + (saveText ? ': ' + saveText.slice(0, 120) : ''));
+                    }
+                    throw new Error('Unexpected server response — try again in a moment');
                 }
-            });
-            const saveText = await resp.text();
-            let data;
-            try { data = JSON.parse(saveText); } catch (e) {
                 if (!resp.ok) {
-                    throw new Error('Server returned ' + resp.status + (saveText ? ': ' + saveText.slice(0, 120) : ''));
+                    throw new Error(data.error || data.message || ('Server returned ' + resp.status));
                 }
-                throw new Error('Unexpected server response — try again in a moment');
-            }
-            if (!resp.ok) {
-                throw new Error(data.error || data.message || ('Server returned ' + resp.status));
-            }
-            if (data.id) {
-                ensureEditingIdInput().value = data.id;
-                form.dataset.editingId = String(data.id);
-                const url = new URL(location.href);
-                if (url.searchParams.get('id') !== String(data.id)) {
-                    url.searchParams.set('id', data.id);
-                    history.replaceState(null, '', url);
+                if (data.id) {
+                    ensureEditingIdInput().value = data.id;
+                    form.dataset.editingId = String(data.id);
+                    const url = new URL(location.href);
+                    if (url.searchParams.get('id') !== String(data.id)) {
+                        url.searchParams.set('id', data.id);
+                        history.replaceState(null, '', url);
+                    }
                 }
+                if (reason === 'leave') return;
+                const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const label = data.hoursMerged > 0
+                    ? (reason === 'hour' ? 'Hour saved' : 'Saved')
+                    : 'Connected (fill an hour to save data)';
+                statusEl.textContent = label + ' to server at ' + t;
+            } catch (e) {
+                if (reason !== 'leave') {
+                    statusEl.textContent = e.message || 'Could not save to server — try Save progress again';
+                }
+                throw e;
+            } finally {
+                if (progressBtn) progressBtn.disabled = false;
             }
-            const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const label = data.hoursMerged > 0
-                ? (reason === 'hour' ? 'Hour saved' : 'Saved')
-                : 'Connected (fill an hour to save data)';
-            statusEl.textContent = label + ' to server at ' + t;
-        } catch (e) {
-            statusEl.textContent = e.message || 'Could not save to server — try Save progress again';
-        } finally {
-            serverSaveInFlight = false;
-            if (progressBtn) progressBtn.disabled = false;
-        }
+        };
+        saveChain = saveChain.then(job, job);
+        return saveChain;
     }
 
     function ensureEditingIdInput() {
@@ -384,6 +390,28 @@
     progressBtn?.addEventListener('click', function () {
         saveToServer('manual');
     });
+
+    function isHomeNavigation(href) {
+        if (!href || href.startsWith('#')) return false;
+        try {
+            const url = new URL(href, location.origin);
+            if (url.origin !== location.origin) return false;
+            const path = url.pathname.replace(/\/$/, '') || '/';
+            return path === '' || path === '/' || /\/Index$/i.test(path);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        const a = e.target.closest && e.target.closest('a[href]');
+        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (!isHomeNavigation(a.getAttribute('href'))) return;
+        e.preventDefault();
+        clearTimeout(serverSaveTimer);
+        const go = () => { location.href = a.href; };
+        saveToServer('leave').then(go, go);
+    }, true);
 })();
 </script>
 

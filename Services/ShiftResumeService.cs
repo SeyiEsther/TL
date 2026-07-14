@@ -21,14 +21,12 @@ public class ShiftResumeService
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader = null)
     {
-        var slot = await _db.ShiftSubmissions
+        return await _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
             .Where(s => s.ShiftDate == date && s.Shift == shift && s.Area == area)
             .OrderByDescending(s => s.Hours.Count)
             .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .ToListAsync();
-
-        return slot.FirstOrDefault(IsInProgress);
+            .FirstOrDefaultAsync();
     }
 }

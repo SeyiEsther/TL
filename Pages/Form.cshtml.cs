@@ -151,7 +151,7 @@ public class FormModel : PageModel
             EditingId = sub.Id;
 
             var logs = new List<AuditLog>();
-            ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs);
+            ApplyShiftFields(sub, OutgoingTLSignature, editorName, logs, finalSubmit);
             var hoursMerged = MergeHours(sub, hours, editorName, logs);
 
             sub.TeamLeaderDisplay = editorName;
@@ -262,7 +262,8 @@ public class FormModel : PageModel
         return sub;
     }
 
-    void ApplyShiftFields(ShiftSubmission sub, string? outgoingTLSignature, string editorName, List<AuditLog> logs)
+    void ApplyShiftFields(
+        ShiftSubmission sub, string? outgoingTLSignature, string editorName, List<AuditLog> logs, bool finalSubmit)
     {
         void Track(string field, string? oldVal, string? newVal)
         {
@@ -276,16 +277,20 @@ public class FormModel : PageModel
         Track("KeyRisks", sub.KeyRisks, KeyRisks);
         Track("Priorities", sub.Priorities, Priorities);
         Track("CoveringFor", sub.CoveringFor, covering);
-        if (!string.IsNullOrWhiteSpace(outgoingTLSignature))
-            Track("OutgoingTLSignature", sub.OutgoingTLSignature, outgoingTLSignature);
 
         sub.Escalations = Escalations;
         sub.KeyRisks = KeyRisks;
         sub.Priorities = Priorities;
         sub.CoveringFor = covering;
-        if (!string.IsNullOrWhiteSpace(outgoingTLSignature))
-            sub.OutgoingTLSignature = outgoingTLSignature;
         sub.HoursCompleted = (byte)Hours;
+
+        // Signature closes the slot for resume — only persist on Submit & close, never on Save progress / autosave.
+        if (finalSubmit)
+        {
+            var signature = string.IsNullOrWhiteSpace(outgoingTLSignature) ? null : outgoingTLSignature.Trim();
+            Track("OutgoingTLSignature", sub.OutgoingTLSignature, signature);
+            sub.OutgoingTLSignature = signature;
+        }
     }
 
     int MergeHours(ShiftSubmission sub, List<HourInput> hours, string editorName, List<AuditLog> logs)

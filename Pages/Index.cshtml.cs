@@ -74,7 +74,7 @@ public class IndexModel : PageModel
             d = DateOnly.FromDateTime(DateTime.Today);
 
         var existing = await _resume.FindForResumeAsync(d, shift, area, actualName);
-        if (existing != null && ShiftResumeService.IsInProgress(existing))
+        if (existing != null)
         {
             if (!string.IsNullOrWhiteSpace(covering) && string.IsNullOrWhiteSpace(existing.CoveringFor))
             {
