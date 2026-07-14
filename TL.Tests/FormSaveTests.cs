@@ -300,7 +300,7 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
-    public async Task Final_submit_closes_slot_and_Index_still_resumes_same_row()
+    public async Task Final_submit_closes_slot_and_Index_blocks_new_session()
     {
         await ResetDbAsync();
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -340,14 +340,45 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
             new("teamLeader", "Test Leader"),
             new("area", area),
         }));
-        Assert.Equal(HttpStatusCode.Redirect, indexResp.StatusCode);
-        Assert.Contains($"id={id}", indexResp.Headers.Location?.ToString() ?? "");
+        Assert.Equal(HttpStatusCode.OK, indexResp.StatusCode);
+        var indexBody = await indexResp.Content.ReadAsStringAsync();
+        Assert.Contains("already closed", indexBody, StringComparison.OrdinalIgnoreCase);
 
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             Assert.Equal(1, await db.ShiftSubmissions.CountAsync());
         }
+    }
+
+    [Fact]
+    public async Task Final_submit_without_signature_is_rejected()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        var formHtml = await (await client.GetAsync($"/Form?id={id}&tl=Test%20Leader")).Content.ReadAsStringAsync();
+        var token = ExtractAntiforgeryToken(formHtml)!;
+
+        var body = BuildHourOneSaveBody(id, today, area, token, includeEditingId: true).ToList();
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/Form?id={id}")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+        var submitResp = await client.SendAsync(submitReq);
+        Assert.Equal(HttpStatusCode.OK, submitResp.StatusCode);
+        var html = await submitResp.Content.ReadAsStringAsync();
+        Assert.Contains("sign-off is required", html, StringComparison.OrdinalIgnoreCase);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var sub = await db.ShiftSubmissions.SingleAsync(s => s.Id == id);
+        Assert.True(string.IsNullOrWhiteSpace(sub.OutgoingTLSignature));
     }
 
     static HttpRequestMessage BuildSaveRequest(int id, string date, string area, string token, bool includeEditingId, string teamLeader = "Test Leader")

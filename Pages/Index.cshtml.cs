@@ -35,6 +35,8 @@ public class IndexModel : PageModel
     {
         var displayName = _users.GetCurrentUser().DisplayName;
         UserName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+        if (TempData["Error"] is string tempError && !string.IsNullOrWhiteSpace(tempError))
+            Error = tempError;
     }
 
     public async Task<IActionResult> OnPostAsync(
@@ -90,6 +92,20 @@ public class IndexModel : PageModel
                 }
             }
             return RedirectToPage("/Form", new { id = existing.Id, tl = actualName, coveringFor = covering });
+        }
+
+        if (await _resume.SlotHasClosedAsync(d, shift, area))
+        {
+            ShiftDate = shiftDate;
+            Shift = shift;
+            TeamLeader = teamLeader;
+            Area = area;
+            OtherName = otherName;
+            CoveringFor = covering;
+            Error = "This shift is already closed. Open it from History if you need to view or edit.";
+            var displayName = _users.GetCurrentUser().DisplayName;
+            UserName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
+            return Page();
         }
 
         return RedirectToPage("/Form", new

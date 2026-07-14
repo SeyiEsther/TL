@@ -51,7 +51,6 @@ public class HodEffectivenessFinding
     public int HoursComplete { get; set; }
     public int HoursTotal { get; set; }
     public bool OutgoingSignedOff { get; set; }
-    public bool IncomingHandoverAcknowledged { get; set; }
     public string CloseStatus { get; set; } = "";
     public List<string> Issues { get; set; } = new();
     public bool TlClaimedSixS { get; set; }

@@ -81,6 +81,12 @@ public class FormModel : PageModel
             if (existing != null)
                 return RedirectToPage("/Form", new { id = existing.Id, hours = Hours, tl = tlName, coveringFor });
 
+            if (await _resume.SlotHasClosedAsync(d, Shift, Area))
+            {
+                TempData["Error"] = "This shift is already closed. Open it from History if you need to view or edit.";
+                return RedirectToPage("/Index");
+            }
+
             CoveringFor = string.IsNullOrWhiteSpace(coveringFor) ? null : coveringFor.Trim();
             try
             {
@@ -144,6 +150,13 @@ public class FormModel : PageModel
         }
         TeamLeader = editorName;
         var hours = H.Take(Hours).ToList();
+
+        if (finalSubmit && string.IsNullOrWhiteSpace(OutgoingTLSignature))
+        {
+            ValidationError = "Outgoing TL sign-off is required to close the shift.";
+            PadHours();
+            return await SaveErrorResultAsync(finalSubmit, ValidationError);
+        }
 
         try
         {
@@ -247,6 +260,9 @@ public class FormModel : PageModel
 
         var existing = await _resume.FindForResumeAsync(d, shift, area, tlName);
         if (existing != null) return existing;
+
+        if (await _resume.SlotHasClosedAsync(d, shift, area))
+            throw new InvalidOperationException("This shift is already closed.");
 
         var sub = new ShiftSubmission
         {

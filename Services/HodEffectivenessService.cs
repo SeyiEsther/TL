@@ -112,7 +112,6 @@ public class HodEffectivenessService
             HoursComplete = completion.HoursComplete,
             HoursTotal = completion.HoursTotal,
             OutgoingSignedOff = outgoingSigned,
-            IncomingHandoverAcknowledged = true,
             CloseStatus = closeStatus,
             TlClaimedSixS = claimedSixS,
             TlClaimedTpm = claimedTpm,

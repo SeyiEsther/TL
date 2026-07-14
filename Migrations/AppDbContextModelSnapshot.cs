@@ -233,12 +233,6 @@ namespace TL.Migrations
                     b.Property<byte>("HoursCompleted")
                         .HasColumnType("tinyint");
 
-                    b.Property<string>("IncomingTLSignature")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("IncomingTLSignedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("KeyRisks")
                         .HasColumnType("nvarchar(max)");
 

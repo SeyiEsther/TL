@@ -627,14 +627,11 @@ namespace TL.Services
                 col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
                 {
                     inner.Item().Background("#f3f4f6").Padding(6)
-                        .Text("SIGNATURES").FontSize(8).Bold().FontColor("#1a1a1a");
-                    inner.Item().Padding(8).Table(t =>
+                        .Text("SIGNATURE").FontSize(8).Bold().FontColor("#1a1a1a");
+                    inner.Item().Padding(8).Row(r =>
                     {
-                        t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); });
-                        t.Cell().Element(LabelCell).Text("Outgoing TL");
-                        t.Cell().Element(LabelCell).Text("Incoming TL");
-                        t.Cell().Element(ValueCell).Text(s.OutgoingTLSignature ?? "—");
-                        t.Cell().Element(ValueCell).Text(s.IncomingTLSignature ?? "—");
+                        r.RelativeItem().Text("Outgoing TL").FontSize(8).FontColor("#6b7280");
+                        r.RelativeItem().Text(s.OutgoingTLSignature ?? "—").FontSize(9).Bold();
                     });
                 });
             });

@@ -18,15 +18,24 @@ public class ShiftResumeService
     public static bool IsInProgress(ShiftSubmission s) =>
         string.IsNullOrWhiteSpace(s.OutgoingTLSignature);
 
+    public static bool IsClosed(ShiftSubmission s) => !IsInProgress(s);
+
     public async Task<ShiftSubmission?> FindForResumeAsync(
         DateOnly date, string shift, string area, string? teamLeader = null)
     {
-        return await _db.ShiftSubmissions
+        var slot = await SlotQuery(date, shift, area).ToListAsync();
+        return slot.FirstOrDefault(IsInProgress);
+    }
+
+    public async Task<bool> SlotHasClosedAsync(DateOnly date, string shift, string area) =>
+        await SlotQuery(date, shift, area).AnyAsync(s =>
+            s.OutgoingTLSignature != null && s.OutgoingTLSignature != "");
+
+    IQueryable<ShiftSubmission> SlotQuery(DateOnly date, string shift, string area) =>
+        _db.ShiftSubmissions
             .Include(s => s.Hours)
             .ExcludeAudits()
             .Where(s => s.ShiftDate == date && s.Shift == shift && s.Area == area)
             .OrderByDescending(s => s.Hours.Count)
-            .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
-            .FirstOrDefaultAsync();
-    }
+            .ThenByDescending(s => s.LastEditedAt ?? s.SubmittedAt);
 }

@@ -42,7 +42,6 @@ namespace TL.Controllers
                 KeyRisks = req.KeyRisks,
                 Priorities = req.Priorities,
                 OutgoingTLSignature = req.OutgoingSignature,
-                IncomingTLSignature = req.IncomingSignature,
                 Hours = req.Hours.Select(h => MapHour(h)).ToList()
             };
 
@@ -63,8 +62,7 @@ namespace TL.Controllers
                 .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
                 .ToListAsync();
 
-            var existing = matches.FirstOrDefault(s => string.IsNullOrEmpty(s.OutgoingTLSignature))
-                ?? matches.FirstOrDefault();
+            var existing = matches.FirstOrDefault(s => string.IsNullOrEmpty(s.OutgoingTLSignature));
             if (existing == null) return NotFound();
             return Ok(existing);
         }
@@ -367,7 +365,6 @@ namespace TL.Controllers
         public string? KeyRisks { get; set; }
         public string? Priorities { get; set; }
         public string? OutgoingSignature { get; set; }
-        public string? IncomingSignature { get; set; }
     }
 
     public class HourRequest
