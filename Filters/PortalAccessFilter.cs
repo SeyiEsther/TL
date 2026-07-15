@@ -15,14 +15,29 @@ public class PortalAccessFilter : IAsyncPageFilter
 
         if (!access.CanAccessPage(page))
         {
-            // Short-circuit: setting Result and then calling next() throws in .NET 8,
-            // so return here to redirect unauthorised users cleanly to Home.
+            // POST to a protected page (e.g. Audit Save) must not silently send the user
+            // Home and wipe in-progress answers. Return 403 so the browser can keep the form.
+            if (HttpMethods.IsPost(context.HttpContext.Request.Method)
+                && IsProtectedWritePage(page))
+            {
+                context.Result = new ContentResult
+                {
+                    StatusCode = StatusCodes.Status403Forbidden,
+                    ContentType = "application/json",
+                    Content = """{"error":"Access denied or session expired — reopen the page from the menu and try again."}""",
+                };
+                return;
+            }
+
             context.Result = new RedirectToPageResult("/Index");
             return;
         }
 
         await next();
     }
+
+    static bool IsProtectedWritePage(string? pagePath) => pagePath is
+        "/Audit" or "/AuditStart" or "/SeniorAudit" or "/SeniorStart" or "/Form" or "/Admin";
 
     public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context) =>
         Task.CompletedTask;

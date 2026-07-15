@@ -52,7 +52,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
 
         var auditHtml = await (await client.GetAsync($"/Audit?id={id}")).Content.ReadAsStringAsync();
         Assert.Contains("Save changes", auditHtml);
-        Assert.Contains("formnovalidate", auditHtml);
+        Assert.Contains("audit-save-btn", auditHtml);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -95,10 +95,15 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
             body.Add(new($"A[{i}].Evidence", $"note-{i}"));
         }
 
-        var saveResp = await client.PostAsync($"/Audit?handler=SaveProgress&id={id}", new FormUrlEncodedContent(body));
-        Assert.Equal(HttpStatusCode.Redirect, saveResp.StatusCode);
-        Assert.Contains($"id={id}", saveResp.Headers.Location?.ToString() ?? "");
-        Assert.Contains("saved=progress", saveResp.Headers.Location?.ToString() ?? "");
+        var saveReq = new HttpRequestMessage(HttpMethod.Post, $"/Audit?handler=SaveProgress&id={id}")
+        {
+            Content = new FormUrlEncodedContent(body),
+        };
+        saveReq.Headers.Add("Accept", "application/json");
+        var saveResp = await client.SendAsync(saveReq);
+        Assert.True(saveResp.IsSuccessStatusCode, await saveResp.Content.ReadAsStringAsync());
+        var saveJson = await saveResp.Content.ReadAsStringAsync();
+        Assert.Contains($"\"id\":{id}", saveJson.Replace(" ", ""));
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

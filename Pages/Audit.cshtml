@@ -276,7 +276,7 @@
         <div class="audit-footer">
             @if (Model.EditingId.HasValue)
             {
-                <button type="submit" class="sbtn primary" formaction="?handler=SaveProgress&amp;id=@Model.EditingId" formmethod="post" formnovalidate>
+                <button type="button" class="sbtn primary" id="audit-save-btn">
                     Save changes
                 </button>
                 <button type="submit" class="sbtn">
@@ -289,7 +289,8 @@
                     Submit audit
                 </button>
             }
-            <a asp-page="/AuditStart" class="sbtn">Cancel</a>
+            <a asp-page="/AuditStart" class="sbtn" id="audit-cancel-link">Cancel</a>
+            <span id="audit-save-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
         </div>
     </form>
 </div>
@@ -300,6 +301,12 @@
     if (!wrap) return;
     var form = wrap.querySelector('form');
     var maxScore = @Model.MaxScore;
+    var editingId = @(Model.EditingId?.ToString() ?? "null");
+    var statusEl = document.getElementById('audit-save-status');
+    var saveBtn = document.getElementById('audit-save-btn');
+    var dirty = false;
+    var serverSaveTimer = null;
+    var saveChain = Promise.resolve();
 
     function bandFor(pct) {
         if (pct >= 92) return { band: 'Excellent', detail: 'Best practice standard maintained. Continue to sustain.', color: '#22c55e' };
@@ -346,7 +353,104 @@
         });
     }
 
-    form.addEventListener('change', updateScores);
+    function saveToServer(reason) {
+        if (!form || !editingId) return Promise.resolve();
+        var job = async function () {
+            if (saveBtn) saveBtn.disabled = true;
+            try {
+                var formData = new FormData(form);
+                var token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
+                var saveUrl = '?handler=SaveProgress&id=' + editingId;
+                var resp = await fetch(saveUrl, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'RequestVerificationToken': token || '',
+                        'X-CSRF-TOKEN': token || ''
+                    }
+                });
+                var saveText = await resp.text();
+                var data;
+                try { data = JSON.parse(saveText); } catch (e) {
+                    throw new Error(!resp.ok
+                        ? ('Server returned ' + resp.status)
+                        : 'Unexpected server response — try Save changes again');
+                }
+                if (!resp.ok) throw new Error(data.error || data.message || ('Server returned ' + resp.status));
+                dirty = false;
+                if (reason === 'leave') return;
+                var t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (statusEl) statusEl.textContent = 'Saved at ' + t +
+                    (data.answered != null ? (' · ' + data.answered + '/' + data.total + ' answered') : '');
+            } catch (e) {
+                if (reason !== 'leave' && statusEl)
+                    statusEl.textContent = e.message || 'Could not save — try Save changes again';
+                throw e;
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        };
+        saveChain = saveChain.then(job, job);
+        return saveChain;
+    }
+
+    function scheduleServerSave() {
+        if (!editingId) return;
+        clearTimeout(serverSaveTimer);
+        serverSaveTimer = setTimeout(function () { saveToServer('auto'); }, 3000);
+    }
+
+    form.addEventListener('change', function () {
+        dirty = true;
+        updateScores();
+        scheduleServerSave();
+    });
+    form.addEventListener('input', function () {
+        dirty = true;
+        scheduleServerSave();
+    });
     updateScores();
+
+    saveBtn?.addEventListener('click', function () {
+        clearTimeout(serverSaveTimer);
+        saveToServer('manual');
+    });
+
+    function shouldFlushNav(href) {
+        if (!href || href.startsWith('#')) return false;
+        try {
+            var url = new URL(href, location.origin);
+            if (url.origin !== location.origin) return false;
+            var path = url.pathname.replace(/\/$/, '') || '/';
+            return /\/(Index|AuditStart|HodDashboard|Dashboard|History)?$/i.test(path)
+                || path === '/' || path === '';
+        } catch (e) { return false; }
+    }
+
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a[href]');
+        if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        if (!shouldFlushNav(a.getAttribute('href'))) return;
+        if (!editingId) return;
+        e.preventDefault();
+        clearTimeout(serverSaveTimer);
+        var go = function () { location.href = a.href; };
+        saveToServer('leave').then(go, go);
+    }, true);
+
+    function flushOnLeave() {
+        if (!form || !dirty || !editingId || !navigator.sendBeacon) return;
+        try {
+            var formData = new FormData(form);
+            if (navigator.sendBeacon('?handler=SaveProgress&id=' + editingId, formData))
+                dirty = false;
+        } catch (e) { /* unloading */ }
+    }
+    window.addEventListener('pagehide', flushOnLeave);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') flushOnLeave();
+    });
 })();
 </script>

@@ -143,6 +143,8 @@ public class AuditModel : PageModel
 
         if (!editingId.HasValue)
         {
+            if (WantsJsonResponse())
+                return new JsonResult(new { error = "Could not save — this audit session has no ID." }) { StatusCode = 400 };
             ModelState.AddModelError("", "Could not save — this audit session has no ID. Go back to Audit Start and begin again.");
             await RepopulateForErrorAsync(BuildAnswers());
             return Page();
@@ -153,6 +155,8 @@ public class AuditModel : PageModel
             var existing = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
             if (existing == null)
             {
+                if (WantsJsonResponse())
+                    return new JsonResult(new { error = "Could not save — this audit was not found." }) { StatusCode = 404 };
                 ModelState.AddModelError("", "Could not save — this audit was not found. Go back to Audit Start and begin again.");
                 await RepopulateForErrorAsync(BuildAnswers());
                 return Page();
@@ -193,12 +197,26 @@ public class AuditModel : PageModel
             existing.LastEditedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
+            if (WantsJsonResponse())
+            {
+                return new JsonResult(new
+                {
+                    id = editingId,
+                    savedAt = DateTime.UtcNow,
+                    answered = answers.Count(a => a.Pass.HasValue),
+                    total = answers.Count,
+                    message = "Changes saved",
+                });
+            }
             return RedirectToPage("/Audit", new { id = editingId, saved = "progress" });
         }
         catch (Exception ex)
         {
             HttpContext.RequestServices.GetRequiredService<ILogger<AuditModel>>()
                 .LogError(ex, "Audit save progress failed for id {EditingId}", editingId);
+            if (WantsJsonResponse())
+                return new JsonResult(new { error = "Could not save changes — please try again." }) { StatusCode = 500 };
+
             ModelState.AddModelError("", "Could not save changes — please try again. Your answers are still on this page.");
             var fallback = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == editingId.Value);
             await RepopulateForErrorAsync(MergeAnswersWithExisting(fallback?.AnswersJson));
@@ -348,6 +366,10 @@ public class AuditModel : PageModel
             return HodAuditSerializer.ParseEffectiveness(storedJson);
         }
     }
+
+    bool WantsJsonResponse() =>
+        Request.Headers.Accept.Any(h =>
+            !string.IsNullOrEmpty(h) && h.Contains("application/json", StringComparison.OrdinalIgnoreCase));
 
     async Task RepopulateForErrorAsync(List<HodAuditAnswer> answers)
     {
