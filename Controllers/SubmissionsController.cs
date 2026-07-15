@@ -13,10 +13,11 @@ namespace TL.Controllers
     {
         private readonly AppDbContext _db;
         private readonly PdfExportService _pdf;
+        private readonly ILogger<SubmissionsController> _log;
 
-        public SubmissionsController(AppDbContext db, PdfExportService pdf)
+        public SubmissionsController(AppDbContext db, PdfExportService pdf, ILogger<SubmissionsController> log)
         {
-            _db = db; _pdf = pdf;
+            _db = db; _pdf = pdf; _log = log;
         }
 
         [HttpGet("today")]
@@ -128,8 +129,9 @@ namespace TL.Controllers
                 var filename = $"TLSW_{shift.ShiftDate:yyyyMMdd}_{shift.Shift}_{shift.TeamLeaderDisplay.Replace(" ", "_")}.pdf";
                 return PdfResponse.File(this, bytes, filename);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _log.LogError(ex, "Shift PDF failed for id {Id}", id);
                 return new ContentResult
                 {
                     StatusCode = 500,

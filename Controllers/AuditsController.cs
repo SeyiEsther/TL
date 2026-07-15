@@ -13,49 +13,99 @@ public class AuditsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly PdfExportService _pdf;
+    private readonly ILogger<AuditsController> _log;
 
-    public AuditsController(AppDbContext db, PdfExportService pdf)
+    public AuditsController(AppDbContext db, PdfExportService pdf, ILogger<AuditsController> log)
     {
         _db = db;
         _pdf = pdf;
+        _log = log;
     }
 
+    [HttpGet("hod/{id:int}/pdf")]
+    public Task<IActionResult> HodPdf(int id) => GenerateHodPdfAsync(id);
+
+    [HttpGet("senior/{id:int}/pdf")]
+    public Task<IActionResult> SeniorPdf(int id) => GenerateSeniorPdfAsync(id);
+
+    [HttpGet("walkaround/{id:int}/pdf")]
+    public Task<IActionResult> WalkaroundPdf(int id) => GenerateWalkaroundPdfAsync(id);
+
+    /// <summary>
+    /// Back-compat. Prefer /hod/{id}/pdf or /senior/{id}/pdf — shared numeric ids across tables collide.
+    /// Pass ?type=hod|senior|walkaround when using this route.
+    /// </summary>
     [HttpGet("{id:int}/pdf")]
-    public async Task<IActionResult> Pdf(int id)
+    public async Task<IActionResult> Pdf(int id, [FromQuery] string? type = null)
+    {
+        var kind = (type ?? "").Trim().ToLowerInvariant();
+        if (kind is "hod" or "hoddaily")
+            return await GenerateHodPdfAsync(id);
+        if (kind is "senior" or "weekly")
+            return await GenerateSeniorPdfAsync(id);
+        if (kind is "walkaround" or "legacy")
+            return await GenerateWalkaroundPdfAsync(id);
+
+        var hod = await _db.HodDailyAudits.AsNoTracking().AnyAsync(a => a.Id == id);
+        var senior = await _db.SeniorWeeklyAudits.AsNoTracking().AnyAsync(a => a.Id == id);
+        var walkaround = await _db.AuditSubmissions.AsNoTracking().AnyAsync(a => a.Id == id);
+
+        var matches = (hod ? 1 : 0) + (senior ? 1 : 0) + (walkaround ? 1 : 0);
+        if (matches > 1)
+        {
+            return BadRequest(new
+            {
+                error = "Ambiguous audit id — use /api/audits/hod/{id}/pdf, /api/audits/senior/{id}/pdf, or /api/audits/walkaround/{id}/pdf."
+            });
+        }
+
+        if (hod) return await GenerateHodPdfAsync(id);
+        if (senior) return await GenerateSeniorPdfAsync(id);
+        if (walkaround) return await GenerateWalkaroundPdfAsync(id);
+        return NotFound();
+    }
+
+    async Task<IActionResult> GenerateHodPdfAsync(int id)
     {
         var hod = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == id);
-        if (hod != null)
-        {
-            try
-            {
-                var answers = HodAuditSerializer.ParseAnswers(hod.AnswersJson);
-                var effectiveness = HodAuditSerializer.ParseEffectiveness(hod.EffectivenessJson);
-                var bytes = _pdf.GenerateHodDaily(hod, answers, effectiveness);
-                var type = HodAuditTypes.LabelFor(hod.AuditType).Replace(" ", "_");
-                var filename = $"HoD_{type}_{hod.AuditDate:yyyyMMdd}_{hod.ResolveEffectivenessArea().Replace(" ", "_")}.pdf";
-                return PdfResponse.File(this, bytes, filename);
-            }
-            catch (Exception)
-            {
-                return PdfError();
-            }
-        }
+        if (hod == null) return NotFound();
 
+        try
+        {
+            var answers = HodAuditSerializer.ParseAnswers(hod.AnswersJson);
+            var effectiveness = HodAuditSerializer.ParseEffectiveness(hod.EffectivenessJson);
+            var bytes = _pdf.GenerateHodDaily(hod, answers, effectiveness);
+            var type = HodAuditTypes.LabelFor(hod.AuditType).Replace(" ", "_");
+            var filename = $"HoD_{type}_{hod.AuditDate:yyyyMMdd}_{hod.ResolveEffectivenessArea().Replace(" ", "_")}.pdf";
+            return PdfResponse.File(this, bytes, filename);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "HoD PDF failed for id {Id}", id);
+            return PdfError();
+        }
+    }
+
+    async Task<IActionResult> GenerateSeniorPdfAsync(int id)
+    {
         var senior = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(a => a.Id == id);
-        if (senior != null)
-        {
-            try
-            {
-                var bytes = _pdf.GenerateSeniorWeekly(senior);
-                var filename = $"Senior_{senior.AuditDate:yyyyMMdd}_{senior.Area.Replace(" ", "_")}.pdf";
-                return PdfResponse.File(this, bytes, filename);
-            }
-            catch (Exception)
-            {
-                return PdfError();
-            }
-        }
+        if (senior == null) return NotFound();
 
+        try
+        {
+            var bytes = _pdf.GenerateSeniorWeekly(senior);
+            var filename = $"Senior_{senior.AuditDate:yyyyMMdd}_{senior.Area.Replace(" ", "_")}.pdf";
+            return PdfResponse.File(this, bytes, filename);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Senior PDF failed for id {Id}", id);
+            return PdfError();
+        }
+    }
+
+    async Task<IActionResult> GenerateWalkaroundPdfAsync(int id)
+    {
         var audit = await _db.AuditSubmissions.FirstOrDefaultAsync(a => a.Id == id);
         if (audit == null) return NotFound();
 
@@ -65,8 +115,9 @@ public class AuditsController : ControllerBase
             var filename = $"Audit_{audit.AuditDate:yyyyMMdd}_{audit.Area.Replace(" ", "_")}_{audit.AuditorName.Replace(" ", "_")}.pdf";
             return PdfResponse.File(this, bytes, filename);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _log.LogError(ex, "Walkaround PDF failed for id {Id}", id);
             return PdfError();
         }
     }

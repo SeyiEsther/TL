@@ -259,7 +259,7 @@
                                 <td style="font-size:11px;color:var(--muted)">@a.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
                                 <td style="white-space:nowrap">
                                     <a asp-page="/AuditResult" asp-route-id="@a.Id" class="sbtn sm">View</a>
-                                    <a href="/api/audits/@a.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.ResolveEffectivenessArea().Replace(" ", "_")).pdf">PDF</a>
+                                    <a href="/api/audits/hod/@a.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(a.AuditDate.ToString("yyyyMMdd"))_@(a.ResolveEffectivenessArea().Replace(" ", "_")).pdf">PDF</a>
                                 </td>
                             </tr>
                         }
