@@ -211,7 +211,7 @@
             <button type="button" class="sbtn primary" id="shift-submit-btn">
                 Save progress
             </button>
-            <button type="submit" class="sbtn primary" id="shift-final-btn">
+            <button type="button" class="sbtn primary" id="shift-final-btn">
                 Submit &amp; close shift
             </button>
             <a asp-page="/Index" class="sbtn">Cancel</a>
@@ -397,6 +397,53 @@
 
     progressBtn?.addEventListener('click', function () {
         saveToServer('manual');
+    });
+
+    const finalBtn = document.getElementById('shift-final-btn');
+    finalBtn?.addEventListener('click', async function () {
+        const sigInput = form.querySelector('input[name="OutgoingTLSignature"]');
+        if (sigInput && !sigInput.value.trim()) {
+            sigInput.focus();
+            sigInput.setCustomValidity('Please enter your full name to sign off the shift.');
+            sigInput.reportValidity();
+            return;
+        }
+        if (sigInput) sigInput.setCustomValidity('');
+
+        finalBtn.disabled = true;
+        if (statusEl) statusEl.textContent = 'Submitting…';
+        try {
+            ensureEditingIdInput();
+            const formData = new FormData(form);
+            const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;
+            const pageId = new URLSearchParams(location.search).get('id')
+                || form.dataset.editingId
+                || form.querySelector('input[name="EditingId"]')?.value;
+            const submitUrl = pageId ? `/Form?id=${pageId}` : '/Form';
+            const resp = await fetch(submitUrl, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'RequestVerificationToken': token || '',
+                    'X-CSRF-TOKEN': token || '',
+                }
+            });
+            const text = await resp.text();
+            let data;
+            try { data = JSON.parse(text); } catch (_) { data = {}; }
+            if (data.redirect) {
+                dirty = false;
+                location.href = data.redirect;
+                return;
+            }
+            if (statusEl) statusEl.textContent = data.error || 'Could not submit — please try again.';
+        } catch (e) {
+            if (statusEl) statusEl.textContent = e.message || 'Could not submit — check your connection and try again.';
+        } finally {
+            finalBtn.disabled = false;
+        }
     });
 
     function isHomeNavigation(href) {

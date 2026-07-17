@@ -171,7 +171,11 @@ public class FormModel : PageModel
             await _db.SaveChangesAsync();
 
             if (finalSubmit)
+            {
+                if (WantsJsonResponse())
+                    return new JsonResult(new { redirect = Url.Page("/Success", new { id = sub.Id }) });
                 return RedirectToPage("/Success", new { id = sub.Id });
+            }
 
             if (WantsJsonResponse())
             {
@@ -208,8 +212,8 @@ public class FormModel : PageModel
             HttpContext.RequestServices.GetRequiredService<ILogger<FormModel>>()
                 .LogError(ex, "Form save failed (finalSubmit={FinalSubmit}, editingId={EditingId})", finalSubmit, EditingId);
 
-        if (!finalSubmit && WantsJsonResponse())
-            return Task.FromResult<IActionResult>(new JsonResult(new { error = message }) { StatusCode = 500 });
+        if (WantsJsonResponse())
+            return Task.FromResult<IActionResult>(new JsonResult(new { error = message }) { StatusCode = 422 });
 
         ValidationError = message;
         PadHours();
