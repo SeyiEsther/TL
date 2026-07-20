@@ -173,6 +173,7 @@
             </div>
             <div class="shift-type-legend">
                 <div class="shift-type-item"><span class="rag-dot" style="background:#3b82f6"></span>Day <strong>@Model.DayShifts</strong></div>
+                <div class="shift-type-item"><span class="rag-dot" style="background:#f59e0b"></span>Afternoon <strong>@Model.AfternoonShifts</strong></div>
                 <div class="shift-type-item"><span class="rag-dot" style="background:#6366f1"></span>Night <strong>@Model.NightShifts</strong></div>
             </div>
         </div>
@@ -412,14 +413,14 @@
         }
     });
 
-    const shiftTotal = @Model.DayShifts + @Model.NightShifts;
+    const shiftTotal = @Model.DayShifts + @Model.AfternoonShifts + @Model.NightShifts;
     new Chart(document.getElementById('shiftTypeChart'), {
         type: 'doughnut',
         data: {
-            labels: ['Day', 'Night'],
+            labels: ['Day', 'Afternoon', 'Night'],
             datasets: [{
-                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.NightShifts] : [1, 1],
-                backgroundColor: shiftTotal > 0 ? [C.blue, C.indigo] : [C.gray, C.gray],
+                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.AfternoonShifts, @Model.NightShifts] : [1, 1, 1],
+                backgroundColor: shiftTotal > 0 ? [C.blue, '#f59e0b', C.indigo] : [C.gray, C.gray, C.gray],
                 borderWidth: 3,
                 borderColor: '#fff',
             }]
