@@ -286,7 +286,7 @@ namespace TL.Services
                             });
                         }
 
-                        col.Item().ShowEntire().Element(c => RenderFindingsSignOff(c, findings =>
+                        col.Item().Element(c => RenderFindingsSignOff(c, findings =>
                         {
                             findings.Note("Actions raised", a.ActionsRaised);
                             findings.Note("Good practice", a.GoodPractice);
@@ -443,7 +443,7 @@ namespace TL.Services
                             ("Improvement actions progressing?", a.ImprovementActionsProgressing),
                         ], a.PerformanceNotes);
 
-                        col.Item().ShowEntire().Element(c => RenderFindingsSignOff(c, findings =>
+                        col.Item().Element(c => RenderFindingsSignOff(c, findings =>
                         {
                             findings.Note("Good practice observed", a.GoodPracticeObserved, GreenBg);
                             findings.Note("Areas for improvement", a.AreasForImprovement, AmberBg);
