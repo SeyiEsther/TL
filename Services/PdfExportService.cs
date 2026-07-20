@@ -272,13 +272,13 @@ namespace TL.Services
                         {
                             col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                             {
-                                inner.Item().Background(DarkGray).Padding(6).Text(sec.Key.ToUpperInvariant()).FontSize(8).Bold().FontColor("#fff");
+                                inner.Item().Background(DarkGray).Padding(6).Text((sec.Key ?? "Other").ToUpperInvariant()).FontSize(8).Bold().FontColor("#fff");
                                 inner.Item().Padding(8).Table(t =>
                                 {
                                     t.ColumnsDefinition(cd => { cd.RelativeColumn(4); cd.RelativeColumn(); cd.RelativeColumn(2); });
                                     foreach (var q in sec)
                                     {
-                                        t.Cell().PaddingVertical(2).Text(q.Label).FontColor(MidGray).FontSize(8);
+                                        t.Cell().PaddingVertical(2).Text(q.Label ?? "—").FontColor(MidGray).FontSize(8);
                                         PassFailRow(t, q.Pass);
                                         t.Cell().PaddingVertical(2).Text(q.Evidence ?? "—").FontSize(8).FontColor(MidGray);
                                     }
