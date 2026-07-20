@@ -226,78 +226,178 @@ namespace TL.Services
             QuestPDF.Settings.License = LicenseType.Community;
             _ = effectiveness;
             var band = HodAuditScoring.RatingBand(a.TotalScore, a.MaxScore);
-            var sections = answers.GroupBy(x => x.Section).ToList();
+            var bandColor = HodAuditScoring.BandColor(a.TotalScore, a.MaxScore);
+            var sections = answers.GroupBy(x => x.Section ?? "Other").ToList();
+            // Section header colours cycle through a palette
+            string[] SectionColors = ["#1e3a5f", "#14532d", "#1e1b4b", "#78350f", "#1a1a2e", "#1e3a5f"];
 
             return Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(36);
+                    page.MarginHorizontal(36);
+                    page.MarginTop(28);
+                    page.MarginBottom(28);
                     page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
-                    page.Header().Column(col =>
+
+                    // ── Header ──────────────────────────────────────────────
+                    page.Header().BorderBottom(2).BorderColor(Red).PaddingBottom(10).Row(row =>
                     {
-                        col.Item().Row(row =>
+                        row.RelativeItem().Column(c =>
                         {
-                            row.RelativeItem().Column(c =>
-                            {
-                                c.Item().Text("RITTAL CSM Plymouth").FontSize(20).Bold().FontColor(DarkGray);
-                                c.Item().Text($"HoD Audit — {HodAuditTypes.LabelFor(a.AuditType)}").FontSize(11).FontColor(MidGray);
-                            });
-                            row.ConstantItem(6).Background(Red);
+                            c.Item().Text("RITTAL CSM Plymouth").FontSize(18).Bold().FontColor(DarkGray);
+                            c.Item().Text($"HoD Audit — {HodAuditTypes.LabelFor(a.AuditType)}").FontSize(10).FontColor(MidGray);
                         });
-                        col.Item().Height(10);
-                    });
-                    page.Content().Column(col =>
-                    {
-                        col.Spacing(8);
-                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        // Score badge top-right
+                        row.ConstantItem(72).AlignRight().AlignMiddle().Column(c =>
                         {
-                            inner.Item().Background(LightGray).Padding(6).Text("AUDIT DETAILS").FontSize(8).Bold();
-                            inner.Item().Padding(8).Table(t =>
+                            c.Item().Background(bandColor).Padding(6).AlignCenter().Column(inner =>
                             {
-                                t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); });
-                                t.Cell().Element(LabelCell).Text("Date");
-                                t.Cell().Element(ValueCell).Text(a.AuditDate.ToString("dd MMM yyyy"));
-                                t.Cell().Element(LabelCell).Text("Area to audit");
-                                t.Cell().Element(ValueCell).Text(a.Department);
-                                t.Cell().Element(LabelCell).Text("Auditor");
-                                t.Cell().Element(ValueCell).Text(a.AuditorName);
-                                t.Cell().Element(LabelCell).Text("Submitted");
-                                t.Cell().Element(ValueCell).Text(a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
+                                inner.Item().Text($"{a.TotalScore}/{a.MaxScore}").FontSize(18).Bold().FontColor("#fff");
+                                inner.Item().Text(band.ToUpperInvariant()).FontSize(6).Bold().FontColor("#fff");
                             });
+                        });
+                    });
+
+                    // ── Content ─────────────────────────────────────────────
+                    page.Content().PaddingTop(12).Column(col =>
+                    {
+                        col.Spacing(6);
+
+                        // Audit details strip
+                        col.Item().Background(LightGray).Border(0.5f).BorderColor(BorderGray)
+                            .Padding(10).Table(t =>
+                        {
+                            t.ColumnsDefinition(cd =>
+                            {
+                                cd.ConstantColumn(70); cd.RelativeColumn();
+                                cd.ConstantColumn(70); cd.RelativeColumn();
+                            });
+                            void MetaCell(string label, string value)
+                            {
+                                t.Cell().PaddingVertical(2).Text(label).FontSize(8).FontColor(MidGray).Bold();
+                                t.Cell().PaddingVertical(2).Text(value).FontSize(8).FontColor(DarkGray);
+                            }
+                            MetaCell("Date", a.AuditDate.ToString("dd MMM yyyy"));
+                            MetaCell("Area", a.Department);
+                            MetaCell("Auditor", a.AuditorName);
+                            MetaCell("Submitted", a.SubmittedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm"));
                         });
 
+                        // Question sections
+                        var colorIdx = 0;
                         foreach (var sec in sections)
                         {
+                            var hdrColor = SectionColors[colorIdx++ % SectionColors.Length];
                             col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
                             {
-                                inner.Item().Background(DarkGray).Padding(6).Text((sec.Key ?? "Other").ToUpperInvariant()).FontSize(8).Bold().FontColor("#fff");
-                                inner.Item().Padding(8).Table(t =>
+                                inner.Item().Background(hdrColor).PaddingHorizontal(10).PaddingVertical(7)
+                                    .Text(sec.Key.ToUpperInvariant()).FontSize(8).Bold().FontColor("#fff");
+
+                                inner.Item().Table(t =>
                                 {
-                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(4); cd.RelativeColumn(); cd.RelativeColumn(2); });
+                                    t.ColumnsDefinition(cd =>
+                                    {
+                                        cd.RelativeColumn(5);   // question
+                                        cd.ConstantColumn(60);  // pass/fail badge
+                                        cd.RelativeColumn(3);   // evidence
+                                    });
+
+                                    // Column headers
+                                    t.Cell().Background("#f9fafb").PaddingHorizontal(10).PaddingVertical(4)
+                                        .Text("Question").FontSize(7).Bold().FontColor(MidGray);
+                                    t.Cell().Background("#f9fafb").AlignCenter().PaddingVertical(4)
+                                        .Text("Result").FontSize(7).Bold().FontColor(MidGray);
+                                    t.Cell().Background("#f9fafb").PaddingHorizontal(10).PaddingVertical(4)
+                                        .Text("Evidence / Notes").FontSize(7).Bold().FontColor(MidGray);
+
                                     foreach (var q in sec)
                                     {
-                                        t.Cell().PaddingVertical(2).Text(q.Label ?? "—").FontColor(MidGray).FontSize(8);
-                                        PassFailRow(t, q.Pass);
-                                        t.Cell().PaddingVertical(2).Text(q.Evidence ?? "—").FontSize(8).FontColor(MidGray);
+                                        var rowBg = q.Pass == false ? "#fff5f5" : "#fff";
+                                        t.Cell().Background(rowBg).BorderTop(0.5f).BorderColor(BorderGray)
+                                            .PaddingHorizontal(10).PaddingVertical(5)
+                                            .Text(q.Label ?? "—").FontSize(8).FontColor(DarkGray);
+                                        PassFailRow(t, q.Pass, rowBg);
+                                        t.Cell().Background(rowBg).BorderTop(0.5f).BorderColor(BorderGray)
+                                            .PaddingHorizontal(10).PaddingVertical(5)
+                                            .Text(q.Evidence ?? "—").FontSize(8).FontColor(MidGray).Italic();
                                     }
                                 });
                             });
                         }
 
-                        col.Item().Element(c => RenderFindingsSignOff(c, findings =>
+                        // Findings
+                        if (!string.IsNullOrWhiteSpace(a.ActionsRaised) || !string.IsNullOrWhiteSpace(a.GoodPractice))
                         {
-                            findings.Note("Actions raised", a.ActionsRaised);
-                            findings.Note("Good practice", a.GoodPractice);
-                            findings.Signatures(
-                                ("Auditor signature", a.AuditorSignature),
-                                ("TL signature", a.TeamLeaderSignature));
-                        }));
+                            col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                            {
+                                inner.Item().Background("#78350f").PaddingHorizontal(10).PaddingVertical(7)
+                                    .Text("FINDINGS & ACTIONS").FontSize(8).Bold().FontColor("#fff");
+                                inner.Item().Padding(12).Column(fc =>
+                                {
+                                    fc.Spacing(10);
+                                    void FindingBlock(string label, string? text, string bg)
+                                    {
+                                        if (string.IsNullOrWhiteSpace(text)) return;
+                                        fc.Item().Text(label).FontSize(8).Bold().FontColor(MidGray);
+                                        var lines = text.Replace("\r\n", "\n").Split('\n')
+                                            .Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+                                        fc.Item().Background(bg).Border(0.5f).BorderColor(BorderGray)
+                                            .Padding(10).Column(lc =>
+                                        {
+                                            lc.Spacing(4);
+                                            foreach (var line in lines)
+                                                lc.Item().Text(t =>
+                                                {
+                                                    if (lines.Count > 1) t.Span("• ").FontColor(MidGray);
+                                                    t.Span(line).FontSize(9).FontColor(DarkGray);
+                                                });
+                                        });
+                                    }
+                                    FindingBlock("Actions raised", a.ActionsRaised, "#fff7ed");
+                                    FindingBlock("Good practice observed", a.GoodPractice, GreenBg);
+                                });
+                            });
+                        }
 
-                        col.Item().Element(c => HodScoreFooter(c, a.TotalScore, a.MaxScore, band));
+                        // Sign-off
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(LightGray).PaddingHorizontal(10).PaddingVertical(7)
+                                .Text("SIGN-OFF").FontSize(8).Bold().FontColor(DarkGray);
+                            inner.Item().Padding(12).Row(row =>
+                            {
+                                void SigBox(string label, string? value)
+                                {
+                                    row.RelativeItem().PaddingRight(8).Border(1).BorderColor(BorderGray)
+                                        .Background("#fff").MinHeight(56).Padding(10).Column(sc =>
+                                    {
+                                        sc.Item().Text(label).FontSize(8).FontColor(MidGray);
+                                        sc.Item().Height(6);
+                                        sc.Item().Text(string.IsNullOrWhiteSpace(value) ? "—" : value)
+                                            .FontSize(13).Bold().FontColor(DarkGray);
+                                    });
+                                }
+                                SigBox("Auditor signature", a.AuditorSignature);
+                                SigBox("TL signature", a.TeamLeaderSignature);
+                            });
+                        });
                     });
-                    page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
+
+                    // ── Footer ───────────────────────────────────────────────
+                    page.Footer().PaddingTop(6).BorderTop(0.5f).BorderColor(BorderGray).Row(row =>
+                    {
+                        row.RelativeItem().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC")
+                            .FontSize(7).FontColor(MidGray);
+                        row.AutoItem().Text(txt =>
+                        {
+                            txt.Span("Page ").FontSize(7).FontColor(MidGray);
+                            txt.CurrentPageNumber().FontSize(7).FontColor(MidGray);
+                            txt.Span(" of ").FontSize(7).FontColor(MidGray);
+                            txt.TotalPages().FontSize(7).FontColor(MidGray);
+                        });
+                    });
                 });
             }).GeneratePdf();
         }
@@ -321,14 +421,18 @@ namespace TL.Services
             });
         }
 
-        static void PassFailRow(TableDescriptor t, bool? pass)
+        static void PassFailRow(TableDescriptor t, bool? pass, string? rowBg = null)
         {
             t.Cell().Element(c =>
             {
                 var bg = pass == true ? GreenBg : pass == false ? RedBg : LightGray;
                 var fg = pass == true ? GreenText : pass == false ? RedText : MidGray;
                 var lbl = pass == true ? "Pass (1)" : pass == false ? "Fail (0)" : "—";
-                c.Background(bg).Padding(2).AlignCenter().Text(lbl).FontColor(fg).Bold().FontSize(8);
+                var cell = rowBg != null
+                    ? c.Background(rowBg).BorderTop(0.5f).BorderColor(BorderGray).AlignCenter().AlignMiddle().PaddingVertical(5)
+                    : c.AlignCenter().AlignMiddle().Padding(2);
+                cell.Element(inner => inner.Background(bg).Padding(3).AlignCenter()
+                    .Text(lbl).FontColor(fg).Bold().FontSize(8));
             });
         }
 
