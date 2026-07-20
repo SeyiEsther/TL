@@ -94,10 +94,7 @@ public class IndexModel : PageModel
             return RedirectToPage("/Form", new { id = existing.Id, tl = actualName, coveringFor = covering });
         }
 
-        // Past-date back-shift: allow a late submission even if the slot has a closed record.
-        // Only block re-opening today's already-closed shift to prevent accidental duplicates.
-        var isToday = d == DateOnly.FromDateTime(DateTime.Today);
-        if (isToday && await _resume.SlotHasClosedAsync(d, shift, area))
+        if (await _resume.SlotHasClosedAsync(d, shift, area))
         {
             ShiftDate = shiftDate;
             Shift = shift;
