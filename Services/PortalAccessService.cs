@@ -97,9 +97,61 @@ public static class PortalNameMatcher
         if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase))
             return true;
 
+        if (NicknamesEquivalent(a, b))
+            return true;
+
         var (shorter, longer) = a.Length <= b.Length ? (a, b) : (b, a);
         return shorter.Length >= 3 &&
                longer.StartsWith(shorter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Common nickname ↔ formal-name pairs. AD often stores the formal name
+    // ("Michael") while the picker list uses the everyday name ("Mike"),
+    // which plain prefix matching can't bridge (Mich… vs Mike).
+    static readonly Dictionary<string, string> NicknameCanonical =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["mike"] = "michael", ["mick"] = "michael", ["micky"] = "michael", ["mickey"] = "michael",
+            ["nick"] = "nicholas", ["nicky"] = "nicholas", ["nik"] = "nicholas",
+            ["tony"] = "anthony",
+            ["jim"] = "james", ["jimmy"] = "james", ["jamie"] = "james",
+            ["steve"] = "steven", ["stevie"] = "steven",
+            ["bob"] = "robert", ["rob"] = "robert", ["bobby"] = "robert", ["robbie"] = "robert",
+            ["bill"] = "william", ["will"] = "william", ["billy"] = "william", ["willy"] = "william",
+            ["dick"] = "richard", ["rich"] = "richard", ["rick"] = "richard", ["richie"] = "richard",
+            ["dave"] = "david",
+            ["dan"] = "daniel", ["danny"] = "daniel",
+            ["tom"] = "thomas", ["tommy"] = "thomas",
+            ["chris"] = "christopher",
+            ["matt"] = "matthew",
+            ["andy"] = "andrew", ["drew"] = "andrew",
+            ["ben"] = "benjamin",
+            ["sam"] = "samuel",
+            ["joe"] = "joseph", ["joey"] = "joseph",
+            ["ed"] = "edward", ["eddie"] = "edward", ["ted"] = "edward",
+            ["ken"] = "kenneth", ["kenny"] = "kenneth",
+            ["greg"] = "gregory",
+            ["pat"] = "patrick", ["paddy"] = "patrick",
+            ["tim"] = "timothy", ["timmy"] = "timothy",
+            ["ron"] = "ronald", ["ronnie"] = "ronald",
+            ["don"] = "donald", ["donnie"] = "donald",
+            ["fred"] = "frederick", ["freddie"] = "frederick",
+            ["charlie"] = "charles", ["chuck"] = "charles",
+            ["jon"] = "jonathan", ["johnny"] = "john", ["jack"] = "john",
+            ["alex"] = "alexander", ["sandy"] = "alexander",
+            ["phil"] = "philip", ["philip"] = "phillip",
+            ["nate"] = "nathan",
+            ["gabe"] = "gabriel",
+            ["vic"] = "victor",
+            ["les"] = "leslie",
+            ["si"] = "simon",
+        };
+
+    static bool NicknamesEquivalent(string a, string b)
+    {
+        var ca = NicknameCanonical.GetValueOrDefault(a, a);
+        var cb = NicknameCanonical.GetValueOrDefault(b, b);
+        return string.Equals(ca, cb, StringComparison.OrdinalIgnoreCase);
     }
 
     static string FirstNameOf(string fullName)
