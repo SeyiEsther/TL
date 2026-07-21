@@ -36,14 +36,17 @@ public class PortalAccessServiceTests
     }
 
     [Fact]
-    public void Senior_list_member_sees_senior_and_management_not_hod()
+    public void Group1_and_director_names_have_full_access()
     {
+        // Group 1 / Directors (which overlap the Senior list) are on the
+        // full-access list, so they can reach everything except Admin.
         var access = CreateAccess("Jim Gray", grantAll: false);
-        Assert.False(access.CanAccessHod());
+        Assert.True(access.CanAccessHod());
         Assert.True(access.CanAccessSenior());
         Assert.True(access.CanAccessManagement());
-        Assert.False(access.CanAccessPage("/AuditStart"));
+        Assert.True(access.CanAccessPage("/AuditStart"));
         Assert.True(access.CanAccessPage("/SeniorRota"));
+        Assert.False(access.CanAccessPage("/Admin"));
     }
 
     [Fact]
