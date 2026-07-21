@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    <form method="post" id="shift-form" data-shift-form data-hours="@H" data-editing-id="@(Model.EditingId?.ToString() ?? "")">
+    <form method="post" id="shift-form" data-shift-form data-hours="@H" data-editing-id="@(Model.EditingId?.ToString() ?? "")" data-backup="shift" data-backup-key="@(Model.EditingId?.ToString() ?? "new")">
         @Html.AntiForgeryToken()
         <input type="hidden" name="ShiftDate" value="@Model.ShiftDate">
         <input type="hidden" name="Shift" value="@Model.Shift">
