@@ -40,7 +40,6 @@ public class HodDashboardModel : PageModel
     public List<HodRotationRow> WeekRotation { get; set; } = [];
 
     public List<HodAreaAuditRow> AreaAuditScores { get; set; } = [];
-    public List<HodTlAuditCatchRow> TlAuditCatches { get; set; } = [];
 
     public string[] ActivityLabels { get; set; } = [];
     public int[] ActivityData { get; set; } = [];
@@ -110,7 +109,6 @@ public class HodDashboardModel : PageModel
         }
 
         BuildWeekRotation(weekStart, weekEnd);
-        BuildTlAuditCatches();
         BuildAreaAuditScores();
         BuildActivityCharts();
     }
@@ -130,44 +128,6 @@ public class HodDashboardModel : PageModel
                 done.Count,
                 done.Select(a => $"{a.Department} / {a.ResolveEffectivenessArea()} ({HodAuditTypes.LabelFor(a.AuditType)})").ToList()));
         }
-    }
-
-    void BuildTlAuditCatches()
-    {
-        var catches = new List<HodTlAuditCatchRow>();
-        foreach (var audit in Audits)
-        {
-            var findings = HodAuditSerializer.ParseEffectiveness(audit.EffectivenessJson);
-            foreach (var f in findings.Where(f => !string.IsNullOrEmpty(f.TeamLeader) && (f.TlClaimMismatch || f.IsAuditFinding)))
-            {
-                var issues = new List<string>();
-                if (f.TlClaimMismatch && f.LinkedAuditFailures.Count > 0)
-                    issues.AddRange(f.LinkedAuditFailures.Select(x => $"Audit caught: {x}"));
-                else if (f.TlClaimMismatch)
-                    issues.Add("HoD audit failed — contradicts what TL claimed on shift form");
-                if (!f.FormComplete)
-                    issues.Add("Shift form incomplete when audited");
-                if (!f.OutgoingSignedOff)
-                    issues.Add("Not signed off");
-                issues.AddRange(f.Issues.Where(i => i.StartsWith("Audit FAIL", StringComparison.OrdinalIgnoreCase)));
-
-                if (issues.Count == 0) continue;
-
-                catches.Add(new HodTlAuditCatchRow(
-                    f.TeamLeader,
-                    f.ShiftDate,
-                    f.Shift,
-                    f.Area,
-                    audit.AuditDate,
-                    HodAuditTypes.LabelFor(audit.AuditType),
-                    issues.Distinct().ToList()));
-            }
-        }
-
-        TlAuditCatches = catches
-            .OrderByDescending(c => c.AuditDate)
-            .ThenBy(c => c.TeamLeader)
-            .ToList();
     }
 
     void BuildAreaAuditScores()
