@@ -20,10 +20,17 @@ public class SuccessModel : PageModel
         if (hodAuditId.HasValue)
         {
             var hod = await _db.HodDailyAudits.FindAsync(hodAuditId.Value);
+            if (hod == null)
+            {
+                SubmissionId = hodAuditId.Value;
+                IsHodDailyAudit = false;
+                IsAudit = false;
+                return;
+            }
             IsHodDailyAudit = true;
             IsAudit = true;
-            SubmissionId = hodAuditId.Value;
-            HodAuditTypeLabel = hod != null ? HodAuditTypes.LabelFor(hod.AuditType) : null;
+            SubmissionId = hod.Id;
+            HodAuditTypeLabel = HodAuditTypes.LabelFor(hod.AuditType);
             return;
         }
 

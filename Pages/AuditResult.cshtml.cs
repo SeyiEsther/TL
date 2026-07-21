@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TL.Data;
 using TL.Models;
 using TL.Services;
@@ -10,7 +11,13 @@ namespace TL.Pages;
 public class AuditResultModel : PageModel
 {
     private readonly AppDbContext _db;
-    public AuditResultModel(AppDbContext db) => _db = db;
+    private readonly ILogger<AuditResultModel> _log;
+
+    public AuditResultModel(AppDbContext db, ILogger<AuditResultModel> log)
+    {
+        _db = db;
+        _log = log;
+    }
 
     public bool IsHodDaily { get; set; }
     public ShiftSubmission? Audit { get; set; }
@@ -21,24 +28,48 @@ public class AuditResultModel : PageModel
     public string RatingBand { get; set; } = "";
     public string RatingDetail { get; set; } = "";
 
-    public async Task<IActionResult> OnGetAsync(int id)
+    /// <param name="kind">
+    /// Optional disambiguator when numeric ids collide across tables:
+    /// "hod" = HodDailyAudits, "legacy" = ShiftSubmission Audit pseudo-shift.
+    /// </param>
+    public async Task<IActionResult> OnGetAsync(int id, string? kind = null)
     {
-        HodAudit = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == id);
-        if (HodAudit != null)
+        var prefer = (kind ?? "").Trim().ToLowerInvariant();
+
+        if (prefer is "legacy" or "old")
+            return await LoadLegacyAsync(id);
+
+        if (prefer is "hod" or "new" or "")
         {
-            IsHodDaily = true;
-            Answers = HodAuditSerializer.ParseAnswers(HodAudit.AnswersJson);
-            Effectiveness = HodAuditSerializer.ParseEffectiveness(HodAudit.EffectivenessJson);
-            RatingBand = HodAuditScoring.RatingBand(HodAudit.TotalScore, HodAudit.MaxScore);
-            RatingDetail = HodAuditScoring.RatingDetail(HodAudit.TotalScore, HodAudit.MaxScore);
-            return Page();
+            HodAudit = await _db.HodDailyAudits.FirstOrDefaultAsync(a => a.Id == id);
+            if (HodAudit != null)
+            {
+                IsHodDaily = true;
+                Answers = HodAuditSerializer.ParseAnswers(HodAudit.AnswersJson);
+                Effectiveness = HodAuditSerializer.ParseEffectiveness(HodAudit.EffectivenessJson);
+                RatingBand = HodAuditScoring.RatingBand(HodAudit.TotalScore, HodAudit.MaxScore);
+                RatingDetail = HodAuditScoring.RatingDetail(HodAudit.TotalScore, HodAudit.MaxScore);
+                return Page();
+            }
+
+            if (prefer is "hod" or "new")
+                return RedirectToPage("/History", new { tab = "hod" });
         }
 
+        return await LoadLegacyAsync(id);
+    }
+
+    async Task<IActionResult> LoadLegacyAsync(int id)
+    {
         Audit = await _db.ShiftSubmissions
             .Include(s => s.Hours.OrderBy(h => h.HourNumber))
             .FirstOrDefaultAsync(s => s.Id == id && s.Shift == ShiftQueryExtensions.AuditPseudoShift);
 
-        if (Audit == null) return RedirectToPage("/History", new { tab = "hod" });
+        if (Audit == null)
+        {
+            _log.LogWarning("AuditResult id={Id} not found as HoD or legacy audit", id);
+            return RedirectToPage("/History", new { tab = "hod" });
+        }
 
         Check = Audit.Hours.FirstOrDefault();
         return Page();

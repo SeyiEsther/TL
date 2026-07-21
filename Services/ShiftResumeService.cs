@@ -27,9 +27,14 @@ public class ShiftResumeService
         return slot.FirstOrDefault(IsInProgress);
     }
 
-    public async Task<bool> SlotHasClosedAsync(DateOnly date, string shift, string area) =>
-        await SlotQuery(date, shift, area).AnyAsync(s =>
-            s.OutgoingTLSignature != null && s.OutgoingTLSignature != "");
+    public async Task<bool> SlotHasClosedAsync(DateOnly date, string shift, string area)
+    {
+        // Load signatures then apply IsClosed in-memory — EF cannot translate the helper.
+        var signatures = await SlotQuery(date, shift, area)
+            .Select(s => s.OutgoingTLSignature)
+            .ToListAsync();
+        return signatures.Any(sig => !string.IsNullOrWhiteSpace(sig));
+    }
 
     // Resolve the open shift for a slot, or create one if none exists — serialised per
     // slot so two concurrent "start shift" requests can't both insert a stub and leave

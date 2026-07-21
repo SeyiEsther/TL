@@ -21,6 +21,7 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/Form"));
         Assert.False(access.CanAccessPage("/ShiftHistory"));
         Assert.False(access.CanAccessPage("/HodHistory"));
+        Assert.False(access.CanAccessPage("/Today"));
         Assert.False(access.CanAccessPage("/Dashboard"));
     }
 
@@ -36,10 +37,10 @@ public class PortalAccessServiceTests
     }
 
     [Fact]
-    public void Group1_and_director_names_have_full_access()
+    public void Senior_on_full_access_list_sees_hod_and_senior()
     {
-        // Group 1 / Directors (which overlap the Senior list) are on the
-        // full-access list, so they can reach everything except Admin.
+        // Jim Gray is on both SeniorManagementList and FullAccess (ShiftManagerList),
+        // so FullAccess grants HoD as well as Senior.
         var access = CreateAccess("Jim Gray", grantAll: false);
         Assert.True(access.CanAccessHod());
         Assert.True(access.CanAccessSenior());
@@ -47,6 +48,15 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/AuditStart"));
         Assert.True(access.CanAccessPage("/SeniorRota"));
         Assert.False(access.CanAccessPage("/Admin"));
+    }
+
+    [Fact]
+    public void General_team_leader_cannot_open_today_overview()
+    {
+        var access = CreateAccess("Adam Wilczynski", grantAll: false);
+        Assert.False(access.CanAccessPage("/Today"));
+        Assert.False(access.CanAccessApi("/api/submissions/today"));
+        Assert.False(access.CanAccessApi("/api/audits/hod/1/pdf"));
     }
 
     [Fact]

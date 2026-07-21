@@ -230,10 +230,14 @@ public class FormModel : PageModel
         if (EditingId.HasValue)
         {
             var byId = await _db.ShiftSubmissions
+                .ExcludeAudits()
                 .Include(s => s.Hours)
                 .FirstOrDefaultAsync(s => s.Id == EditingId.Value);
             if (byId != null)
                 return byId;
+
+            throw new InvalidOperationException(
+                "This shift session no longer exists. Go Home and open the shift again.");
         }
 
         if (hasSlot)
@@ -368,6 +372,7 @@ public class FormModel : PageModel
 
     async Task<ShiftSubmission?> LoadSubmissionAsync(int id) =>
         await _db.ShiftSubmissions
+            .ExcludeAudits()
             .Include(s => s.Hours.OrderBy(h => h.HourNumber))
             .Include(s => s.AuditLogs)
             .FirstOrDefaultAsync(s => s.Id == id);

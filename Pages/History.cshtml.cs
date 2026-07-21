@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 using TL.Services;
 
 namespace TL.Pages;
@@ -12,12 +13,15 @@ public class HistoryModel : PageModel
     private readonly HistoryListService _history;
     private readonly AdminService _admin;
     private readonly RecordDeleteService _delete;
+    private readonly ILogger<HistoryModel> _log;
 
-    public HistoryModel(HistoryListService history, AdminService admin, RecordDeleteService delete)
+    public HistoryModel(
+        HistoryListService history, AdminService admin, RecordDeleteService delete, ILogger<HistoryModel> log)
     {
         _history = history;
         _admin = admin;
         _delete = delete;
+        _log = log;
     }
 
     public bool IsAdmin => _admin.IsAdmin();
@@ -58,19 +62,24 @@ public class HistoryModel : PageModel
         var filters = new HistoryFilters(From, To, AreaFilter, PersonFilter);
         var rows = new List<HistoryRow>();
 
-        if (Tab is "shifts")
+        // "All" = every shift (open + closed) plus audits — not open-only.
+        if (Tab is "all" or "shifts")
             rows.AddRange(await _history.LoadHistoryShiftsAsync(filters));
-        else if (Tab is "all")
-            rows.AddRange(await _history.LoadHistoryShiftsAsync(filters, inProgressOnly: true));
         if (Tab is "all" or "hod")
         {
             try { rows.AddRange(await _history.LoadHistoryHodAsync(filters)); }
-            catch { /* Hod table may not exist yet */ }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Failed to load HoD audits for History");
+            }
         }
         if (Tab is "all" or "senior")
         {
             try { rows.AddRange(await _history.LoadHistorySeniorAsync(filters)); }
-            catch { /* Senior table may not exist yet */ }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Failed to load Senior audits for History");
+            }
         }
 
         Rows = rows
