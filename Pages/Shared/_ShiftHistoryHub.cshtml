@@ -5,327 +5,288 @@
     var fu = Model.FollowUp;
     var period = Model.FollowUpPeriodLabel;
     var hasProblems = fu != null && (fu.Accountability.Count > 0 || fu.ShiftIssues.Count > 0);
-    var cards = new List<(string Id, string Label, string Tone)>();
+    var cards = new List<(string Id, string Label)>();
     if (fu != null && fu.Accountability.Count > 0)
-        cards.Add(("followup", "Team leaders", "warn"));
+        cards.Add(("followup", "Team leaders"));
     if (fu != null && fu.ShiftIssues.Count > 0)
-        cards.Add(("problems", "Problem shifts", "danger"));
+        cards.Add(("problems", "Problem shifts"));
     if (fu != null && fu.AreaCompliance.Count > 0 && fu.NotClosed > 0)
-        cards.Add(("areas", "By area", "neutral"));
-    cards.Add(("records", "All records", "primary"));
-    var defaultCard = cards[0].Id;
+        cards.Add(("areas", "By area"));
+    var defaultCard = cards.Count > 0 ? cards[0].Id : "";
 }
 
-<div class="shift-history-hub" data-shift-hub data-default="@defaultCard">
-    @if (!string.IsNullOrEmpty(period))
-    {
-        <div class="shift-hub-period">@period</div>
-    }
-
-    @if (fu != null && !hasProblems && fu.ShiftCount > 0)
-    {
-        <div class="shift-hub-ok card">
-            <span class="shift-hub-ok-icon">&#10003;</span>
-            <div>
-                <strong>All @fu.ShiftCount shift form(s) closed correctly</strong>
-                <div class="shift-hub-ok-sub">No incomplete or unsigned shifts in this period.</div>
-            </div>
+@if (fu != null && !hasProblems && fu.ShiftCount > 0)
+{
+    <div class="shift-hub-ok card" style="margin-bottom:14px">
+        <span class="shift-hub-ok-icon">&#10003;</span>
+        <div>
+            <strong>All @fu.ShiftCount shift form(s) closed correctly</strong>
+            <div class="shift-hub-ok-sub">No incomplete or unsigned shifts in this period.</div>
         </div>
-    }
+    </div>
+}
 
-    @if (cards.Count > 1)
-    {
-        <div class="shift-hub-tabs" role="tablist" aria-label="Shift data views">
-            @foreach (var c in cards)
+@if (cards.Count > 0)
+{
+    <div class="shift-history-hub" data-shift-hub data-default="@defaultCard">
+        @if (!string.IsNullOrEmpty(period))
+        {
+            <div class="shift-hub-period">@period</div>
+        }
+
+        @if (cards.Count > 1)
+        {
+            <div class="shift-hub-tabs" role="tablist" aria-label="Follow-up views">
+                @foreach (var c in cards)
+                {
+                    <button type="button" class="shift-hub-tab @(c.Id == defaultCard ? "active" : "")"
+                            role="tab" data-hub-tab="@c.Id" aria-selected="@(c.Id == defaultCard ? "true" : "false")">
+                        @c.Label
+                    </button>
+                }
+            </div>
+        }
+
+        <div class="shift-hub-stage" aria-live="polite">
+            @if (fu != null && fu.Accountability.Count > 0)
             {
-                <button type="button" class="shift-hub-tab @(c.Id == defaultCard ? "active" : "")"
-                        role="tab" data-hub-tab="@c.Id" aria-selected="@(c.Id == defaultCard ? "true" : "false")">
-                    @c.Label
-                </button>
+                <article class="shift-preview-card @(defaultCard == "followup" ? "is-active" : "")" data-hub-card="followup" data-tone="warn">
+                    <div class="shift-preview-head">
+                        <span class="shift-preview-icon warn">&#9888;</span>
+                        <div>
+                            <h3 class="shift-preview-title">Shifts needing follow-up</h3>
+                            <p class="shift-preview-sub">Ranked by problem shifts</p>
+                        </div>
+                    </div>
+                    <div class="shift-preview-metric">
+                        <span class="shift-preview-val">@fu.Accountability.Count</span>
+                        <span class="shift-preview-lbl">team leader@(fu.Accountability.Count == 1 ? "" : "s")</span>
+                    </div>
+                    <ul class="shift-preview-rows">
+                        @foreach (var tl in fu.Accountability.Take(3))
+                        {
+                            <li>
+                                <strong>@tl.TeamLeader</strong>
+                                <span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span>
+                            </li>
+                        }
+                    </ul>
+                    <button type="button" class="shift-preview-expand" data-hub-expand="followup">View full table</button>
+                </article>
+            }
+
+            @if (fu != null && fu.ShiftIssues.Count > 0)
+            {
+                <article class="shift-preview-card @(defaultCard == "problems" ? "is-active" : "")" data-hub-card="problems" data-tone="danger">
+                    <div class="shift-preview-head">
+                        <span class="shift-preview-icon danger">!</span>
+                        <div>
+                            <h3 class="shift-preview-title">Every problem shift</h3>
+                            <p class="shift-preview-sub">Incomplete or unsigned</p>
+                        </div>
+                    </div>
+                    <div class="shift-preview-metric">
+                        <span class="shift-preview-val">@fu.ShiftIssues.Count</span>
+                        <span class="shift-preview-lbl">shift@(fu.ShiftIssues.Count == 1 ? "" : "s") need action</span>
+                    </div>
+                    <ul class="shift-preview-rows">
+                        @foreach (var s in fu.ShiftIssues.Take(3))
+                        {
+                            <li>
+                                <strong>@s.TeamLeader</strong>
+                                <span>@s.ShiftDate.ToString("dd/MM") · @s.Shift · @s.Area</span>
+                            </li>
+                        }
+                    </ul>
+                    <button type="button" class="shift-preview-expand" data-hub-expand="problems">View full table</button>
+                </article>
+            }
+
+            @if (fu != null && fu.AreaCompliance.Count > 0 && fu.NotClosed > 0)
+            {
+                <article class="shift-preview-card @(defaultCard == "areas" ? "is-active" : "")" data-hub-card="areas" data-tone="neutral">
+                    <div class="shift-preview-head">
+                        <span class="shift-preview-icon neutral">&#9632;</span>
+                        <div>
+                            <h3 class="shift-preview-title">Compliance by area</h3>
+                            <p class="shift-preview-sub">@fu.NotClosed of @fu.ShiftCount shifts need attention</p>
+                        </div>
+                    </div>
+                    <div class="shift-preview-metric">
+                        <span class="shift-preview-val">@fu.AreaCompliance.Count</span>
+                        <span class="shift-preview-lbl">area@(fu.AreaCompliance.Count == 1 ? "" : "s") affected</span>
+                    </div>
+                    <ul class="shift-preview-rows">
+                        @foreach (var a in fu.AreaCompliance.Take(3))
+                        {
+                            <li>
+                                <strong>@a.Area</strong>
+                                <span>@a.Incomplete incomplete · @a.Unsigned unsigned</span>
+                            </li>
+                        }
+                    </ul>
+                    <button type="button" class="shift-preview-expand" data-hub-expand="areas">View full table</button>
+                </article>
             }
         </div>
-    }
 
-    <div class="shift-hub-stage" aria-live="polite">
+        @if (cards.Count > 1)
+        {
+            <div class="shift-hub-dots" aria-hidden="true">
+                @foreach (var c in cards)
+                {
+                    <span class="shift-hub-dot @(c.Id == defaultCard ? "active" : "")" data-hub-dot="@c.Id"></span>
+                }
+            </div>
+        }
+
         @if (fu != null && fu.Accountability.Count > 0)
         {
-            var top = fu.Accountability[0];
-            <article class="shift-preview-card @(defaultCard == "followup" ? "is-active" : "")" data-hub-card="followup" data-tone="warn">
-                <div class="shift-preview-head">
-                    <span class="shift-preview-icon warn">&#9888;</span>
-                    <div>
-                        <h3 class="shift-preview-title">Shifts needing follow-up</h3>
-                        <p class="shift-preview-sub">Ranked by problem shifts</p>
+            <div class="shift-expand-panel" data-hub-panel="followup" hidden>
+                <div class="shift-expand-inner card">
+                    <div class="card-head">
+                        <div><span class="card-title">Shifts needing follow-up</span></div>
+                        <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
+                    </div>
+                    <div class="shift-expand-scroll">
+                        <table class="dash-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Team leader</th>
+                                    <th>Area(s)</th>
+                                    <th>Problem shifts</th>
+                                    <th>Incomplete</th>
+                                    <th>Unsigned</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{ var rank = 0; }
+                                @foreach (var tl in fu.Accountability)
+                                {
+                                    rank++;
+                                    <tr>
+                                        <td style="font-weight:700;color:#CC1F2C">@rank</td>
+                                        <td style="font-weight:600">@tl.TeamLeader</td>
+                                        <td>@tl.Area</td>
+                                        <td><span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span></td>
+                                        <td><span class="rag @(tl.Incomplete > 0 ? "r" : "g")">@tl.Incomplete</span></td>
+                                        <td><span class="rag @(tl.Unsigned > 0 ? "r" : "g")">@tl.Unsigned</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="shift-preview-metric">
-                    <span class="shift-preview-val">@fu.Accountability.Count</span>
-                    <span class="shift-preview-lbl">team leader@(fu.Accountability.Count == 1 ? "" : "s")</span>
-                </div>
-                <ul class="shift-preview-rows">
-                    @foreach (var tl in fu.Accountability.Take(3))
-                    {
-                        <li>
-                            <strong>@tl.TeamLeader</strong>
-                            <span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span>
-                        </li>
-                    }
-                </ul>
-                <button type="button" class="shift-preview-expand" data-hub-expand="followup">View full table</button>
-            </article>
+            </div>
         }
 
         @if (fu != null && fu.ShiftIssues.Count > 0)
         {
-            <article class="shift-preview-card @(defaultCard == "problems" ? "is-active" : "")" data-hub-card="problems" data-tone="danger">
-                <div class="shift-preview-head">
-                    <span class="shift-preview-icon danger">!</span>
-                    <div>
-                        <h3 class="shift-preview-title">Every problem shift</h3>
-                        <p class="shift-preview-sub">Incomplete or unsigned</p>
+            <div class="shift-expand-panel" data-hub-panel="problems" hidden>
+                <div class="shift-expand-inner card">
+                    <div class="card-head">
+                        <div><span class="card-title">Every problem shift</span></div>
+                        <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
+                    </div>
+                    <div class="shift-expand-scroll">
+                        @await Html.PartialAsync("_EveryProblemShiftTable", fu.ShiftIssues)
                     </div>
                 </div>
-                <div class="shift-preview-metric">
-                    <span class="shift-preview-val">@fu.ShiftIssues.Count</span>
-                    <span class="shift-preview-lbl">shift@(fu.ShiftIssues.Count == 1 ? "" : "s") need action</span>
-                </div>
-                <ul class="shift-preview-rows">
-                    @foreach (var s in fu.ShiftIssues.Take(3))
-                    {
-                        <li>
-                            <strong>@s.TeamLeader</strong>
-                            <span>@s.ShiftDate.ToString("dd/MM") · @s.Shift · @s.Area</span>
-                        </li>
-                    }
-                </ul>
-                <button type="button" class="shift-preview-expand" data-hub-expand="problems">View full table</button>
-            </article>
+            </div>
         }
 
         @if (fu != null && fu.AreaCompliance.Count > 0 && fu.NotClosed > 0)
         {
-            <article class="shift-preview-card @(defaultCard == "areas" ? "is-active" : "")" data-hub-card="areas" data-tone="neutral">
-                <div class="shift-preview-head">
-                    <span class="shift-preview-icon neutral">&#9632;</span>
-                    <div>
-                        <h3 class="shift-preview-title">Compliance by area</h3>
-                        <p class="shift-preview-sub">@fu.NotClosed of @fu.ShiftCount shifts need attention</p>
+            <div class="shift-expand-panel" data-hub-panel="areas" hidden>
+                <div class="shift-expand-inner card">
+                    <div class="card-head">
+                        <div><span class="card-title">Shift compliance by area</span></div>
+                        <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
+                    </div>
+                    <div class="shift-expand-scroll">
+                        <table class="dash-table">
+                            <thead>
+                                <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var a in fu.AreaCompliance)
+                                {
+                                    <tr>
+                                        <td style="font-weight:600">@a.Area</td>
+                                        <td>@a.TotalShifts</td>
+                                        <td><span class="rag @(a.Incomplete > 0 ? "r" : "g")">@a.Incomplete</span></td>
+                                        <td><span class="rag @(a.Unsigned > 0 ? "r" : "g")">@a.Unsigned</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="shift-preview-metric">
-                    <span class="shift-preview-val">@fu.AreaCompliance.Count</span>
-                    <span class="shift-preview-lbl">area@(fu.AreaCompliance.Count == 1 ? "" : "s") affected</span>
-                </div>
-                <ul class="shift-preview-rows">
-                    @foreach (var a in fu.AreaCompliance.Take(3))
-                    {
-                        <li>
-                            <strong>@a.Area</strong>
-                            <span>@a.Incomplete incomplete · @a.Unsigned unsigned</span>
-                        </li>
-                    }
-                </ul>
-                <button type="button" class="shift-preview-expand" data-hub-expand="areas">View full table</button>
-            </article>
+            </div>
         }
-
-        <article class="shift-preview-card @(defaultCard == "records" ? "is-active" : "")" data-hub-card="records" data-tone="primary">
-            <div class="shift-preview-head">
-                <span class="shift-preview-icon primary">&#9776;</span>
-                <div>
-                    <h3 class="shift-preview-title">All shift records</h3>
-                    <p class="shift-preview-sub">Filtered history</p>
-                </div>
-            </div>
-            <div class="shift-preview-metric">
-                <span class="shift-preview-val">@Model.Rows.Count</span>
-                <span class="shift-preview-lbl">record@(Model.Rows.Count == 1 ? "" : "s")</span>
-            </div>
-            <ul class="shift-preview-rows">
-                @foreach (var r in Model.Rows.Take(3))
-                {
-                    <li>
-                        <strong>@r.Person</strong>
-                        <span>@r.Date.ToString("dd/MM") · @r.Shift · @r.Area</span>
-                    </li>
-                }
-                @if (!Model.Rows.Any())
-                {
-                    <li class="shift-preview-empty">No records match filters</li>
-                }
-            </ul>
-            <button type="button" class="shift-preview-expand" data-hub-expand="records">View full table</button>
-        </article>
     </div>
+}
 
-    @if (cards.Count > 1)
-    {
-        <div class="shift-hub-dots" aria-hidden="true">
-            @for (var i = 0; i < cards.Count; i++)
-            {
-                <span class="shift-hub-dot @(i == 0 ? "active" : "")" data-hub-dot="@cards[i].Id"></span>
-            }
-        </div>
-    }
-
-    @* Expanded tables *@
-    @if (fu != null && fu.Accountability.Count > 0)
-    {
-        <div class="shift-expand-panel" data-hub-panel="followup" hidden>
-            <div class="shift-expand-inner card">
-                <div class="card-head">
-                    <div>
-                        <span class="card-title">Shifts needing follow-up</span>
-                    </div>
-                    <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
-                </div>
-                <div class="shift-expand-scroll">
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Team leader</th>
-                                <th>Area(s)</th>
-                                <th>Problem shifts</th>
-                                <th>Incomplete</th>
-                                <th>Unsigned</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{ var rank = 0; }
-                            @foreach (var tl in fu.Accountability)
-                            {
-                                rank++;
-                                <tr>
-                                    <td style="font-weight:700;color:#CC1F2C">@rank</td>
-                                    <td style="font-weight:600">@tl.TeamLeader</td>
-                                    <td>@tl.Area</td>
-                                    <td><span class="rag r">@tl.ProblemShifts / @tl.TotalShifts</span></td>
-                                    <td><span class="rag @(tl.Incomplete > 0 ? "r" : "g")">@tl.Incomplete</span></td>
-                                    <td><span class="rag @(tl.Unsigned > 0 ? "r" : "g")">@tl.Unsigned</span></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (fu != null && fu.ShiftIssues.Count > 0)
-    {
-        <div class="shift-expand-panel" data-hub-panel="problems" hidden>
-            <div class="shift-expand-inner card">
-                <div class="card-head">
-                    <div>
-                        <span class="card-title">Every problem shift</span>
-                    </div>
-                    <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
-                </div>
-                <div class="shift-expand-scroll">
-                    @await Html.PartialAsync("_EveryProblemShiftTable", fu.ShiftIssues)
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (fu != null && fu.AreaCompliance.Count > 0 && fu.NotClosed > 0)
-    {
-        <div class="shift-expand-panel" data-hub-panel="areas" hidden>
-            <div class="shift-expand-inner card">
-                <div class="card-head">
-                    <div>
-                        <span class="card-title">Shift compliance by area</span>
-                    </div>
-                    <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
-                </div>
-                <div class="shift-expand-scroll">
-                    <table class="dash-table">
-                        <thead>
-                            <tr><th>Area</th><th>Shifts</th><th>Incomplete</th><th>Unsigned</th></tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var a in fu.AreaCompliance)
-                            {
-                                <tr>
-                                    <td style="font-weight:600">@a.Area</td>
-                                    <td>@a.TotalShifts</td>
-                                    <td><span class="rag @(a.Incomplete > 0 ? "r" : "g")">@a.Incomplete</span></td>
-                                    <td><span class="rag @(a.Unsigned > 0 ? "r" : "g")">@a.Unsigned</span></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    }
-
-    <div class="shift-expand-panel" data-hub-panel="records" hidden>
-        <div class="shift-expand-inner card">
-            <div class="card-head">
-                <div>
-                    <span class="card-title">All shift records</span>
-                    <span class="card-sub">@Model.Rows.Count record@(Model.Rows.Count == 1 ? "" : "s")</span>
-                </div>
-                <button type="button" class="shift-expand-close" data-hub-collapse aria-label="Collapse">&times;</button>
-            </div>
-            @if (!Model.Rows.Any())
-            {
-                <div class="empty">No shift records found for the selected filters.</div>
-            }
-            else
-            {
-                <div class="shift-expand-scroll">
-                    <table class="dash-table" style="min-width:880px">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Shift</th>
-                                <th>Area</th>
-                                <th>Team leader</th>
-                                <th>Safety</th>
-                                <th>Quality</th>
-                                <th>Perf</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var r in Model.Rows)
-                            {
-                                <tr>
-                                    <td>@r.Date.ToString("dd/MM/yyyy")</td>
-                                    <td>@r.Shift</td>
-                                    <td style="font-weight:600">@r.Area</td>
-                                    <td>@r.Person</td>
-                                    <td><span class="rag @HistoryListService.Rc(r.Safety)">@(r.Safety ?? "—")</span></td>
-                                    <td><span class="rag @HistoryListService.Rc(r.Quality)">@(r.Quality ?? "—")</span></td>
-                                    <td><span class="rag @HistoryListService.Rc(r.Perf)">@(r.Perf ?? "—")</span></td>
-                                    <td class="history-actions-cell">
-                                        <div class="history-actions">
-                                            <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">Edit</a>
-                                            <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
-                                            @if (Model.IsAdmin)
-                                            {
-                                                <form method="post" asp-page-handler="Delete" class="history-delete-form"
-                                                      onsubmit="return confirm('Delete this shift record? This cannot be undone.');">
-                                                    <input type="hidden" name="from" value="@Model.From" />
-                                                    <input type="hidden" name="to" value="@Model.To" />
-                                                    <input type="hidden" name="area" value="@Model.AreaFilter" />
-                                                    <input type="hidden" name="shift" value="@Model.ShiftFilter" />
-                                                    <input type="hidden" name="q" value="@Model.PersonFilter" />
-                                                    <input type="hidden" name="id" value="@r.Id" />
-                                                    <button type="submit" class="dl-link dl-delete">Delete</button>
-                                                </form>
-                                            }
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-        </div>
+<div class="card">
+    <div class="card-head">
+        <span class="card-title">All shift records</span>
+        <span class="card-sub">@Model.Rows.Count record@(Model.Rows.Count == 1 ? "" : "s")</span>
     </div>
+    @if (!Model.Rows.Any())
+    {
+        <div class="empty">No shift records found for the selected filters.</div>
+    }
+    else
+    {
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <table class="dash-table" style="min-width:880px">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Shift</th>
+                        <th>Area</th>
+                        <th>Team leader</th>
+                        <th>Safety</th>
+                        <th>Quality</th>
+                        <th>Perf</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Rows)
+                    {
+                        <tr>
+                            <td>@r.Date.ToString("dd/MM/yyyy")</td>
+                            <td>@r.Shift</td>
+                            <td style="font-weight:600">@r.Area</td>
+                            <td>@r.Person</td>
+                            <td><span class="rag @HistoryListService.Rc(r.Safety)">@(r.Safety ?? "—")</span></td>
+                            <td><span class="rag @HistoryListService.Rc(r.Quality)">@(r.Quality ?? "—")</span></td>
+                            <td><span class="rag @HistoryListService.Rc(r.Perf)">@(r.Perf ?? "—")</span></td>
+                            <td class="history-actions-cell">
+                                <div class="history-actions">
+                                    <a asp-page="/Form" asp-route-id="@r.Id" class="dl-link">Edit</a>
+                                    <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
+                                    @if (Model.IsAdmin)
+                                    {
+                                        <form method="post" asp-page-handler="Delete" class="history-delete-form"
+                                              onsubmit="return confirm('Delete this shift record? This cannot be undone.');">
+                                            <input type="hidden" name="from" value="@Model.From" />
+                                            <input type="hidden" name="to" value="@Model.To" />
+                                            <input type="hidden" name="area" value="@Model.AreaFilter" />
+                                            <input type="hidden" name="shift" value="@Model.ShiftFilter" />
+                                            <input type="hidden" name="q" value="@Model.PersonFilter" />
+                                            <input type="hidden" name="id" value="@r.Id" />
+                                            <button type="submit" class="dl-link dl-delete">Delete</button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
