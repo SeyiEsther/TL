@@ -518,7 +518,7 @@ a.pdf-loading { opacity: .55; pointer-events: none; }
 .fs.open .fs-popover, .fs-popover.is-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
 .fs-popover-scroll { max-height: min(360px, calc(100vh - 120px)); overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .fs-quick { display: grid; gap: 8px; }
-.fs-quick-3 { grid-template-columns: repeat(3, 1fr); }
+.fs-quick-4 { grid-template-columns: repeat(2, 1fr); }
 .fs-quick-btn {
     display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px;
     border: 1px solid var(--border); border-radius: 10px; background: var(--white);
