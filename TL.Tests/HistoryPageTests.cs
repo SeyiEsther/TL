@@ -15,6 +15,16 @@ public class HistoryPageTests : IClassFixture<FormSaveWebAppFactory>
     public HistoryPageTests(FormSaveWebAppFactory factory) => _factory = factory;
 
     [Fact]
+    public async Task History_page_returns_ok()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync("/History");
+        var html = await response.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("History", html);
+    }
+
+    [Fact]
     public async Task ShiftHistory_page_returns_ok()
     {
         var client = _factory.CreateClient();
@@ -25,25 +35,7 @@ public class HistoryPageTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
-    public async Task Legacy_history_url_redirects_to_shift_history()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.GetAsync("/History?tab=shifts");
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/ShiftHistory", response.Headers.Location?.ToString());
-    }
-
-    [Fact]
-    public async Task Legacy_history_hod_tab_redirects_to_hod_history()
-    {
-        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var response = await client.GetAsync("/History?tab=hod");
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-        Assert.Contains("/HodHistory", response.Headers.Location?.ToString());
-    }
-
-    [Fact]
-    public async Task ShiftHistory_delete_removes_shift_submission()
+    public async Task History_delete_removes_shift_submission()
     {
         using (var scope = _factory.Services.CreateScope())
         {
@@ -61,7 +53,7 @@ public class HistoryPageTests : IClassFixture<FormSaveWebAppFactory>
         }
 
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var historyHtml = await (await client.GetAsync("/ShiftHistory")).Content.ReadAsStringAsync();
+        var historyHtml = await (await client.GetAsync("/History?tab=shifts")).Content.ReadAsStringAsync();
         Assert.Contains("Actions", historyHtml);
         var token = ExtractAntiforgeryToken(historyHtml);
         Assert.False(string.IsNullOrEmpty(token));
@@ -73,11 +65,13 @@ public class HistoryPageTests : IClassFixture<FormSaveWebAppFactory>
             id = db.ShiftSubmissions.Select(s => s.Id).First();
         }
 
-        var deleteResp = await client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/ShiftHistory?handler=Delete")
+        var deleteResp = await client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/History?handler=Delete")
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["__RequestVerificationToken"] = token!,
+                ["tab"] = "shifts",
+                ["kind"] = "shifts",
                 ["id"] = id.ToString(),
             }),
         });

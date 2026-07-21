@@ -22,13 +22,13 @@
             <a href="/api/audits/hod/@Model.SubmissionId/pdf" class="welcome-btn secondary pdf-dl" data-filename="HoD_Audit.pdf">&#8595; Download PDF</a>
             <a asp-page="/HodDashboard" class="welcome-btn secondary">HoD dashboard</a>
             <a asp-page="/AuditStart" class="welcome-btn secondary">New audit</a>
-            <a asp-page="/HodHistory" class="welcome-btn secondary">Audit history</a>
+            <a asp-page="/History" asp-route-tab="hod" class="welcome-btn secondary">Audit history</a>
         }
         else if (Model.IsAudit)
         {
             <a asp-page="/AuditResult" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">View result</a>
             <a asp-page="/AuditStart" class="welcome-btn secondary">New audit</a>
-            <a asp-page="/HodHistory" class="welcome-btn secondary">Audit history</a>
+            <a asp-page="/History" asp-route-tab="hod" class="welcome-btn secondary">Audit history</a>
         }
         else
         {

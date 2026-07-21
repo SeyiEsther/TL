@@ -38,7 +38,7 @@ public class AuditResultModel : PageModel
             .Include(s => s.Hours.OrderBy(h => h.HourNumber))
             .FirstOrDefaultAsync(s => s.Id == id && s.Shift == ShiftQueryExtensions.AuditPseudoShift);
 
-        if (Audit == null) return RedirectToPage("/HodHistory");
+        if (Audit == null) return RedirectToPage("/History", new { tab = "hod" });
 
         Check = Audit.Hours.FirstOrDefault();
         return Page();
