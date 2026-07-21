@@ -1,0 +1,88 @@
+@model AdminPeoplePageModel
+@{
+    ViewData["Title"] = Model.Title;
+    var pageName = ViewContext.RouteData.Values["page"]?.ToString()?.TrimStart('/') ?? "";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">@Model.Title</div>
+            <div class="page-sub">@Model.Subtitle</div>
+        </div>
+        <a asp-page="/Admin" class="sbtn sm">&larr; Admin</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 16px;font-size:13px;color:#16a34a;background:#f0fdf4;border-color:#bbf7d0">
+            @Model.StatusMessage
+        </div>
+    }
+    @if (Model.Error == "duplicate")
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 16px;font-size:13px;color:#b45309;background:#fffbeb;border-color:#fde68a">
+            That name is already on the list.
+        </div>
+    }
+    @if (Model.PeopleReadOnly)
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 16px;font-size:13px;color:#b45309;background:#fffbeb;border-color:#fde68a">
+            Name list database is not ready yet. Showing built-in defaults — restart the app after deploy so migrations run.
+        </div>
+    }
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+            <span class="card-title">@Model.Title</span>
+            <span class="card-sub">@Model.People.Count name@(Model.People.Count == 1 ? "" : "s")</span>
+        </div>
+        <form method="post" asp-page-handler="AddPerson" style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+            <div class="fl" style="margin:0;flex:1;min-width:220px">
+                <label>Add name</label>
+                <input type="text" name="name" placeholder="Full name…" required autocomplete="off" style="width:100%" @(Model.PeopleReadOnly ? "disabled" : null)>
+            </div>
+            <button type="submit" class="sbtn primary sm" @(Model.PeopleReadOnly ? "disabled" : null)>Add</button>
+        </form>
+        @if (!Model.People.Any())
+        {
+            <div class="empty">No names yet.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.People)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@p.Name</td>
+                                <td class="history-actions-cell">
+                                    @if (!Model.PeopleReadOnly)
+                                    {
+                                        <form method="post" asp-page-handler="RemovePerson" class="history-delete-form"
+                                              onsubmit="return confirm('Remove @p.Name from the list?');">
+                                            <input type="hidden" name="id" value="@p.Id" />
+                                            <button type="submit" class="dl-link dl-delete">Remove</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span style="font-size:11px;color:var(--muted)">Read-only</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+    <p style="font-size:12px;color:var(--muted);max-width:720px">@Model.Help</p>
+</div>

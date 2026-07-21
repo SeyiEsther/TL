@@ -19,7 +19,8 @@ public class PortalAccessServiceTests
         Assert.False(access.CanAccessManagement());
         Assert.True(access.CanAccessPage("/Index"));
         Assert.True(access.CanAccessPage("/Form"));
-        Assert.False(access.CanAccessPage("/History"));
+        Assert.False(access.CanAccessPage("/ShiftHistory"));
+        Assert.False(access.CanAccessPage("/HodHistory"));
         Assert.False(access.CanAccessPage("/Dashboard"));
     }
 
@@ -58,7 +59,9 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/AuditStart"));
         Assert.True(access.CanAccessPage("/SeniorStart"));
         Assert.True(access.CanAccessPage("/SeniorDashboard"));
-        Assert.True(access.CanAccessPage("/History"));
+        Assert.True(access.CanAccessPage("/ShiftHistory"));
+        Assert.True(access.CanAccessPage("/HodHistory"));
+        Assert.True(access.CanAccessPage("/SeniorHistory"));
     }
 
     [Theory]

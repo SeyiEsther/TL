@@ -32,12 +32,14 @@ public class PortalAccessService
 
     public bool CanAccessPage(string? pagePath) => pagePath switch
     {
-        "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory"
+        "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory"
             => CanAccessHod(),
-        "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess"
+        "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory"
             => CanAccessSenior(),
-        "/Dashboard" or "/History" => CanAccessManagement(),
-        "/Admin" => _admin.IsAdmin(),
+        "/Dashboard" or "/ShiftHistory" or "/History"
+            => CanAccessManagement(),
+        "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames"
+            => _admin.IsAdmin(),
         _ => true,
     };
 

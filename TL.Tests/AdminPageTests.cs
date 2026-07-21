@@ -44,7 +44,7 @@ public class AdminPageTests : IClassFixture<FormSaveWebAppFactory>
         }
 
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        var adminHtml = await (await client.GetAsync("/Admin?tab=sessions")).Content.ReadAsStringAsync();
+        var adminHtml = await (await client.GetAsync("/Admin")).Content.ReadAsStringAsync();
         var token = ExtractAntiforgeryToken(adminHtml);
         Assert.False(string.IsNullOrEmpty(token));
 

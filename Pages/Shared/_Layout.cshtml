@@ -6,6 +6,9 @@
     var isAdmin = AdminService.IsAdmin();
     await PortalAccess.EnsureReadyAsync();
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
+    var isShiftHistory = pg is "/ShiftHistory" or "/History";
+    var isHodArea = pg is "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory";
+    var isSeniorArea = pg is "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -37,20 +40,20 @@
         <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
         @if (PortalAccess.CanAccessHod())
         {
-            <a class="tbtn @(pg == "/HodDashboard" || pg == "/AuditStart" || pg == "/Audit" || pg == "/AuditResult" ? "active" : "")" asp-page="/HodDashboard">HoD</a>
+            <a class="tbtn @(isHodArea ? "active" : "")" asp-page="/HodDashboard">HoD</a>
         }
         @if (PortalAccess.CanAccessSenior())
         {
-            <a class="tbtn @(pg == "/SeniorStart" || pg == "/SeniorAudit" || pg == "/SeniorDashboard" || pg == "/SeniorRota" ? "active" : "")" asp-page="/SeniorStart">Senior</a>
+            <a class="tbtn @(isSeniorArea ? "active" : "")" asp-page="/SeniorStart">Senior</a>
         }
         @if (PortalAccess.CanAccessManagement())
         {
             <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
-            <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
+            <a class="tbtn @(isShiftHistory ? "active" : "")" asp-page="/ShiftHistory">Shift history</a>
         }
         @if (isAdmin)
         {
-            <a class="tbtn @(pg == "/Admin" ? "active" : "")" asp-page="/Admin">Admin</a>
+            <a class="tbtn @(pg == "/Admin" || pg.StartsWith("/Admin") ? "active" : "")" asp-page="/Admin">Admin</a>
         }
     </div>
 </div>
