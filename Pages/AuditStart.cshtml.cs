@@ -33,7 +33,13 @@ public class AuditStartModel : PageModel
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
         SuggestedType = HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
-        Unfinished = await _history.LoadUnfinishedHodAsync();
+
+        var unfinished = await _history.LoadUnfinishedHodAsync();
+        // Show the current user's own unfinished audits first, then everyone else's.
+        Unfinished = unfinished
+            .OrderByDescending(u => PortalNameMatcher.Matches(u.AuditorName, user.DisplayName))
+            .ThenByDescending(u => u.LastActivity)
+            .ToList();
     }
 
     public async Task<IActionResult> OnPostAsync(

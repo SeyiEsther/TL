@@ -222,10 +222,15 @@ public class HistoryListService
     // audit is here with its answers — nothing is ever truly lost. An empty
     // AuditorSignature is the reliable "not submitted yet" signal (signing only
     // happens on final submit), so this needs no extra database column.
-    public async Task<List<UnfinishedHodAudit>> LoadUnfinishedHodAsync(int max = 50)
+    public async Task<List<UnfinishedHodAudit>> LoadUnfinishedHodAsync(int recentDays = 30, int max = 25)
     {
+        // Only surface genuinely recent drafts, so old signature-less records
+        // (e.g. audits that predate the signature field) don't linger forever.
+        var cutoff = DateOnly.FromDateTime(DateTime.Today.AddDays(-recentDays));
+
         var drafts = await _db.HodDailyAudits
-            .Where(a => a.AuditorSignature == null || a.AuditorSignature == "")
+            .Where(a => (a.AuditorSignature == null || a.AuditorSignature == "")
+                        && a.AuditDate >= cutoff)
             .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
             .Take(max)
             .ToListAsync();
