@@ -32,6 +32,7 @@ public class HistoryPageTests : IClassFixture<FormSaveWebAppFactory>
         var html = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Shifts", html);
+        Assert.Contains("All shift records", html);
     }
 
     [Fact]

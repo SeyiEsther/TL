@@ -601,14 +601,14 @@
         var rotateTimer = null;
         var paused = false;
 
-        function showCard(id, animate) {
+        function showCard(id) {
             var i = order.indexOf(id);
             if (i < 0) return;
             idx = i;
-            cards.forEach(function (card, ci) {
-                card.classList.remove('is-active', 'is-prev');
-                if (ci === i) card.classList.add('is-active');
-                else if (ci < i) card.classList.add('is-prev');
+            cards.forEach(function (card) {
+                var on = card.getAttribute('data-hub-card') === id;
+                card.classList.toggle('is-active', on);
+                card.classList.remove('is-prev');
             });
             tabs.forEach(function (tab) {
                 var on = tab.getAttribute('data-hub-tab') === id;
@@ -620,12 +620,37 @@
             });
         }
 
+        function openPanel(panel) {
+            panel.removeAttribute('hidden');
+            if (reducedMotion) {
+                panel.classList.add('is-open');
+                return;
+            }
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    panel.classList.add('is-open');
+                });
+            });
+        }
+
+        function closePanel(panel) {
+            panel.classList.remove('is-open');
+            if (reducedMotion) {
+                panel.setAttribute('hidden', '');
+                return;
+            }
+            var done = function (e) {
+                if (e.propertyName !== 'grid-template-rows') return;
+                panel.setAttribute('hidden', '');
+                panel.removeEventListener('transitionend', done);
+            };
+            panel.addEventListener('transitionend', done);
+        }
+
         function collapseAll() {
             expanded = null;
-            panels.forEach(function (p) {
-                p.classList.remove('is-open');
-                p.setAttribute('hidden', '');
-            });
+            panels.forEach(closePanel);
+            paused = false;
             startRotate();
         }
 
@@ -633,12 +658,10 @@
             pauseRotate();
             expanded = id;
             panels.forEach(function (p) {
-                var match = p.getAttribute('data-hub-panel') === id;
-                p.classList.toggle('is-open', match);
-                if (match) p.removeAttribute('hidden');
-                else p.setAttribute('hidden', '');
+                if (p.getAttribute('data-hub-panel') === id) openPanel(p);
+                else closePanel(p);
             });
-            showCard(id, true);
+            showCard(id);
             var panel = hub.querySelector('[data-hub-panel="' + id + '"]');
             if (panel && !reducedMotion) {
                 requestAnimationFrame(function () {
@@ -700,7 +723,7 @@
             if (!expanded) startRotate();
         });
 
-        showCard(order[idx], false);
+        showCard(order[idx]);
         startRotate();
     }
 
