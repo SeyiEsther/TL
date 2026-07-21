@@ -585,6 +585,125 @@
         });
     }
 
+    function initShiftHistoryHub() {
+        var hub = document.querySelector('[data-shift-hub]');
+        if (!hub) return;
+
+        var cards = Array.prototype.slice.call(hub.querySelectorAll('[data-hub-card]'));
+        var tabs = Array.prototype.slice.call(hub.querySelectorAll('[data-hub-tab]'));
+        var dots = Array.prototype.slice.call(hub.querySelectorAll('[data-hub-dot]'));
+        var panels = Array.prototype.slice.call(hub.querySelectorAll('[data-hub-panel]'));
+        if (!cards.length) return;
+
+        var order = cards.map(function (c) { return c.getAttribute('data-hub-card'); });
+        var idx = Math.max(0, order.indexOf(hub.getAttribute('data-default') || order[0]));
+        var expanded = null;
+        var rotateTimer = null;
+        var paused = false;
+
+        function showCard(id, animate) {
+            var i = order.indexOf(id);
+            if (i < 0) return;
+            idx = i;
+            cards.forEach(function (card, ci) {
+                card.classList.remove('is-active', 'is-prev');
+                if (ci === i) card.classList.add('is-active');
+                else if (ci < i) card.classList.add('is-prev');
+            });
+            tabs.forEach(function (tab) {
+                var on = tab.getAttribute('data-hub-tab') === id;
+                tab.classList.toggle('active', on);
+                tab.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            dots.forEach(function (dot) {
+                dot.classList.toggle('active', dot.getAttribute('data-hub-dot') === id);
+            });
+        }
+
+        function collapseAll() {
+            expanded = null;
+            panels.forEach(function (p) {
+                p.classList.remove('is-open');
+                p.setAttribute('hidden', '');
+            });
+            startRotate();
+        }
+
+        function expandPanel(id) {
+            pauseRotate();
+            expanded = id;
+            panels.forEach(function (p) {
+                var match = p.getAttribute('data-hub-panel') === id;
+                p.classList.toggle('is-open', match);
+                if (match) p.removeAttribute('hidden');
+                else p.setAttribute('hidden', '');
+            });
+            showCard(id, true);
+            var panel = hub.querySelector('[data-hub-panel="' + id + '"]');
+            if (panel && !reducedMotion) {
+                requestAnimationFrame(function () {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            }
+        }
+
+        function nextCard() {
+            if (expanded || paused) return;
+            showCard(order[(idx + 1) % order.length]);
+        }
+
+        function startRotate() {
+            stopRotate();
+            if (order.length < 2 || reducedMotion) return;
+            rotateTimer = setInterval(nextCard, 7000);
+        }
+
+        function stopRotate() {
+            if (rotateTimer) clearInterval(rotateTimer);
+            rotateTimer = null;
+        }
+
+        function pauseRotate() {
+            paused = true;
+            stopRotate();
+        }
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                pauseRotate();
+                showCard(tab.getAttribute('data-hub-tab'));
+                if (!expanded) startRotate();
+            });
+        });
+
+        cards.forEach(function (card) {
+            card.addEventListener('click', function (e) {
+                if (e.target.closest('.shift-preview-expand')) return;
+                expandPanel(card.getAttribute('data-hub-card'));
+            });
+        });
+
+        hub.querySelectorAll('[data-hub-expand]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                expandPanel(btn.getAttribute('data-hub-expand'));
+            });
+        });
+
+        hub.querySelectorAll('[data-hub-collapse]').forEach(function (btn) {
+            btn.addEventListener('click', collapseAll);
+        });
+
+        hub.addEventListener('mouseenter', pauseRotate);
+        hub.addEventListener('mouseleave', function () {
+            paused = false;
+            if (!expanded) startRotate();
+        });
+
+        showCard(order[idx], false);
+        startRotate();
+    }
+
     window.addEventListener('resize', repositionOpen);
     window.addEventListener('scroll', repositionOpen, true);
 
@@ -594,6 +713,7 @@
         initSdPanels();
         initPdfDownloads();
         initAuditForms();
+        initShiftHistoryHub();
         document.querySelectorAll('.dp').forEach(initPicker);
         document.querySelectorAll('.fs').forEach(initFilter);
     });
