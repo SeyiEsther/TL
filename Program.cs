@@ -9,6 +9,30 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+
+// Persist Data Protection keys outside the app folder so an app-pool recycle
+// or a redeploy (which overwrites the binaries and restarts the app) can't
+// regenerate the keys. Without this, every restart invalidates in-flight
+// antiforgery tokens, so a form open before the restart fails to POST with a
+// 400 — e.g. a HoD audit that silently won't save. The default path is a
+// sibling of the content root (so publish never wipes it); override with the
+// DataProtection:KeyPath setting if the app account can't write there.
+var keyPath = builder.Configuration["DataProtection:KeyPath"];
+if (string.IsNullOrWhiteSpace(keyPath))
+    keyPath = Path.Combine(builder.Environment.ContentRootPath, "..", "TL-dataprotection-keys");
+try
+{
+    Directory.CreateDirectory(keyPath);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("TL-Portal")
+        .PersistKeysToFileSystem(new DirectoryInfo(keyPath));
+}
+catch (Exception ex)
+{
+    // Fall back to default (in-memory/profile) keys rather than failing startup;
+    // logged so the cause is visible if antiforgery problems recur.
+    Console.Error.WriteLine($"Could not persist Data Protection keys to '{keyPath}': {ex.Message}");
+}
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AdminService>();
 builder.Services.AddScoped<PortalAccessService>();
