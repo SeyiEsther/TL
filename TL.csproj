@@ -11,6 +11,8 @@
     <Content Remove="TL.Tests/**" />
     <EmbeddedResource Remove="TL.Tests/**" />
     <None Remove="TL.Tests/**" />
+    <Content Remove="deploy/**" />
+    <None Remove="deploy/**" />
   </ItemGroup>
 
   <ItemGroup>

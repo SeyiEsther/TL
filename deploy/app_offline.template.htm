@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!--
+  This is the maintenance page shown while the app is being updated.
+  deploy.ps1 copies it to the server as "app_offline.htm" (which stops the
+  ASP.NET Core app and releases the TL.dll lock), then deletes it when the
+  new build is in place. Do NOT rename this file to app_offline.htm inside
+  the project — that would take the live site offline on the next publish.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updating — Production Audit System</title>
+    <style>
+        body { margin: 0; font-family: Segoe UI, system-ui, sans-serif; background: #0f172a; color: #e2e8f0;
+               display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+        .box { max-width: 460px; padding: 40px 32px; }
+        .stripes { display: flex; justify-content: center; gap: 4px; margin-bottom: 24px; }
+        .st { height: 8px; border-radius: 2px; }
+        h1 { font-size: 22px; margin: 0 0 10px; }
+        p { font-size: 15px; color: #94a3b8; line-height: 1.5; }
+        .spin { width: 34px; height: 34px; margin: 24px auto 0; border: 3px solid #1e293b;
+                border-top-color: #3b82f6; border-radius: 50%; animation: r 0.9s linear infinite; }
+        @keyframes r { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="stripes">
+            <div class="st" style="background:#CC1F2C;width:26px"></div>
+            <div class="st" style="background:#9B1E8E;width:20px"></div>
+            <div class="st" style="background:#0066B2;width:14px"></div>
+            <div class="st" style="background:#00A651;width:10px"></div>
+        </div>
+        <h1>Update in progress</h1>
+        <p>The Production Audit System is being updated and will be back in a moment. Please wait, then refresh this page.</p>
+        <div class="spin"></div>
+    </div>
+</body>
+</html>
