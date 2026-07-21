@@ -10,11 +10,13 @@ public class AuditStartModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly UserService _users;
+    private readonly HistoryListService _history;
 
-    public AuditStartModel(AppDbContext db, UserService users)
+    public AuditStartModel(AppDbContext db, UserService users, HistoryListService history)
     {
         _db = db;
         _users = users;
+        _history = history;
     }
 
     public string AuditorName { get; set; } = "";
@@ -22,14 +24,16 @@ public class AuditStartModel : PageModel
     public string SuggestedType { get; set; } = "";
     public string SuggestedTypeLabel { get; set; } = "";
     public string? Error { get; set; }
+    public List<UnfinishedHodAudit> Unfinished { get; set; } = [];
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         var user = _users.GetCurrentUser();
         AuditorName = user.DisplayName;
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
         SuggestedType = HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
+        Unfinished = await _history.LoadUnfinishedHodAsync();
     }
 
     public async Task<IActionResult> OnPostAsync(

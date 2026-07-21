@@ -217,6 +217,31 @@ public class HistoryListService
         return q;
     }
 
+    // Audits that were started but never signed off on final submit. Because
+    // AuditStart creates the row up-front and the form autosaves, every started
+    // audit is here with its answers — nothing is ever truly lost. An empty
+    // AuditorSignature is the reliable "not submitted yet" signal (signing only
+    // happens on final submit), so this needs no extra database column.
+    public async Task<List<UnfinishedHodAudit>> LoadUnfinishedHodAsync(int max = 50)
+    {
+        var drafts = await _db.HodDailyAudits
+            .Where(a => a.AuditorSignature == null || a.AuditorSignature == "")
+            .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
+            .Take(max)
+            .ToListAsync();
+
+        return drafts.Select(a =>
+        {
+            var answers = HodAuditSerializer.ParseAnswers(a.AnswersJson);
+            var answered = answers.Count(x => x.Pass.HasValue);
+            var total = answers.Count > 0 ? answers.Count : a.MaxScore;
+            return new UnfinishedHodAudit(
+                a.Id, a.AuditorName, a.ResolveEffectivenessArea(), a.Department,
+                a.AuditDate, HodAuditTypes.LabelFor(a.AuditType),
+                answered, total, a.LastEditedAt ?? a.SubmittedAt);
+        }).ToList();
+    }
+
     public static string PersonDisplay(string teamLeader, string? coveringFor) =>
         string.IsNullOrWhiteSpace(coveringFor) ? teamLeader : $"{teamLeader} (covering for {coveringFor})";
 
@@ -224,6 +249,17 @@ public class HistoryListService
 }
 
 public record HistoryFilters(string? From, string? To, string? Area, string? Person, string? Shift = null);
+
+public record UnfinishedHodAudit(
+    int Id,
+    string AuditorName,
+    string Area,
+    string Department,
+    DateOnly AuditDate,
+    string AuditTypeLabel,
+    int Answered,
+    int Total,
+    DateTime LastActivity);
 
 public record ShiftHistoryRow(
     int Id,

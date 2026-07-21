@@ -1,6 +1,7 @@
 @page
 @model AuditStartModel
 @using TL.Models
+@using TL.Services
 @{ ViewData["Title"] = "Head of Department / Shift Manager"; }
 
 <div class="welcome-wrap">
@@ -16,6 +17,50 @@
             Today's suggested type: <strong>@Model.SuggestedTypeLabel</strong>
             <span style="display:block;margin-top:6px">Shift form status is reviewed on the audit form and on the Dashboard.</span>
         </div>
+
+        @if (Model.Unfinished.Any())
+        {
+            <div class="card" style="margin-bottom:16px;text-align:left;border-color:#fcd34d">
+                <div class="card-head" style="background:#fffbeb">
+                    <span class="card-title" style="color:#92400e">Unfinished audits — pick up where you left off</span>
+                    <span class="card-sub">@Model.Unfinished.Count started but not yet submitted</span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="dash-table" style="min-width:640px">
+                        <thead>
+                            <tr>
+                                <th>Ref</th>
+                                <th>Auditor</th>
+                                <th>Area</th>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Progress</th>
+                                <th>Last saved</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in Model.Unfinished)
+                            {
+                                <tr>
+                                    <td style="font-weight:700">#@u.Id</td>
+                                    <td>@u.AuditorName</td>
+                                    <td style="font-weight:600">@u.Area</td>
+                                    <td>@u.AuditDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@u.AuditTypeLabel</td>
+                                    <td>@u.Answered / @u.Total answered</td>
+                                    <td style="font-size:11px;color:var(--muted)">@u.LastActivity.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                    <td><a asp-page="/Audit" asp-route-id="@u.Id" class="sbtn sm primary">Resume</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding:10px 16px;font-size:11px;color:var(--muted)">
+                    Every audit is saved to the database the moment it's started and auto-saved as you go — nothing is lost. Reopen one by its reference number to finish and submit it.
+                </div>
+            </div>
+        }
 
         <form method="post" class="start-form">
             @Html.AntiForgeryToken()
