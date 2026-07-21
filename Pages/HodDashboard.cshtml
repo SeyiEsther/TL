@@ -153,42 +153,6 @@
         </div>
     </div>
 
-    @if (Model.TlAuditCatches.Count > 0)
-    {
-        <div class="card" style="margin-bottom:14px;border-color:#fecaca">
-            <div class="card-head" style="background:#fef2f2">
-                <span class="card-title" style="color:#991b1b">Caught on HoD audit — claimed vs reality</span>
-            </div>
-            <div style="overflow-x:auto">
-                <table class="dash-table" style="min-width:860px">
-                    <thead>
-                        <tr>
-                            <th>Team leader</th>
-                            <th>Shift</th>
-                            <th>Area</th>
-                            <th>Audit date</th>
-                            <th>Audit type</th>
-                            <th>What HoD found</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var c in Model.TlAuditCatches)
-                        {
-                            <tr style="background:#fef2f2">
-                                <td style="font-weight:700">@c.TeamLeader</td>
-                                <td>@c.Shift @(c.ShiftDate != default ? c.ShiftDate.ToString("dd/MM") : "")</td>
-                                <td>@c.Area</td>
-                                <td>@c.AuditDate.ToString("dd/MM/yyyy")</td>
-                                <td>@c.AuditType</td>
-                                <td style="font-size:11px;color:#991b1b">@string.Join(" · ", c.Issues)</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    }
-
     @if (Model.AreaAuditScores.Count > 0)
     {
         <div class="card" style="margin-bottom:14px">
