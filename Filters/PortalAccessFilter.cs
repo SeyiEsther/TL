@@ -37,7 +37,9 @@ public class PortalAccessFilter : IAsyncPageFilter
     }
 
     static bool IsProtectedWritePage(string? pagePath) => pagePath is
-        "/Audit" or "/AuditStart" or "/SeniorAudit" or "/SeniorStart" or "/Form" or "/Admin";
+        "/Audit" or "/AuditStart" or "/SeniorAudit" or "/SeniorStart" or "/Form"
+        or "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess"
+        or "/History" or "/ShiftHistory" or "/HodHistory" or "/SeniorHistory";
 
     public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context) =>
         Task.CompletedTask;

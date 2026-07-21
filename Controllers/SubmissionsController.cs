@@ -108,6 +108,7 @@ namespace TL.Controllers
         public async Task<IActionResult> Get(int id)
         {
             var shift = await _db.ShiftSubmissions
+                .ExcludeAudits()
                 .Include(s => s.Hours.OrderBy(h => h.HourNumber))
                 .Include(s => s.AuditLogs.OrderByDescending(a => a.ChangedAt))
                 .FirstOrDefaultAsync(s => s.Id == id);
@@ -119,6 +120,7 @@ namespace TL.Controllers
         public async Task<IActionResult> Pdf(int id)
         {
             var shift = await _db.ShiftSubmissions
+                .ExcludeAudits()
                 .Include(s => s.Hours.OrderBy(h => h.HourNumber))
                 .FirstOrDefaultAsync(s => s.Id == id);
             if (shift == null) return NotFound();

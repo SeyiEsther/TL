@@ -100,7 +100,7 @@
                                 <td>@r.SubmittedAt.ToLocalTime().ToString("dd MMM HH:mm")</td>
                                 <td class="history-actions-cell">
                                     <div class="history-actions">
-                                        <a asp-page="/AuditResult" asp-route-id="@r.Id" class="dl-link">View</a>
+                                        <a asp-page="/AuditResult" asp-route-id="@r.Id" asp-route-kind="@(r.IsLegacy ? "legacy" : "hod")" class="dl-link">View</a>
                                         @if (!r.IsLegacy)
                                         {
                                             <a asp-page="/Audit" asp-route-id="@r.Id" class="dl-link">Edit</a>

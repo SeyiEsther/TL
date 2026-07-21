@@ -21,6 +21,7 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/Form"));
         Assert.False(access.CanAccessPage("/ShiftHistory"));
         Assert.False(access.CanAccessPage("/HodHistory"));
+        Assert.False(access.CanAccessPage("/Today"));
         Assert.False(access.CanAccessPage("/Dashboard"));
     }
 
@@ -36,14 +37,25 @@ public class PortalAccessServiceTests
     }
 
     [Fact]
-    public void Senior_list_member_sees_senior_and_management_not_hod()
+    public void Senior_on_full_access_list_sees_hod_and_senior()
     {
+        // Jim Gray is on both SeniorManagementList and FullAccess (ShiftManagerList),
+        // so FullAccess grants HoD as well as Senior.
         var access = CreateAccess("Jim Gray", grantAll: false);
-        Assert.False(access.CanAccessHod());
+        Assert.True(access.CanAccessHod());
         Assert.True(access.CanAccessSenior());
         Assert.True(access.CanAccessManagement());
-        Assert.False(access.CanAccessPage("/AuditStart"));
+        Assert.True(access.CanAccessPage("/AuditStart"));
         Assert.True(access.CanAccessPage("/SeniorRota"));
+    }
+
+    [Fact]
+    public void General_team_leader_cannot_open_today_overview()
+    {
+        var access = CreateAccess("Adam Wilczynski", grantAll: false);
+        Assert.False(access.CanAccessPage("/Today"));
+        Assert.False(access.CanAccessApi("/api/submissions/today"));
+        Assert.False(access.CanAccessApi("/api/audits/hod/1/pdf"));
     }
 
     [Fact]

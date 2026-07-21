@@ -250,7 +250,13 @@ public class HistoryListService
     public static string PersonDisplay(string teamLeader, string? coveringFor) =>
         string.IsNullOrWhiteSpace(coveringFor) ? teamLeader : $"{teamLeader} (covering for {coveringFor})";
 
-    public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
+    public static string Rc(string? v) => v switch
+    {
+        "Green" or "Excellent" or "Good" => "g",
+        "Amber" or "Needs Improvement" => "a",
+        "Red" or "Poor" => "r",
+        _ => "u",
+    };
 }
 
 public record HistoryFilters(string? From, string? To, string? Area, string? Person, string? Shift = null);

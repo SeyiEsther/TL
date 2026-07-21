@@ -639,12 +639,16 @@
                 panel.setAttribute('hidden', '');
                 return;
             }
+            var finished = false;
             var done = function (e) {
-                if (e.propertyName !== 'grid-template-rows') return;
+                if (finished) return;
+                if (e && e.propertyName && e.propertyName !== 'grid-template-rows') return;
+                finished = true;
                 panel.setAttribute('hidden', '');
                 panel.removeEventListener('transitionend', done);
             };
             panel.addEventListener('transitionend', done);
+            setTimeout(function () { done(null); }, 500);
         }
 
         function collapseAll() {
