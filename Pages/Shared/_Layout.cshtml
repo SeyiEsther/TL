@@ -49,7 +49,7 @@
         @if (PortalAccess.CanAccessManagement())
         {
             <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
-            <a class="tbtn @(isShiftHistory ? "active" : "")" asp-page="/ShiftHistory">Shift history</a>
+            <a class="tbtn @(isShiftHistory ? "active" : "")" asp-page="/ShiftHistory">Shifts</a>
         }
         @if (isAdmin)
         {

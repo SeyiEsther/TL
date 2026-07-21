@@ -128,6 +128,46 @@ public class TlShiftComplianceService
             areaCompliance);
     }
 
+    public static TlShiftComplianceSnapshot FilterSnapshot(
+        TlShiftComplianceSnapshot snapshot, string? shift, string? teamLeader)
+    {
+        var issues = snapshot.ShiftIssues.AsEnumerable();
+        if (!string.IsNullOrEmpty(shift))
+            issues = issues.Where(i => string.Equals(i.Shift, shift, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(teamLeader))
+            issues = issues.Where(i => i.TeamLeader.Contains(teamLeader, StringComparison.OrdinalIgnoreCase));
+        var issueList = issues.ToList();
+
+        var accountability = snapshot.Accountability.AsEnumerable();
+        if (!string.IsNullOrEmpty(teamLeader))
+            accountability = accountability.Where(a => a.TeamLeader.Contains(teamLeader, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrEmpty(shift))
+        {
+            var tls = issueList.Select(i => i.TeamLeader).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            accountability = accountability.Where(a => tls.Contains(a.TeamLeader));
+        }
+
+        var areaCompliance = snapshot.AreaCompliance;
+        if (!string.IsNullOrEmpty(shift) || !string.IsNullOrEmpty(teamLeader))
+        {
+            var areas = issueList.Select(i => i.Area).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            areaCompliance = areaCompliance.Where(a => areas.Contains(a.Area)).ToList();
+        }
+
+        var incomplete = issueList.Count(i => i.CloseStatus == "Incomplete form");
+        var unsigned = issueList.Count(i => i.CloseStatus == "Not signed off");
+
+        return snapshot with
+        {
+            NotClosed = issueList.Count,
+            Incomplete = incomplete,
+            Unsigned = unsigned,
+            Accountability = accountability.ToList(),
+            ShiftIssues = issueList,
+            AreaCompliance = areaCompliance,
+        };
+    }
+
     static string ResolveCloseStatus(ShiftCompletionResult comp, bool signed)
     {
         if (comp.IsComplete && signed) return "Closed correctly";

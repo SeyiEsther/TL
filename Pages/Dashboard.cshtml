@@ -179,11 +179,6 @@
         </div>
     </div>
 
-    @if (Model.ShiftFollowUp != null)
-    {
-        <partial name="_TlShiftFollowUp" model="Model.ShiftFollowUp" view-data='new ViewDataDictionary(ViewData) { { "CompliancePeriodLabel", Model.ShiftFollowUpPeriodLabel } }' />
-    }
-
     @if (Model.WorstAreas.Count > 0)
     {
         <div class="card" style="margin-bottom:14px">

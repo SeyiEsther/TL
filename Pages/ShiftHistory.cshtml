@@ -1,11 +1,11 @@
 @page
 @model ShiftHistoryModel
-@{ ViewData["Title"] = "Shift history"; }
+@{ ViewData["Title"] = "Shift history & follow-up"; }
 
 <div class="dwrap">
     <div class="page-head" style="margin-bottom:14px">
         <div>
-            <div class="page-title" style="font-size:18px;font-weight:700">Shift history</div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Shift history & follow-up</div>
             <div class="page-sub">@Model.Rows.Count shift record@(Model.Rows.Count == 1 ? "" : "s")</div>
         </div>
         <a asp-page="/Dashboard" class="sbtn sm">Dashboard</a>
@@ -38,8 +38,11 @@
         </form>
     </div>
 
-    <partial name="_EveryProblemShift" model="Model.ProblemShifts"
-             view-data='new ViewDataDictionary(ViewData) { { "CompliancePeriodLabel", Model.ProblemShiftPeriodLabel } }' />
+    @if (Model.FollowUp != null)
+    {
+        <partial name="_TlShiftFollowUp" model="Model.FollowUp"
+                 view-data='new ViewDataDictionary(ViewData) { { "CompliancePeriodLabel", Model.FollowUpPeriodLabel } }' />
+    }
 
     <div class="card">
         <div class="card-head">
