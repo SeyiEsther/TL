@@ -1,0 +1,41 @@
+@model IReadOnlyList<TL.Models.HodTlShiftIssueRow>
+
+<table class="dash-table" style="min-width:900px">
+    <thead>
+        <tr>
+            <th>Team leader</th>
+            <th>Date</th>
+            <th>Shift</th>
+            <th>Area</th>
+            <th>Status</th>
+            <th>Form</th>
+            <th>What's missing / wrong</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model)
+        {
+            var closeCls = s.CloseStatus == "Closed correctly" ? "g" : "r";
+            <tr>
+                <td style="font-weight:700">@s.TeamLeader</td>
+                <td>@s.ShiftDate.ToString("dd/MM/yyyy")</td>
+                <td>@s.Shift</td>
+                <td>@s.Area</td>
+                <td><span class="rag @closeCls">@s.CloseStatus</span></td>
+                <td>
+                    @if (s.CloseStatus == "Incomplete form")
+                    {
+                        <span class="rag r">@s.HoursComplete/@s.HoursTotal hrs</span>
+                    }
+                    else
+                    {
+                        <span class="rag a">@s.HoursComplete/@s.HoursTotal hrs</span>
+                    }
+                </td>
+                <td style="font-size:11px;color:#991b1b">@string.Join(" · ", s.Issues)</td>
+                <td><a asp-page="/Form" asp-route-id="@s.ShiftId" class="sbtn sm">Open form</a></td>
+            </tr>
+        }
+    </tbody>
+</table>

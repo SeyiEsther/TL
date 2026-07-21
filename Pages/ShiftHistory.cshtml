@@ -38,6 +38,9 @@
         </form>
     </div>
 
+    <partial name="_EveryProblemShift" model="Model.ProblemShifts"
+             view-data='new ViewDataDictionary(ViewData) { { "CompliancePeriodLabel", Model.ProblemShiftPeriodLabel } }' />
+
     <div class="card">
         <div class="card-head">
             <span class="card-title">Team leader shifts</span>
