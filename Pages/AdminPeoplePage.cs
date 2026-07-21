@@ -94,3 +94,12 @@ public class AdminSeniorNamesModel : AdminPeoplePageModel
     protected override string PageSubtitle => "Names for senior weekly audits and the duty rota";
     protected override string HelpText => "Changes take effect immediately — no redeploy needed.";
 }
+
+public class AdminFullAccessModel : AdminPeoplePageModel
+{
+    public AdminFullAccessModel(AdminService admin, PersonListService people) : base(admin, people) { }
+    protected override string ListKind => PersonListKinds.FullAccess;
+    protected override string PageTitle => "Full access users";
+    protected override string PageSubtitle => "Shift managers, Group 1, and Directors — can view everything except Admin";
+    protected override string HelpText => "Changes take effect immediately — no redeploy needed.";
+}

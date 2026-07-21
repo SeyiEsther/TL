@@ -10,6 +10,7 @@ public class PersonListService
     private const string TeamLeaderCacheKey = "picker-names-tl";
     private const string HodCacheKey = "picker-names-hod";
     private const string SeniorCacheKey = "picker-names-senior";
+    private const string FullAccessCacheKey = "picker-names-fullaccess";
 
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
@@ -31,9 +32,13 @@ public class PersonListService
     public IReadOnlyList<string> Seniors =>
         _cache.Get<IReadOnlyList<string>>(SeniorCacheKey) ?? SeniorManagementList.Names;
 
+    public IReadOnlyList<string> FullAccess =>
+        _cache.Get<IReadOnlyList<string>>(FullAccessCacheKey) ?? ShiftManagerList.Names;
+
     public async Task EnsureLoadedAsync()
     {
         await SyncSeniorRosterFromDefaultsAsync();
+        await SeedFullAccessIfMissingAsync();
 
         if (_cache.TryGetValue(TeamLeaderCacheKey, out _))
         {
@@ -61,6 +66,7 @@ public class PersonListService
             _cache.Set(TeamLeaderCacheKey, RowsForKind(rows, PersonListKinds.TeamLeader));
             _cache.Set(HodCacheKey, RowsForKind(rows, PersonListKinds.Hod));
             _cache.Set(SeniorCacheKey, RowsForKind(rows, PersonListKinds.Senior));
+            _cache.Set(FullAccessCacheKey, RowsForKind(rows, PersonListKinds.FullAccess));
         }
         catch (Exception ex)
         {
@@ -68,6 +74,7 @@ public class PersonListService
             _cache.Set(TeamLeaderCacheKey, TeamLeaderList.Names);
             _cache.Set(HodCacheKey, HodList.Names);
             _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
+            _cache.Set(FullAccessCacheKey, ShiftManagerList.Names);
         }
     }
 
@@ -148,14 +155,34 @@ public class PersonListService
     {
         PersonListKinds.Hod => HodList.Names,
         PersonListKinds.Senior => SeniorManagementList.Names,
+        PersonListKinds.FullAccess => ShiftManagerList.Names,
         _ => TeamLeaderList.Names,
     };
+
+    async Task SeedFullAccessIfMissingAsync()
+    {
+        try
+        {
+            var exists = await _db.PickerPersons.AnyAsync(p => p.ListKind == PersonListKinds.FullAccess);
+            if (exists) return;
+
+            var rows = BuildSeedRows(PersonListKinds.FullAccess, ShiftManagerList.Names).ToList();
+            _db.PickerPersons.AddRange(rows);
+            await _db.SaveChangesAsync();
+            _log.LogInformation("Seeded {Count} full-access names into database.", rows.Count);
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not seed full-access names.");
+        }
+    }
 
     async Task SeedFromDefaultsAsync()
     {
         var seed = BuildSeedRows(PersonListKinds.TeamLeader, TeamLeaderList.Names)
             .Concat(BuildSeedRows(PersonListKinds.Hod, HodList.Names))
             .Concat(BuildSeedRows(PersonListKinds.Senior, SeniorManagementList.Names))
+            .Concat(BuildSeedRows(PersonListKinds.FullAccess, ShiftManagerList.Names))
             .ToList();
 
         _db.PickerPersons.AddRange(seed);

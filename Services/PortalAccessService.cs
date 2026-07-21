@@ -38,12 +38,12 @@ public class PortalAccessService
             => CanAccessSenior(),
         "/Dashboard" or "/ShiftHistory" or "/History"
             => CanAccessManagement(),
-        "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames"
+        "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess"
             => _admin.IsAdmin(),
         _ => true,
     };
 
-    bool IsShiftManager() => MatchesList(ShiftManagerList.Names);
+    bool IsShiftManager() => MatchesList(_people.FullAccess);
 
     bool MatchesList(IReadOnlyList<string> names)
     {
