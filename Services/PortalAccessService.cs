@@ -112,6 +112,7 @@ public static class PortalNameMatcher
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["mike"] = "michael", ["mick"] = "michael", ["micky"] = "michael", ["mickey"] = "michael",
+            ["micheal"] = "michael", // very common letter-swap misspelling
             ["nick"] = "nicholas", ["nicky"] = "nicholas", ["nik"] = "nicholas",
             ["tony"] = "anthony",
             ["jim"] = "james", ["jimmy"] = "james", ["jamie"] = "james",
