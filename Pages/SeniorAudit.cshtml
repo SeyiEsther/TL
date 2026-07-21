@@ -52,7 +52,7 @@
         </div>
     }
 
-    <form method="post">
+    <form method="post" data-backup="senior-audit" data-backup-key="@($"{Model.AuditorName}|{Model.AuditDate}|{Model.Area}")">
         @Html.AntiForgeryToken()
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
         <input type="hidden" name="auditorName" value="@Model.AuditorName">
