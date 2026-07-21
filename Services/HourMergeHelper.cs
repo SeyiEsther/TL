@@ -34,8 +34,10 @@ public static class HourMergeHelper
         if (replaceAll || inp.Wb.HasValue) existing.WellbeingConfirmed = inp.Wb;
         if (replaceAll || inp.Sup.HasValue) existing.SupportRequired = inp.Sup;
         if (replaceAll || inp.Acc.HasValue) existing.AccidentsReported = inp.Acc;
-        if (replaceAll || inp.Sixs.HasValue) existing.SixSCompleted = inp.Sixs;
-        if (replaceAll || inp.Tpm.HasValue) existing.TPMCompleted = inp.Tpm;
+        // 6S / TPM live on the hour row but are not required for "hour complete".
+        // Never wipe them on replaceAll when the posted form left them unanswered.
+        if (inp.Sixs.HasValue) existing.SixSCompleted = inp.Sixs;
+        if (inp.Tpm.HasValue) existing.TPMCompleted = inp.Tpm;
 
         if (replaceAll) existing.SafetyNotes = inp.Snote;
         else if (!string.IsNullOrWhiteSpace(inp.Snote)) existing.SafetyNotes = inp.Snote;

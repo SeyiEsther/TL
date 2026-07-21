@@ -131,6 +131,9 @@ public class TlShiftComplianceService
     public static TlShiftComplianceSnapshot FilterSnapshot(
         TlShiftComplianceSnapshot snapshot, string? shift, string? teamLeader)
     {
+        if (string.IsNullOrEmpty(shift) && string.IsNullOrEmpty(teamLeader))
+            return snapshot;
+
         var issues = snapshot.ShiftIssues.AsEnumerable();
         if (!string.IsNullOrEmpty(shift))
             issues = issues.Where(i => string.Equals(i.Shift, shift, StringComparison.OrdinalIgnoreCase));
@@ -138,31 +141,48 @@ public class TlShiftComplianceService
             issues = issues.Where(i => i.TeamLeader.Contains(teamLeader, StringComparison.OrdinalIgnoreCase));
         var issueList = issues.ToList();
 
-        var accountability = snapshot.Accountability.AsEnumerable();
-        if (!string.IsNullOrEmpty(teamLeader))
-            accountability = accountability.Where(a => a.TeamLeader.Contains(teamLeader, StringComparison.OrdinalIgnoreCase));
-        if (!string.IsNullOrEmpty(shift))
-        {
-            var tls = issueList.Select(i => i.TeamLeader).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            accountability = accountability.Where(a => tls.Contains(a.TeamLeader));
-        }
+        // Rebuild TL accountability from filtered issue rows so ProblemShifts / totals match.
+        var accountability = issueList
+            .GroupBy(i => i.TeamLeader, StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var areas = g.Select(x => x.Area).Where(a => !string.IsNullOrWhiteSpace(a)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+                var incomplete = g.Count(x => x.CloseStatus == "Incomplete form");
+                var unsigned = g.Count(x => x.CloseStatus == "Not signed off");
+                return new HodTlAccountabilityRow(
+                    g.First().TeamLeader,
+                    areas.Count == 1 ? areas[0] : $"{areas.Count} areas",
+                    g.Count(),
+                    g.Count(),
+                    incomplete,
+                    unsigned,
+                    g.Select(x => $"{x.ShiftDate:dd/MM} {x.Shift}: {x.CloseStatus}").Take(5).ToList());
+            })
+            .OrderByDescending(r => r.ProblemShifts)
+            .ThenBy(r => r.TeamLeader)
+            .ToList();
 
-        var areaCompliance = snapshot.AreaCompliance;
-        if (!string.IsNullOrEmpty(shift) || !string.IsNullOrEmpty(teamLeader))
-        {
-            var areas = issueList.Select(i => i.Area).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            areaCompliance = areaCompliance.Where(a => areas.Contains(a.Area)).ToList();
-        }
+        var areaCompliance = issueList
+            .GroupBy(i => string.IsNullOrWhiteSpace(i.Area) || i.Area == "—" ? "Unknown" : i.Area, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new HodAreaComplianceRow(
+                g.Key,
+                g.Count(),
+                g.Count(x => x.CloseStatus == "Incomplete form"),
+                g.Count(x => x.CloseStatus == "Not signed off")))
+            .OrderByDescending(r => r.Problems)
+            .ThenBy(r => r.Area)
+            .ToList();
 
         var incomplete = issueList.Count(i => i.CloseStatus == "Incomplete form");
         var unsigned = issueList.Count(i => i.CloseStatus == "Not signed off");
 
         return snapshot with
         {
+            ShiftCount = snapshot.ShiftCount,
             NotClosed = issueList.Count,
             Incomplete = incomplete,
             Unsigned = unsigned,
-            Accountability = accountability.ToList(),
+            Accountability = accountability,
             ShiftIssues = issueList,
             AreaCompliance = areaCompliance,
         };

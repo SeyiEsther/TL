@@ -413,6 +413,10 @@
         finalBtn.disabled = true;
         if (statusEl) statusEl.textContent = 'Submitting…';
         try {
+            clearTimeout(serverSaveTimer);
+            // Finish any in-flight autosave before close so we don't race last-write-wins.
+            try { await saveChain; } catch (_) { /* continue with submit */ }
+            dirty = false;
             ensureEditingIdInput();
             const formData = new FormData(form);
             const token = form.querySelector('[name="__RequestVerificationToken"]')?.value;

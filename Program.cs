@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Services;
@@ -50,7 +51,10 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(optio
     options.ValueLengthLimit = 1024 * 1024;
     options.MultipartBodyLengthLimit = 32 * 1024 * 1024;
 });
-builder.Services.AddControllers().AddJsonOptions(o =>
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<TL.Filters.ApiPortalAccessFilter>();
+}).AddJsonOptions(o =>
     o.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
 builder.Services.AddAntiforgery(options =>
 {

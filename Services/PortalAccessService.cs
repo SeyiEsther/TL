@@ -36,12 +36,29 @@ public class PortalAccessService
             => CanAccessHod(),
         "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory"
             => CanAccessSenior(),
-        "/Dashboard" or "/ShiftHistory" or "/History"
+        "/Dashboard" or "/ShiftHistory" or "/History" or "/Today"
             => CanAccessManagement(),
         "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess"
             => _admin.IsAdmin(),
         _ => true,
     };
+
+    /// <summary>
+    /// API path gates — keep aligned with page roles so PDF/list endpoints aren't wider than the UI.
+    /// </summary>
+    public bool CanAccessApi(string? requestPath)
+    {
+        var path = (requestPath ?? "").ToLowerInvariant();
+        if (path.StartsWith("/api/audits/hod"))
+            return CanAccessHod();
+        if (path.StartsWith("/api/audits/senior"))
+            return CanAccessSenior();
+        if (path.StartsWith("/api/audits/walkaround") || path.StartsWith("/api/audits/"))
+            return CanAccessHod() || CanAccessSenior();
+        if (path.StartsWith("/api/submissions"))
+            return CanAccessManagement();
+        return true;
+    }
 
     bool IsShiftManager() => MatchesList(_people.FullAccess);
 

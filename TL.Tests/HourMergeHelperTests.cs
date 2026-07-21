@@ -54,6 +54,26 @@ public class HourMergeHelperTests
     }
 
     [Fact]
+    public void Complete_hour_save_does_not_wipe_unanswered_sixs_or_tpm()
+    {
+        var existing = new HourlyCheck
+        {
+            HourNumber = 1,
+            SixSCompleted = true,
+            TPMCompleted = false,
+        };
+
+        var complete = BuildCompleteHourInput();
+        complete.Sixs = null;
+        complete.Tpm = null;
+
+        HourMergeHelper.MergeInto(existing, complete, replaceAll: true);
+
+        Assert.True(existing.SixSCompleted);
+        Assert.False(existing.TPMCompleted);
+    }
+
+    [Fact]
     public void IsHourComplete_matches_all_required_fields()
     {
         Assert.False(HourMergeHelper.IsHourComplete(new HourInput { Haz = true }));

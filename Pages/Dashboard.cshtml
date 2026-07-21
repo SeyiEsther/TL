@@ -414,7 +414,7 @@
         data: {
             labels: ['Day', 'Afternoon', 'Night'],
             datasets: [{
-                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.AfternoonShifts, @Model.NightShifts] : [1, 1, 1],
+                data: shiftTotal > 0 ? [@Model.DayShifts, @Model.AfternoonShifts, @Model.NightShifts] : [0, 0, 0],
                 backgroundColor: shiftTotal > 0 ? [C.blue, C.amber, C.indigo] : [C.gray, C.gray, C.gray],
                 borderWidth: 3,
                 borderColor: '#fff',

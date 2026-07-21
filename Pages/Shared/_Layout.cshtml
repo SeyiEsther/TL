@@ -36,7 +36,10 @@
             <span class="user-chip">@user.DisplayName</span>
         }
         <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
-        <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
+        @if (PortalAccess.CanAccessManagement())
+        {
+            <a class="tbtn @(pg == "/Today" ? "active" : "")" asp-page="/Today">Today</a>
+        }
         @if (PortalAccess.CanAccessHod())
         {
             <a class="tbtn @(isHodArea ? "active" : "")" asp-page="/HodDashboard">HoD</a>
