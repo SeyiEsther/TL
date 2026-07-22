@@ -60,6 +60,15 @@ public class PortalAccessServiceTests
     }
 
     [Fact]
+    public void General_team_leader_cannot_open_today_overview()
+    {
+        var access = CreateAccess("Adam Wilczynski", grantAll: false);
+        Assert.False(access.CanAccessPage("/Today"));
+        Assert.False(access.CanAccessApi("/api/submissions/today"));
+        Assert.False(access.CanAccessApi("/api/audits/hod/1/pdf"));
+    }
+
+    [Fact]
     public void Shift_manager_sees_hod_senior_home_and_today()
     {
         var access = CreateAccess("Mike Tregillis", grantAll: false);
