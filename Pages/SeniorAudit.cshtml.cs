@@ -83,7 +83,7 @@ public class SeniorAuditModel : PageModel
             // person continues the same record rather than starting a duplicate.
             if (!string.IsNullOrWhiteSpace(Area) && DateOnly.TryParse(AuditDate, out var d))
             {
-                var (weekStart, weekEnd) = IsoWeekBounds(d);
+                var (weekStart, weekEnd) = WeekMath.Bounds(d);
                 var existing = await _db.SeniorWeeklyAudits
                     .Where(s => s.Area == Area && s.AuditDate >= weekStart && s.AuditDate <= weekEnd)
                     .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
@@ -100,16 +100,6 @@ public class SeniorAuditModel : PageModel
             }
         }
         return Page();
-    }
-
-    // ISO-style week window: Monday 00:00 to the following Sunday, derived from
-    // the audit date. Fixed boundary (not a rolling 7 days) so two seniors
-    // auditing the same area on different days of the same week share a record.
-    static (DateOnly Start, DateOnly End) IsoWeekBounds(DateOnly d)
-    {
-        var mondayOffset = ((int)d.DayOfWeek + 6) % 7; // Mon=0 … Sun=6
-        var start = d.AddDays(-mondayOffset);
-        return (start, start.AddDays(6));
     }
 
     public async Task<IActionResult> OnPostAsync(
@@ -148,7 +138,7 @@ public class SeniorAuditModel : PageModel
             // updates the shared record instead of inserting a duplicate.
             if (sub == null && !string.IsNullOrWhiteSpace(area))
             {
-                var (weekStart, weekEnd) = IsoWeekBounds(d);
+                var (weekStart, weekEnd) = WeekMath.Bounds(d);
                 sub = await _db.SeniorWeeklyAudits
                     .Where(s => s.Area == area && s.AuditDate >= weekStart && s.AuditDate <= weekEnd)
                     .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)

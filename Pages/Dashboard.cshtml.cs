@@ -50,17 +50,65 @@ public class DashboardModel : PageModel
     public int[] AreaData { get; set; } = [];
     public List<WorstAreaDto> WorstAreas { get; set; } = [];
 
-    public async Task OnGetAsync(string? from, string? to, string? shift, string? area, string? tl)
+    // Weekly report scope (ISO Monday–Sunday). The dashboard defaults to the
+    // current week and can page back to any past week; nothing is deleted.
+    public const int ShiftTarget = 35;
+    public const int DayTarget = 105;
+    public const int WeekTarget = 315;
+
+    public bool CustomRange { get; set; }
+    public bool IsCurrentWeek { get; set; }
+    public DateOnly WeekStart { get; set; }
+    public DateOnly WeekEnd { get; set; }
+    public int WeekNumber { get; set; }
+    public int WeekYear { get; set; }
+    public string WeekLabel { get; set; } = "";
+    public DateOnly PrevWeekStart { get; set; }
+    public DateOnly? NextWeekStart { get; set; }
+    public List<(DateOnly Start, string Label)> RecentWeeks { get; set; } = [];
+
+    public int WeekAchieved { get; set; }
+    public List<ShiftTargetRow> ShiftTargets { get; set; } = [];
+    public List<DayTargetRow> DayTargets { get; set; } = [];
+    public int UnderperformingShiftCount { get; set; }
+
+    public async Task OnGetAsync(string? from, string? to, string? shift, string? area, string? tl, string? week)
     {
-        From = from;
-        To = to;
         ShiftFilter = shift;
         AreaFilter = area;
         TlFilter = tl;
 
+        // A custom from/to range overrides the weekly framing; otherwise scope to
+        // the selected ISO week (default = current week).
+        CustomRange = !string.IsNullOrEmpty(from) || !string.IsNullOrEmpty(to);
+        var refDate = DateOnly.FromDateTime(DateTime.Today);
+        if (!CustomRange && !string.IsNullOrEmpty(week) && DateOnly.TryParse(week, out var wk))
+            refDate = wk;
+
+        var (weekStart, weekEnd) = WeekMath.Bounds(refDate);
+        WeekStart = weekStart;
+        WeekEnd = weekEnd;
+        WeekNumber = WeekMath.IsoWeekNumber(weekStart);
+        WeekYear = WeekMath.IsoYear(weekStart);
+        WeekLabel = WeekMath.Label(weekStart);
+
+        var currentMonday = WeekMath.Bounds(DateOnly.FromDateTime(DateTime.Today)).Start;
+        IsCurrentWeek = weekStart == currentMonday;
+        PrevWeekStart = weekStart.AddDays(-7);
+        NextWeekStart = weekStart < currentMonday ? weekStart.AddDays(7) : null;
+        RecentWeeks = Enumerable.Range(0, 12)
+            .Select(i => currentMonday.AddDays(-7 * i))
+            .Select(s => (s, WeekMath.Label(s)))
+            .ToList();
+
+        if (CustomRange) { From = from; To = to; }
+        else { From = weekStart.ToString("yyyy-MM-dd"); To = weekEnd.ToString("yyyy-MM-dd"); }
+
         try
         {
-            await LoadDashboardDataAsync(from, to, shift, area, tl);
+            await LoadDashboardDataAsync(From, To, shift, area, tl);
+            if (!CustomRange)
+                await LoadWeeklyTargetsAsync(weekStart, weekEnd);
         }
         catch (Exception ex)
         {
@@ -69,6 +117,46 @@ public class DashboardModel : PageModel
             Shifts = [];
         }
     }
+
+    // Target vs actual for the week — always operation-wide (ignores the
+    // shift/area/TL filters) so the numbers line up with the 35/105/315 targets.
+    // "Achieved" = a shift form that is fully complete AND signed off.
+    async Task LoadWeeklyTargetsAsync(DateOnly weekStart, DateOnly weekEnd)
+    {
+        var weekShifts = await _db.ShiftSubmissions
+            .ExcludeAudits()
+            .Include(s => s.Hours)
+            .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd)
+            .ToListAsync();
+
+        bool Achieved(ShiftSubmission s) =>
+            !string.IsNullOrWhiteSpace(s.OutgoingTLSignature) && _completion.Evaluate(s).IsComplete;
+
+        WeekAchieved = weekShifts.Count(Achieved);
+
+        // One row per shift that actually ran (had activity), so an underperforming
+        // shift is one that ran but closed fewer than 35 forms.
+        ShiftTargets = weekShifts
+            .GroupBy(s => new { s.ShiftDate, s.Shift })
+            .Select(g => new ShiftTargetRow(g.Key.ShiftDate, g.Key.Shift ?? "", g.Count(Achieved)))
+            .OrderBy(r => r.Date).ThenBy(r => ShiftOrder(r.Shift))
+            .ToList();
+        UnderperformingShiftCount = ShiftTargets.Count(r => r.Under);
+
+        DayTargets = weekShifts
+            .GroupBy(s => s.ShiftDate)
+            .Select(g => new DayTargetRow(g.Key, g.Count(Achieved)))
+            .OrderBy(r => r.Date)
+            .ToList();
+    }
+
+    static int ShiftOrder(string shift) => shift switch
+    {
+        "Day" => 0,
+        "Afternoon" => 1,
+        "Night" => 2,
+        _ => 3,
+    };
 
     async Task LoadDashboardDataAsync(string? from, string? to, string? shift, string? area, string? tl)
     {
@@ -174,6 +262,20 @@ public class DashboardModel : PageModel
     public static string Rc(string? v) => v switch { "Green" => "g", "Amber" => "a", "Red" => "r", _ => "u" };
 
     public string J(object o) => System.Text.Json.JsonSerializer.Serialize(o);
+}
+
+public record ShiftTargetRow(DateOnly Date, string Shift, int Achieved)
+{
+    public int Target => DashboardModel.ShiftTarget;
+    public bool Under => Achieved < Target;
+    public int Pct => Target > 0 ? Math.Min(100, Achieved * 100 / Target) : 0;
+}
+
+public record DayTargetRow(DateOnly Date, int Achieved)
+{
+    public int Target => DashboardModel.DayTarget;
+    public bool Under => Achieved < Target;
+    public int Pct => Target > 0 ? Math.Min(100, Achieved * 100 / Target) : 0;
 }
 
 public record WorstAreaDto(string Area, int Reds, int Ambers, int Greens, int TotalShifts)
