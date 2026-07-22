@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Models;
 using TL.Services;
@@ -76,6 +77,21 @@ public class AuditStartModel : PageModel
 
         try
         {
+            // One shared record per zone per day per type: if an audit already
+            // exists for this natural key (AuditDate + Department +
+            // EffectivenessArea + AuditType — no auditor), open it so everyone
+            // continues the same record instead of starting a duplicate.
+            var existing = await _db.HodDailyAudits
+                .Where(a => a.AuditDate == auditD
+                    && a.Department == department
+                    && a.AuditType == type
+                    && (a.EffectivenessArea == effectivenessArea
+                        || ((a.EffectivenessArea == null || a.EffectivenessArea == "") && a.Area == effectivenessArea)))
+                .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
+                .FirstOrDefaultAsync();
+            if (existing != null)
+                return RedirectToPage("/Audit", new { id = existing.Id });
+
             var user = _users.GetCurrentUser();
             var questions = HodAuditDefinitions.GetQuestions(type, department);
             var blankAnswers = questions.Select(q => new HodAuditAnswer

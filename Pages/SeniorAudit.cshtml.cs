@@ -77,8 +77,39 @@ public class SeniorAuditModel : PageModel
             AuditDate = date ?? DateTime.Today.ToString("yyyy-MM-dd");
             AuditorName = auditor ?? "";
             Area = area ?? "";
+
+            // One shared record per area per ISO week (Mon–Sun): if a senior has
+            // already started this area's audit this week, load it so the next
+            // person continues the same record rather than starting a duplicate.
+            if (!string.IsNullOrWhiteSpace(Area) && DateOnly.TryParse(AuditDate, out var d))
+            {
+                var (weekStart, weekEnd) = IsoWeekBounds(d);
+                var existing = await _db.SeniorWeeklyAudits
+                    .Where(s => s.Area == Area && s.AuditDate >= weekStart && s.AuditDate <= weekEnd)
+                    .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
+                    .FirstOrDefaultAsync();
+                if (existing != null)
+                {
+                    EditingId = existing.Id;
+                    AuditDate = existing.AuditDate.ToString("yyyy-MM-dd");
+                    AuditorName = existing.AuditorName;
+                    Area = existing.Area;
+                    AuditorSignature = existing.AuditorSignature;
+                    A = MapToInput(existing);
+                }
+            }
         }
         return Page();
+    }
+
+    // ISO-style week window: Monday 00:00 to the following Sunday, derived from
+    // the audit date. Fixed boundary (not a rolling 7 days) so two seniors
+    // auditing the same area on different days of the same week share a record.
+    static (DateOnly Start, DateOnly End) IsoWeekBounds(DateOnly d)
+    {
+        var mondayOffset = ((int)d.DayOfWeek + 6) % 7; // Mon=0 … Sun=6
+        var start = d.AddDays(-mondayOffset);
+        return (start, start.AddDays(6));
     }
 
     public async Task<IActionResult> OnPostAsync(
@@ -104,21 +135,35 @@ public class SeniorAuditModel : PageModel
         }
 
         var user = _users.GetCurrentUser();
+        if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
 
         try
         {
+            SeniorWeeklyAudit? sub = null;
             if (editingId.HasValue)
-            {
-                var sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == editingId.Value);
-                if (sub == null) return RedirectToPage("/SeniorStart");
+                sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == editingId.Value);
 
-                ApplyInput(sub, A);
-                sub.AuditorSignature = auditorSignature;
-                await _db.SaveChangesAsync();
-                return RedirectToPage("/SeniorSuccess", new { id = editingId });
+            // No editing id (or it vanished): fall back to the natural key —
+            // area + ISO week — so a second senior saving the same week's audit
+            // updates the shared record instead of inserting a duplicate.
+            if (sub == null && !string.IsNullOrWhiteSpace(area))
+            {
+                var (weekStart, weekEnd) = IsoWeekBounds(d);
+                sub = await _db.SeniorWeeklyAudits
+                    .Where(s => s.Area == area && s.AuditDate >= weekStart && s.AuditDate <= weekEnd)
+                    .OrderByDescending(s => s.LastEditedAt ?? s.SubmittedAt)
+                    .FirstOrDefaultAsync();
             }
 
-            if (!DateOnly.TryParse(auditDate, out var d)) d = DateOnly.FromDateTime(DateTime.Today);
+            if (sub != null)
+            {
+                ApplyInput(sub, A);
+                sub.AuditorSignature = auditorSignature;
+                sub.LastEditedBy = user.DisplayName;
+                sub.LastEditedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return RedirectToPage("/SeniorSuccess", new { id = sub.Id });
+            }
 
             var audit = new SeniorWeeklyAudit
             {

@@ -319,6 +319,34 @@ public class AuditModel : PageModel
                 return RedirectToPage("/Success", new { hodAuditId = editingId });
             }
 
+            // Guard against inserting a duplicate for the same natural key
+            // (AuditDate + Department + EffectivenessArea + AuditType) if this
+            // was submitted without an editing id — update the shared record.
+            var sameKey = await _db.HodDailyAudits
+                .Where(a => a.AuditDate == auditD
+                    && a.Department == department
+                    && a.AuditType == auditType
+                    && (a.EffectivenessArea == effectivenessArea
+                        || ((a.EffectivenessArea == null || a.EffectivenessArea == "") && a.Area == effectivenessArea)))
+                .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
+                .FirstOrDefaultAsync();
+            if (sameKey != null)
+            {
+                sameKey.AuditorName = auditorName ?? user.DisplayName;
+                sameKey.AnswersJson = HodAuditSerializer.ToJson(answers);
+                sameKey.TotalScore = TotalScore;
+                sameKey.MaxScore = MaxScore;
+                sameKey.EffectivenessJson = HodAuditSerializer.EffectivenessToJson(effectiveness);
+                sameKey.ActionsRaised = Actions;
+                sameKey.GoodPractice = GoodPractice;
+                sameKey.AuditorSignature = auditorSignature;
+                sameKey.TeamLeaderSignature = teamLeaderSignature;
+                sameKey.LastEditedBy = auditorName ?? user.DisplayName;
+                sameKey.LastEditedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return RedirectToPage("/Success", new { hodAuditId = sameKey.Id });
+            }
+
             var audit = new HodDailyAudit
             {
                 SubmittedBy = user.Username,

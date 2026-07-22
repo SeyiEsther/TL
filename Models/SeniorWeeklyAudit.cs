@@ -5,6 +5,8 @@ public class SeniorWeeklyAudit
     public int Id { get; set; }
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
     public string SubmittedBy { get; set; } = "";
+    public string? LastEditedBy { get; set; }
+    public DateTime? LastEditedAt { get; set; }
     public string AuditorName { get; set; } = "";
     public DateOnly AuditDate { get; set; }
     public string Area { get; set; } = "";
