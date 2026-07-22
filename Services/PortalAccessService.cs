@@ -49,14 +49,34 @@ public class PortalAccessService
     public bool CanAccessApi(string? requestPath)
     {
         var path = (requestPath ?? "").ToLowerInvariant();
-        if (path.StartsWith("/api/audits/hod"))
+        if (path.StartsWith("/api/audits/hod") || path.StartsWith("/api/audits/legacy") || path.StartsWith("/api/audits/walkaround"))
             return CanAccessHod();
         if (path.StartsWith("/api/audits/senior"))
             return CanAccessSenior();
-        if (path.StartsWith("/api/audits/walkaround") || path.StartsWith("/api/audits/"))
+        if (path.StartsWith("/api/audits/"))
             return CanAccessHod() || CanAccessSenior();
         if (path.StartsWith("/api/submissions"))
+        {
+            // Team leaders land on Success after submit and need their own PDF.
+            // List / today / CSV stay management-only.
+            if (IsSubmissionPdfPath(path))
+                return true;
             return CanAccessManagement();
+        }
+        return true;
+    }
+
+    static bool IsSubmissionPdfPath(string path)
+    {
+        // /api/submissions/{id}/pdf
+        const string prefix = "/api/submissions/";
+        const string suffix = "/pdf";
+        if (!path.StartsWith(prefix) || !path.EndsWith(suffix))
+            return false;
+        var mid = path.AsSpan(prefix.Length, path.Length - prefix.Length - suffix.Length);
+        if (mid.IsEmpty) return false;
+        foreach (var c in mid)
+            if (c is < '0' or > '9') return false;
         return true;
     }
 

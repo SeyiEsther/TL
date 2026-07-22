@@ -63,7 +63,7 @@ public abstract class AdminPeoplePageModel : PageModel
         if (!_admin.IsAdmin())
             return RedirectToPage("/Index");
 
-        var ok = await _people.RemovePersonAsync(id);
+        var ok = await _people.RemovePersonAsync(id, ListKind);
         return RedirectToPage(new { saved = ok ? "removed" : null });
     }
 }

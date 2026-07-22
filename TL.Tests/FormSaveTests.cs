@@ -25,6 +25,32 @@ public class FormSaveTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Reopening_shift_keeps_saved_hour_count()
+    {
+        await ResetDbAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today.ToString("yyyy-MM-dd");
+        var area = AreaList.All[0].Label;
+
+        var startResp = await client.GetAsync(
+            $"/Form?date={today}&shift=Day&area={Uri.EscapeDataString(area)}&tl=Test%20Leader&hours=6");
+        var id = ParseIdFromLocation(startResp.Headers.Location?.ToString());
+        Assert.True(id > 0);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var sub = await db.ShiftSubmissions.SingleAsync(s => s.Id == id);
+            Assert.Equal((byte)6, sub.HoursCompleted);
+        }
+
+        // Reopen without hours query (Index resume path) — must not expand back to 8.
+        var reloadHtml = await (await client.GetAsync($"/Form?id={id}&tl=Test%20Leader")).Content.ReadAsStringAsync();
+        Assert.Contains("data-hours=\"6\"", reloadHtml);
+        Assert.DoesNotContain("data-hours=\"8\"", reloadHtml);
+    }
+
+    [Fact]
     public async Task SaveProgress_persists_hour_data_and_resumes_by_id()
     {
         await ResetDbAsync();

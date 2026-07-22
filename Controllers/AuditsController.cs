@@ -34,6 +34,10 @@ public class AuditsController : ControllerBase
     [HttpGet("walkaround/{id:int}/pdf")]
     public Task<IActionResult> WalkaroundPdf(int id) => GenerateWalkaroundPdfAsync(id);
 
+    /// <summary>Legacy HoD rows stored as ShiftSubmission with Shift == "Audit".</summary>
+    [HttpGet("legacy/{id:int}/pdf")]
+    public Task<IActionResult> LegacyPdf(int id) => GenerateLegacyHodPdfAsync(id);
+
     /// <summary>
     /// Back-compat. Prefer typed routes. Without ?type=, only succeeds when exactly one
     /// table owns the id, and the caller must have that table's portal role.
@@ -43,22 +47,26 @@ public class AuditsController : ControllerBase
     {
         var kind = (type ?? "").Trim().ToLowerInvariant();
         if (kind is "hod" or "hoddaily")
-            return await GenerateHodPdfAsync(id);
+            return _access.CanAccessHod() ? await GenerateHodPdfAsync(id) : Forbid();
         if (kind is "senior" or "weekly")
-            return await GenerateSeniorPdfAsync(id);
-        if (kind is "walkaround" or "legacy")
-            return await GenerateWalkaroundPdfAsync(id);
+            return _access.CanAccessSenior() ? await GenerateSeniorPdfAsync(id) : Forbid();
+        if (kind is "walkaround")
+            return _access.CanAccessHod() ? await GenerateWalkaroundPdfAsync(id) : Forbid();
+        if (kind is "legacy" or "old")
+            return _access.CanAccessHod() ? await GenerateLegacyHodPdfAsync(id) : Forbid();
 
         var hod = await _db.HodDailyAudits.AsNoTracking().AnyAsync(a => a.Id == id);
         var senior = await _db.SeniorWeeklyAudits.AsNoTracking().AnyAsync(a => a.Id == id);
         var walkaround = await _db.AuditSubmissions.AsNoTracking().AnyAsync(a => a.Id == id);
+        var legacy = await _db.ShiftSubmissions.AsNoTracking()
+            .AnyAsync(s => s.Id == id && s.Shift == ShiftQueryExtensions.AuditPseudoShift);
 
-        var matches = (hod ? 1 : 0) + (senior ? 1 : 0) + (walkaround ? 1 : 0);
+        var matches = (hod ? 1 : 0) + (senior ? 1 : 0) + (walkaround ? 1 : 0) + (legacy ? 1 : 0);
         if (matches > 1)
         {
             return BadRequest(new
             {
-                error = "Ambiguous audit id — use /api/audits/hod/{id}/pdf, /api/audits/senior/{id}/pdf, or ?type=hod|senior|walkaround."
+                error = "Ambiguous audit id — use /api/audits/hod/{id}/pdf, /api/audits/senior/{id}/pdf, /api/audits/legacy/{id}/pdf, or ?type=hod|senior|walkaround|legacy."
             });
         }
 
@@ -68,6 +76,8 @@ public class AuditsController : ControllerBase
             return _access.CanAccessSenior() ? await GenerateSeniorPdfAsync(id) : Forbid();
         if (walkaround)
             return _access.CanAccessHod() ? await GenerateWalkaroundPdfAsync(id) : Forbid();
+        if (legacy)
+            return _access.CanAccessHod() ? await GenerateLegacyHodPdfAsync(id) : Forbid();
         return NotFound();
     }
 
@@ -124,6 +134,27 @@ public class AuditsController : ControllerBase
         catch (Exception ex)
         {
             _log.LogError(ex, "Walkaround PDF failed for id {Id}", id);
+            return PdfError();
+        }
+    }
+
+    async Task<IActionResult> GenerateLegacyHodPdfAsync(int id)
+    {
+        var shift = await _db.ShiftSubmissions
+            .Include(s => s.Hours.OrderBy(h => h.HourNumber))
+            .FirstOrDefaultAsync(s => s.Id == id && s.Shift == ShiftQueryExtensions.AuditPseudoShift);
+        if (shift == null) return NotFound();
+
+        try
+        {
+            var bytes = _pdf.GenerateShift(shift);
+            var area = (shift.Area ?? "Audit").Replace(" ", "_");
+            var filename = $"HoD_Legacy_{shift.ShiftDate:yyyyMMdd}_{area}.pdf";
+            return PdfResponse.File(this, bytes, filename);
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "Legacy HoD PDF failed for id {Id}", id);
             return PdfError();
         }
     }

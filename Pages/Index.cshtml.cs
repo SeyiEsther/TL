@@ -102,7 +102,7 @@ public class IndexModel : PageModel
             Area = area;
             OtherName = otherName;
             CoveringFor = covering;
-            Error = "This shift is already closed. Open it from History if you need to view or edit.";
+            Error = "This shift is already closed. Ask a Shift Manager if you need it reopened.";
             var displayName = _users.GetCurrentUser().DisplayName;
             UserName = string.IsNullOrWhiteSpace(displayName) ? null : displayName;
             return Page();

@@ -60,6 +60,15 @@ public class PortalAccessServiceTests
     }
 
     [Fact]
+    public void General_team_leader_can_download_own_shift_pdf()
+    {
+        var access = CreateAccess("Adam Wilczynski", grantAll: false);
+        Assert.True(access.CanAccessApi("/api/submissions/42/pdf"));
+        Assert.False(access.CanAccessApi("/api/submissions"));
+        Assert.False(access.CanAccessApi("/api/submissions/export/csv"));
+    }
+
+    [Fact]
     public void Shift_manager_sees_hod_senior_home_and_today()
     {
         var access = CreateAccess("Mike Tregillis", grantAll: false);

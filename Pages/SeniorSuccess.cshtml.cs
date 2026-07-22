@@ -13,19 +13,26 @@ public class SeniorSuccessModel : PageModel
     public string AuditDate { get; set; } = "";
     public string AuditorName { get; set; } = "";
     public int? AuditId { get; set; }
+    public bool NotFoundRecord { get; set; }
 
     public async Task OnGetAsync(int? id)
     {
-        if (id.HasValue)
+        if (!id.HasValue)
         {
-            var sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == id.Value);
-            if (sub != null)
-            {
-                AuditId = sub.Id;
-                Area = sub.Area;
-                AuditDate = sub.AuditDate.ToString("dd/MM/yyyy");
-                AuditorName = sub.AuditorName;
-            }
+            NotFoundRecord = true;
+            return;
         }
+
+        var sub = await _db.SeniorWeeklyAudits.FirstOrDefaultAsync(s => s.Id == id.Value);
+        if (sub == null)
+        {
+            NotFoundRecord = true;
+            return;
+        }
+
+        AuditId = sub.Id;
+        Area = sub.Area;
+        AuditDate = sub.AuditDate.ToString("dd/MM/yyyy");
+        AuditorName = sub.AuditorName;
     }
 }

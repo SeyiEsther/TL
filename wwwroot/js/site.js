@@ -697,11 +697,14 @@
 
         tabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
-                pauseRotate();
                 var id = tab.getAttribute('data-hub-tab');
                 showCard(id);
                 if (expanded) expandPanel(id);
-                else startRotate();
+                else {
+                    // Tab click used to leave paused=true forever on touch (no mouseleave).
+                    paused = false;
+                    startRotate();
+                }
             });
         });
 

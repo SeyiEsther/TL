@@ -81,12 +81,28 @@ public class DashboardModel : PageModel
         AreaFilter = area;
         TlFilter = tl;
 
-        // A custom from/to range overrides the weekly framing; otherwise scope to
-        // the selected ISO week (default = current week).
-        CustomRange = !string.IsNullOrEmpty(from) || !string.IsNullOrEmpty(to);
+        // Week mode is the default. The filter form always posts from/to (the current
+        // week bounds), so treat an ISO Mon–Sun pair — or an explicit week= — as week
+        // mode. Only a from/to range that is NOT a full ISO week is "custom".
+        DateOnly parsedWeek = default;
+        var hasWeekParam = !string.IsNullOrEmpty(week) && DateOnly.TryParse(week, out parsedWeek);
+        DateOnly? weekFromDates = null;
+        if (DateOnly.TryParse(from, out var fromD) && DateOnly.TryParse(to, out var toD))
+        {
+            var bounds = WeekMath.Bounds(fromD);
+            if (fromD == bounds.Start && toD == bounds.End)
+                weekFromDates = fromD;
+        }
+
+        CustomRange = (!string.IsNullOrEmpty(from) || !string.IsNullOrEmpty(to))
+            && !hasWeekParam
+            && weekFromDates == null;
+
         var refDate = DateOnly.FromDateTime(DateTime.Today);
-        if (!CustomRange && !string.IsNullOrEmpty(week) && DateOnly.TryParse(week, out var wk))
-            refDate = wk;
+        if (hasWeekParam)
+            refDate = parsedWeek;
+        else if (!CustomRange && weekFromDates.HasValue)
+            refDate = weekFromDates.Value;
 
         var (weekStart, weekEnd) = WeekMath.Bounds(refDate);
         WeekStart = weekStart;

@@ -34,13 +34,7 @@ public class AuditStartModel : PageModel
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
         SuggestedType = HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek);
         SuggestedTypeLabel = HodAuditTypes.LabelFor(SuggestedType);
-
-        var unfinished = await _history.LoadUnfinishedHodAsync();
-        // Show the current user's own unfinished audits first, then everyone else's.
-        Unfinished = unfinished
-            .OrderByDescending(u => PortalNameMatcher.Matches(u.AuditorName, user.DisplayName))
-            .ThenByDescending(u => u.LastActivity)
-            .ToList();
+        await LoadUnfinishedAsync(user.DisplayName);
     }
 
     public async Task<IActionResult> OnPostAsync(
@@ -59,12 +53,14 @@ public class AuditStartModel : PageModel
             || string.IsNullOrWhiteSpace(effectivenessArea))
         {
             Error = "Please fill in all required fields.";
+            await LoadUnfinishedAsync(_users.GetCurrentUser().DisplayName);
             return Page();
         }
 
         if (!AreaList.IsInDepartment(effectivenessArea, department))
         {
             Error = "The effectiveness check zone must belong to the selected area.";
+            await LoadUnfinishedAsync(_users.GetCurrentUser().DisplayName);
             return Page();
         }
 
@@ -125,7 +121,18 @@ public class AuditStartModel : PageModel
             HttpContext.RequestServices.GetRequiredService<ILogger<AuditStartModel>>()
                 .LogError(ex, "Could not create HoD audit draft for {Department}/{Area}", department, effectivenessArea);
             Error = "Could not start this audit — please try again.";
+            await LoadUnfinishedAsync(_users.GetCurrentUser().DisplayName);
             return Page();
         }
+    }
+
+    async Task LoadUnfinishedAsync(string? displayName)
+    {
+        var unfinished = await _history.LoadUnfinishedHodAsync();
+        // Show the current user's own unfinished audits first, then everyone else's.
+        Unfinished = unfinished
+            .OrderByDescending(u => PortalNameMatcher.Matches(u.AuditorName, displayName))
+            .ThenByDescending(u => u.LastActivity)
+            .ToList();
     }
 }

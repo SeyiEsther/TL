@@ -19,7 +19,9 @@ public class TlShiftComplianceService
         DateOnly rangeStart,
         DateOnly rangeEnd,
         string? area = null,
-        string? department = null)
+        string? department = null,
+        string? shift = null,
+        string? teamLeader = null)
     {
         var deptAreas = string.IsNullOrEmpty(department)
             ? null
@@ -38,6 +40,12 @@ public class TlShiftComplianceService
         else if (deptAreas != null)
             q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));
 
+        if (!string.IsNullOrEmpty(shift))
+            q = q.Where(s => s.Shift == shift);
+
+        if (!string.IsNullOrEmpty(teamLeader))
+            q = q.Where(s => s.TeamLeaderDisplay != null && s.TeamLeaderDisplay.Contains(teamLeader));
+
         var shifts = await q.OrderByDescending(s => s.ShiftDate).ThenBy(s => s.Shift).ToListAsync();
 
         var issueRows = new List<HodTlShiftIssueRow>();
@@ -45,9 +53,9 @@ public class TlShiftComplianceService
         var incomplete = 0;
         var unsigned = 0;
 
-        foreach (var shift in shifts)
+        foreach (var row in shifts)
         {
-            var comp = _completion.Evaluate(shift);
+            var comp = _completion.Evaluate(row);
             var signed = comp.SignedOff;
             var closeStatus = ResolveCloseStatus(comp, signed);
             var hasProblem = !comp.IsComplete || !signed;
@@ -55,11 +63,11 @@ public class TlShiftComplianceService
             if (!comp.IsComplete) incomplete++;
             if (!signed) unsigned++;
 
-            var tl = string.IsNullOrWhiteSpace(shift.TeamLeaderDisplay) ? "Unknown TL" : shift.TeamLeaderDisplay.Trim();
+            var tl = string.IsNullOrWhiteSpace(row.TeamLeaderDisplay) ? "Unknown TL" : row.TeamLeaderDisplay.Trim();
             if (!tlStats.TryGetValue(tl, out var stat))
                 stat = (0, 0, 0, 0, new HashSet<string>(), new List<string>());
             stat.Total++;
-            stat.Areas.Add(shift.Area ?? "Unknown");
+            stat.Areas.Add(row.Area ?? "Unknown");
             if (hasProblem)
             {
                 stat.Problems++;
@@ -67,17 +75,17 @@ public class TlShiftComplianceService
                 if (!signed) stat.Unsigned++;
 
                 issueRows.Add(new HodTlShiftIssueRow(
-                    shift.Id,
+                    row.Id,
                     tl,
-                    shift.ShiftDate,
-                    shift.Shift,
-                    shift.Area ?? "—",
+                    row.ShiftDate,
+                    row.Shift,
+                    row.Area ?? "—",
                     closeStatus,
                     comp.HoursComplete,
                     comp.HoursTotal,
                     BuildShiftIssues(comp, signed)));
 
-                var headline = $"{shift.ShiftDate:dd/MM} {shift.Shift}: {closeStatus}";
+                var headline = $"{row.ShiftDate:dd/MM} {row.Shift}: {closeStatus}";
                 if (!stat.Summaries.Contains(headline))
                     stat.Summaries.Add(headline);
             }
@@ -178,7 +186,9 @@ public class TlShiftComplianceService
 
         return snapshot with
         {
-            ShiftCount = snapshot.ShiftCount,
+            // Filtered view only sees problem rows — don't keep the unfiltered total
+            // next to a narrowed NotClosed count (would read as "3 of 40" incorrectly).
+            ShiftCount = issueList.Count,
             NotClosed = issueList.Count,
             Incomplete = incomplete,
             Unsigned = unsigned,
