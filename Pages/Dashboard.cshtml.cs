@@ -68,6 +68,9 @@ public class DashboardModel : PageModel
     public List<(DateOnly Start, string Label)> RecentWeeks { get; set; } = [];
 
     public int WeekAchieved { get; set; }
+    public int WeekAchievedDay { get; set; }
+    public int WeekAchievedAfternoon { get; set; }
+    public int WeekAchievedNight { get; set; }
     public List<ShiftTargetRow> ShiftTargets { get; set; } = [];
     public List<DayTargetRow> DayTargets { get; set; } = [];
     public int UnderperformingShiftCount { get; set; }
@@ -132,7 +135,11 @@ public class DashboardModel : PageModel
         bool Achieved(ShiftSubmission s) =>
             !string.IsNullOrWhiteSpace(s.OutgoingTLSignature) && _completion.Evaluate(s).IsComplete;
 
-        WeekAchieved = weekShifts.Count(Achieved);
+        var achieved = weekShifts.Where(Achieved).ToList();
+        WeekAchieved = achieved.Count;
+        WeekAchievedDay = achieved.Count(s => s.Shift == "Day");
+        WeekAchievedAfternoon = achieved.Count(s => s.Shift == "Afternoon");
+        WeekAchievedNight = achieved.Count(s => s.Shift == "Night");
 
         // One row per shift that actually ran (had activity), so an underperforming
         // shift is one that ran but closed fewer than 35 forms.
