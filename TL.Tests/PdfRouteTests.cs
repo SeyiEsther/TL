@@ -54,6 +54,52 @@ public class PdfRouteTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Legacy_hod_pdf_route_returns_pdf_for_audit_pseudo_shift()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.ShiftSubmissions.RemoveRange(db.ShiftSubmissions.Where(s => s.Shift == ShiftQueryExtensions.AuditPseudoShift));
+        await db.SaveChangesAsync();
+
+        var legacy = new ShiftSubmission
+        {
+            SubmittedBy = "auditor",
+            TeamLeaderDisplay = "Legacy Auditor",
+            ShiftDate = DateOnly.FromDateTime(DateTime.Today),
+            Shift = ShiftQueryExtensions.AuditPseudoShift,
+            Area = "Zone 1",
+            HoursCompleted = 1,
+            OutgoingTLSignature = "Legacy Auditor",
+            Hours =
+            [
+                new HourlyCheck
+                {
+                    HourNumber = 1,
+                    OverallSafetyStatus = "Green",
+                    OverallQualityStatus = "Green",
+                    OverallPerfStatus = "Green",
+                }
+            ],
+        };
+        db.ShiftSubmissions.Add(legacy);
+        await db.SaveChangesAsync();
+        var id = legacy.Id;
+
+        var client = _factory.CreateClient();
+        var resp = await client.GetAsync($"/api/audits/legacy/{id}/pdf");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        Assert.Equal("application/pdf", resp.Content.Headers.ContentType?.MediaType);
+
+        var typeResp = await client.GetAsync($"/api/audits/{id}/pdf?type=legacy");
+        Assert.Equal(HttpStatusCode.OK, typeResp.StatusCode);
+        Assert.Equal("application/pdf", typeResp.Content.Headers.ContentType?.MediaType);
+
+        // Old broken link path must still 404 for Audit pseudo-shifts.
+        var submissionsResp = await client.GetAsync($"/api/submissions/{id}/pdf");
+        Assert.Equal(HttpStatusCode.NotFound, submissionsResp.StatusCode);
+    }
+
+    [Fact]
     public async Task Typed_pdf_routes_return_pdf_bytes()
     {
         var (hodId, seniorId) = await SeedAsync();

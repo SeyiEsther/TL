@@ -57,6 +57,10 @@
 
     <div class="card card-filter" style="margin-bottom:14px">
         <form method="get" class="filters">
+            @if (!Model.CustomRange)
+            {
+                <input type="hidden" name="week" value="@Model.WeekStart.ToString("yyyy-MM-dd")" />
+            }
             <partial name="_DatePicker" model='new DatePickerModel("from", Model.From, "From")' />
             <partial name="_DatePicker" model='new DatePickerModel("to", Model.To, "To")' />
             <partial name="_FilterShift" model='new FilterDropdownModel("shift", "Shift", Model.ShiftFilter, "All shifts")' />

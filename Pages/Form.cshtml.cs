@@ -42,9 +42,9 @@ public class FormModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? shift, string? area, string? tl,
-        int? id, int hours = 8, string? saved = null, string? coveringFor = null)
+        int? id, int? hours = null, string? saved = null, string? coveringFor = null)
     {
-        Hours = Math.Clamp(hours, 1, 8);
+        Hours = Math.Clamp(hours ?? 8, 1, 8);
         SaveMessage = saved switch
         {
             "progress" => "Saved.",
@@ -56,8 +56,9 @@ public class FormModel : PageModel
         {
             var sub = await LoadSubmissionAsync(id.Value);
             if (sub == null) return RedirectToPage("/Index");
+            // HoursCompleted on the row is source of truth — do not overwrite with the
+            // default query hours=8 when reopening an existing shift.
             PopulateFromSubmission(sub, tl);
-            Hours = Math.Clamp(hours, 1, 8);
             if (!string.IsNullOrWhiteSpace(coveringFor))
                 CoveringFor = coveringFor.Trim();
             PadHours();
@@ -104,11 +105,11 @@ public class FormModel : PageModel
 
             if (resolution.Closed)
             {
-                TempData["Error"] = "This shift is already closed. Open it from History if you need to view or edit.";
+                TempData["Error"] = "This shift is already closed. Ask a Shift Manager if you need it reopened.";
                 return RedirectToPage("/Index");
             }
 
-            return RedirectToPage("/Form", new { id = resolution.Shift!.Id, hours = Hours, tl = tlName, coveringFor = CoveringFor });
+            return RedirectToPage("/Form", new { id = resolution.Shift!.Id, tl = tlName, coveringFor = CoveringFor });
         }
 
         PadHours();

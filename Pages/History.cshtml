@@ -131,7 +131,7 @@
                                             else
                                             {
                                                 <a asp-page="/AuditResult" asp-route-id="@r.Id" asp-route-kind="legacy" class="dl-link">View</a>
-                                                <a href="/api/submissions/@r.Id/pdf" class="dl-link pdf-dl" data-filename="TLSW_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
+                                                <a href="/api/audits/legacy/@r.Id/pdf" class="dl-link pdf-dl" data-filename="HoD_@(r.Date.ToString("yyyyMMdd")).pdf">PDF</a>
                                             }
                                             break;
                                         case "senior":

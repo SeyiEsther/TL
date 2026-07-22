@@ -36,12 +36,23 @@ public class ShiftHistoryModel : PageModel
 
     public async Task OnGetAsync(string? from, string? to, string? area, string? shift, string? q, string? deleted)
     {
-        From = from;
-        To = to;
         AreaFilter = area;
         ShiftFilter = shift;
         PersonFilter = q;
         StatusMessage = deleted == "1" ? "Record deleted." : null;
+
+        // Default both the follow-up cards and the records table to the current ISO week
+        // so the page reads as one scoped view (users can still widen via From/To).
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var (weekStart, weekEnd) = HodEffectivenessService.WeekRange(today);
+        if (string.IsNullOrEmpty(from) && string.IsNullOrEmpty(to))
+        {
+            from = weekStart.ToString("yyyy-MM-dd");
+            to = weekEnd.ToString("yyyy-MM-dd");
+        }
+        From = from;
+        To = to;
+
         Rows = await _history.LoadShiftsAsync(new HistoryFilters(from, to, area, q, shift));
         FollowUp = await LoadFollowUpAsync(from, to, area, shift, q);
     }
@@ -58,8 +69,8 @@ public class ShiftHistoryModel : PageModel
             ? rangeStart.ToString("dd/MM/yyyy")
             : $"{rangeStart:dd/MM/yyyy} – {rangeEnd:dd/MM/yyyy}";
 
-        var snapshot = await _compliance.LoadAsync(rangeStart, rangeEnd, area);
-        return TlShiftComplianceService.FilterSnapshot(snapshot, shift, q);
+        var snapshot = await _compliance.LoadAsync(rangeStart, rangeEnd, area, shift: shift, teamLeader: q);
+        return snapshot;
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(

@@ -106,10 +106,13 @@ public class PersonListService
         return true;
     }
 
-    public async Task<bool> RemovePersonAsync(int id)
+    public async Task<bool> RemovePersonAsync(int id, string? listKind = null)
     {
         var person = await _db.PickerPersons.FindAsync(id);
         if (person == null) return false;
+        if (!string.IsNullOrEmpty(listKind) &&
+            !string.Equals(person.ListKind, listKind, StringComparison.OrdinalIgnoreCase))
+            return false;
         _db.PickerPersons.Remove(person);
         await _db.SaveChangesAsync();
         await ReloadAsync();

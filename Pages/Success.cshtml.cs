@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Models;
 
@@ -35,6 +36,24 @@ public class SuccessModel : PageModel
         SubmissionId = id ?? 0;
         IsAudit = audit == true;
         if (SubmissionId == 0)
+        {
+            NotFoundRecord = true;
+            return;
+        }
+
+        if (IsAudit)
+        {
+            var legacy = await _db.ShiftSubmissions.AsNoTracking()
+                .AnyAsync(s => s.Id == SubmissionId && s.Shift == ShiftQueryExtensions.AuditPseudoShift);
+            if (!legacy)
+                NotFoundRecord = true;
+            return;
+        }
+
+        var shift = await _db.ShiftSubmissions.AsNoTracking()
+            .ExcludeAudits()
+            .AnyAsync(s => s.Id == SubmissionId);
+        if (!shift)
             NotFoundRecord = true;
     }
 }
