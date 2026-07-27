@@ -48,10 +48,10 @@
         {
             <a class="tbtn @(isSeniorArea ? "active" : "")" asp-page="/SeniorStart">Senior</a>
         }
+        <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
         @if (PortalAccess.CanAccessManagement())
         {
             <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
-            <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
             <a class="tbtn @(pg == "/ShiftHistory" ? "active" : "")" asp-page="/ShiftHistory">Shifts</a>
         }
         @if (isAdmin)

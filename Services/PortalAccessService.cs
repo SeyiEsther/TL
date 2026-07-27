@@ -36,7 +36,9 @@ public class PortalAccessService
             => CanAccessHod(),
         "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory"
             => CanAccessSenior(),
-        "/Dashboard" or "/ShiftHistory" or "/History" or "/Today"
+        "/History"
+            => true, // history is viewable by everyone; delete stays admin-only in the page
+        "/Dashboard" or "/ShiftHistory" or "/Today"
             => CanAccessManagement(),
         "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess"
             => _admin.IsAdmin(),
