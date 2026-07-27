@@ -397,6 +397,8 @@
                 if (!resp.ok) throw new Error(data.error || data.message || ('Server returned ' + resp.status));
                 dirty = false;
                 if (reason === 'leave') return;
+                // Explicit Save press → show the full confirmation screen.
+                if (reason === 'manual') { window.location.href = '/Success?hodAuditId=' + editingId + '&saved=true'; return; }
                 var t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (statusEl) {
                     statusEl.textContent = '✓ Saved at ' + t +

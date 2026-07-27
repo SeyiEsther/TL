@@ -373,6 +373,11 @@
                     }
                 }
                 if (reason === 'leave') return;
+                // Explicit Save press → show the full confirmation screen.
+                if (reason === 'manual') {
+                    var goId = (data && data.id) || pageId;
+                    if (goId) { window.location.href = '/Success?id=' + goId + '&saved=true'; return; }
+                }
                 const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const saved = data.hoursMerged > 0;
                 const label = saved

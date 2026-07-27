@@ -13,10 +13,12 @@ public class SuccessModel : PageModel
     public bool IsAudit { get; set; }
     public bool IsHodDailyAudit { get; set; }
     public bool NotFoundRecord { get; set; }
+    public bool IsProgressSave { get; set; }
     public string? HodAuditTypeLabel { get; set; }
 
-    public async Task OnGetAsync(int? id, int? hodAuditId, bool? audit)
+    public async Task OnGetAsync(int? id, int? hodAuditId, bool? audit, bool? saved)
     {
+        IsProgressSave = saved == true;
         if (hodAuditId.HasValue)
         {
             var hod = await _db.HodDailyAudits.FindAsync(hodAuditId.Value);

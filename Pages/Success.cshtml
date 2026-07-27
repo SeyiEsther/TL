@@ -19,6 +19,23 @@
                 <a asp-page="/Index" class="welcome-btn primary">Back to home</a>
             }
         }
+        else if (Model.IsProgressSave)
+        {
+            <div class="success-icon">&#10003;</div>
+            <div class="success-title">Progress saved</div>
+            <div class="success-sub">Your changes are saved. You can keep going now or come back to it later — nothing is lost.</div>
+            <div class="success-ref">Ref #@Model.SubmissionId</div>
+            @if (Model.IsHodDailyAudit)
+            {
+                <a asp-page="/Audit" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">Continue editing</a>
+                <a asp-page="/HodDashboard" class="welcome-btn secondary">HoD dashboard</a>
+            }
+            else
+            {
+                <a asp-page="/Form" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">Continue editing</a>
+                <a asp-page="/Index" class="welcome-btn secondary">Back to home</a>
+            }
+        }
         else
         {
             <div class="success-icon">&#10003;</div>
