@@ -308,6 +308,22 @@
     var serverSaveTimer = null;
     var saveChain = Promise.resolve();
 
+    // Prominent, unmissable "Saved" confirmation (matches the TL shift form).
+    var savedToastEl = null, savedToastTimer = null;
+    function showSavedToast(message) {
+        if (!savedToastEl) {
+            savedToastEl = document.createElement('div');
+            savedToastEl.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;' +
+                'background:#16a34a;color:#fff;padding:11px 18px;border-radius:10px;font-size:15px;font-weight:700;' +
+                'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .15s';
+            document.body.appendChild(savedToastEl);
+        }
+        savedToastEl.innerHTML = '<span style="font-size:17px">✓</span> ' + message;
+        savedToastEl.style.opacity = '1';
+        clearTimeout(savedToastTimer);
+        savedToastTimer = setTimeout(function () { if (savedToastEl) savedToastEl.style.opacity = '0'; }, 2200);
+    }
+
     function bandFor(pct) {
         if (pct >= 92) return { band: 'Excellent', detail: 'Best practice standard maintained. Continue to sustain.', color: '#22c55e' };
         if (pct >= 72) return { band: 'Good', detail: 'Minor improvements required. Follow up within one week.', color: '#3b82f6' };
@@ -382,11 +398,19 @@
                 dirty = false;
                 if (reason === 'leave') return;
                 var t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                if (statusEl) statusEl.textContent = 'Saved at ' + t +
-                    (data.answered != null ? (' · ' + data.answered + '/' + data.total + ' answered') : '');
+                if (statusEl) {
+                    statusEl.textContent = '✓ Saved at ' + t +
+                        (data.answered != null ? (' · ' + data.answered + '/' + data.total + ' answered') : '');
+                    statusEl.style.color = '#16a34a';
+                    statusEl.style.fontWeight = '700';
+                }
+                showSavedToast('Progress saved');
             } catch (e) {
-                if (reason !== 'leave' && statusEl)
-                    statusEl.textContent = e.message || 'Could not save — try Save changes again';
+                if (reason !== 'leave' && statusEl) {
+                    statusEl.textContent = '⚠ ' + (e.message || 'Could not save — try Save changes again');
+                    statusEl.style.color = '#dc2626';
+                    statusEl.style.fontWeight = '700';
+                }
                 throw e;
             } finally {
                 if (saveBtn) saveBtn.disabled = false;
