@@ -226,6 +226,24 @@
     if (!form) return;
 
     const statusEl = document.getElementById('save-status');
+
+    // Prominent, unmissable "Saved" confirmation — the tiny status line alone
+    // was easy to miss, so TLs weren't sure their Save worked.
+    let savedToastEl = null, savedToastTimer = null;
+    function showSavedToast(message) {
+        if (!savedToastEl) {
+            savedToastEl = document.createElement('div');
+            savedToastEl.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:9999;' +
+                'background:#16a34a;color:#fff;padding:11px 18px;border-radius:10px;font-size:15px;font-weight:700;' +
+                'box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .15s';
+            document.body.appendChild(savedToastEl);
+        }
+        savedToastEl.innerHTML = '<span style="font-size:17px">✓</span> ' + message;
+        savedToastEl.style.opacity = '1';
+        clearTimeout(savedToastTimer);
+        savedToastTimer = setTimeout(function () { if (savedToastEl) savedToastEl.style.opacity = '0'; }, 2200);
+    }
+
     const progressBtn = document.getElementById('shift-submit-btn');
     const progressText = document.getElementById('shift-progress-text');
     const progressFill = document.getElementById('shift-progress-fill');
@@ -356,13 +374,19 @@
                 }
                 if (reason === 'leave') return;
                 const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const label = data.hoursMerged > 0
-                    ? (reason === 'hour' ? 'Hour saved' : 'Saved')
+                const saved = data.hoursMerged > 0;
+                const label = saved
+                    ? (reason === 'hour' ? 'Hour saved' : 'Progress saved')
                     : 'Connected (fill an hour to save data)';
-                statusEl.textContent = label + ' to server at ' + t;
+                statusEl.textContent = '✓ ' + label + ' at ' + t;
+                statusEl.style.color = '#16a34a';
+                statusEl.style.fontWeight = '700';
+                if (saved) showSavedToast(reason === 'hour' ? 'Hour saved' : 'Progress saved');
             } catch (e) {
                 if (reason !== 'leave') {
-                    statusEl.textContent = e.message || 'Could not save to server — try Save progress again';
+                    statusEl.textContent = '⚠ ' + (e.message || 'Could not save — try Save progress again');
+                    statusEl.style.color = '#dc2626';
+                    statusEl.style.fontWeight = '700';
                 }
                 throw e;
             } finally {
