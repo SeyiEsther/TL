@@ -147,6 +147,8 @@ public class AuditContinuityTests : IClassFixture<FormSaveWebAppFactory>
             new("auditorName", auditor),
             new("area", area),
             new("A.LastTeamMeeting", "This week"),
+            new("A.OverallVerdict", "Green"),
+            new("auditorSignature", auditor),
         };
         string[] scores =
         [

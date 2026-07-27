@@ -118,9 +118,27 @@ public class SeniorAuditModel : PageModel
             return Page();
         }
 
+        if (string.IsNullOrWhiteSpace(area) || string.IsNullOrWhiteSpace(auditorName))
+        {
+            ModelState.AddModelError("", "Area and auditor name are required.");
+            return Page();
+        }
+
         if (string.IsNullOrWhiteSpace(A.LastTeamMeeting))
         {
             ModelState.AddModelError("", "Please record when the last team meeting was held.");
+            return Page();
+        }
+
+        if (string.IsNullOrWhiteSpace(A.OverallVerdict))
+        {
+            ModelState.AddModelError("", "Please select an overall verdict.");
+            return Page();
+        }
+
+        if (string.IsNullOrWhiteSpace(auditorSignature))
+        {
+            ModelState.AddModelError("", "Please sign the audit with your full name before submitting.");
             return Page();
         }
 

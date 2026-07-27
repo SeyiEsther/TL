@@ -418,6 +418,22 @@
         saveToServer('manual');
     });
 
+    // Flush autosave before submit so in-flight SaveProgress can't overwrite the close.
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.submitting === '1') return;
+        e.preventDefault();
+        clearTimeout(serverSaveTimer);
+        var submitBtn = e.submitter;
+        if (submitBtn) submitBtn.disabled = true;
+        if (statusEl) statusEl.textContent = 'Submitting…';
+        var go = function () {
+            form.dataset.submitting = '1';
+            dirty = false;
+            HTMLFormElement.prototype.submit.call(form);
+        };
+        saveToServer('leave').then(go, go);
+    });
+
     function shouldFlushNav(href) {
         if (!href || href.startsWith('#')) return false;
         try {

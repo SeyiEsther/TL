@@ -13,12 +13,15 @@ public class AuditsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly PdfExportService _pdf;
+    private readonly PortalAccessService _access;
     private readonly ILogger<AuditsController> _log;
 
-    public AuditsController(AppDbContext db, PdfExportService pdf, ILogger<AuditsController> log)
+    public AuditsController(
+        AppDbContext db, PdfExportService pdf, PortalAccessService access, ILogger<AuditsController> log)
     {
         _db = db;
         _pdf = pdf;
+        _access = access;
         _log = log;
     }
 
@@ -32,8 +35,8 @@ public class AuditsController : ControllerBase
     public Task<IActionResult> WalkaroundPdf(int id) => GenerateWalkaroundPdfAsync(id);
 
     /// <summary>
-    /// Back-compat. Prefer /hod/{id}/pdf or /senior/{id}/pdf — shared numeric ids across tables collide.
-    /// Pass ?type=hod|senior|walkaround when using this route.
+    /// Back-compat. Prefer typed routes. Without ?type=, only succeeds when exactly one
+    /// table owns the id, and the caller must have that table's portal role.
     /// </summary>
     [HttpGet("{id:int}/pdf")]
     public async Task<IActionResult> Pdf(int id, [FromQuery] string? type = null)
@@ -55,13 +58,16 @@ public class AuditsController : ControllerBase
         {
             return BadRequest(new
             {
-                error = "Ambiguous audit id — use /api/audits/hod/{id}/pdf, /api/audits/senior/{id}/pdf, or /api/audits/walkaround/{id}/pdf."
+                error = "Ambiguous audit id — use /api/audits/hod/{id}/pdf, /api/audits/senior/{id}/pdf, or ?type=hod|senior|walkaround."
             });
         }
 
-        if (hod) return await GenerateHodPdfAsync(id);
-        if (senior) return await GenerateSeniorPdfAsync(id);
-        if (walkaround) return await GenerateWalkaroundPdfAsync(id);
+        if (hod)
+            return _access.CanAccessHod() ? await GenerateHodPdfAsync(id) : Forbid();
+        if (senior)
+            return _access.CanAccessSenior() ? await GenerateSeniorPdfAsync(id) : Forbid();
+        if (walkaround)
+            return _access.CanAccessHod() ? await GenerateWalkaroundPdfAsync(id) : Forbid();
         return NotFound();
     }
 

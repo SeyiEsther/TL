@@ -420,7 +420,7 @@
             } else {
                 closeAllDropdowns(fs);
                 openPopover(fs, trigger, pop);
-                var search = fs.querySelector('.fs-search');
+                var search = getFilterPopover(fs)?.querySelector('.fs-search');
                 if (search) {
                     setTimeout(function () { search.focus(); }, 80);
                 }
@@ -447,7 +447,7 @@
             });
         });
 
-        var search = fs.querySelector('.fs-search');
+        var search = getFilterPopover(fs)?.querySelector('.fs-search');
         if (search) {
             search.addEventListener('input', function () {
                 filterAreaOptions(fs, search.value);
@@ -698,8 +698,10 @@
         tabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
                 pauseRotate();
-                showCard(tab.getAttribute('data-hub-tab'));
-                if (!expanded) startRotate();
+                var id = tab.getAttribute('data-hub-tab');
+                showCard(id);
+                if (expanded) expandPanel(id);
+                else startRotate();
             });
         });
 

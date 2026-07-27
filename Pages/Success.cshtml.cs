@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
 using TL.Data;
 using TL.Models;
 
@@ -13,6 +12,7 @@ public class SuccessModel : PageModel
     public int SubmissionId { get; set; }
     public bool IsAudit { get; set; }
     public bool IsHodDailyAudit { get; set; }
+    public bool NotFoundRecord { get; set; }
     public string? HodAuditTypeLabel { get; set; }
 
     public async Task OnGetAsync(int? id, int? hodAuditId, bool? audit)
@@ -20,21 +20,21 @@ public class SuccessModel : PageModel
         if (hodAuditId.HasValue)
         {
             var hod = await _db.HodDailyAudits.FindAsync(hodAuditId.Value);
-            if (hod == null)
-            {
-                SubmissionId = hodAuditId.Value;
-                IsHodDailyAudit = false;
-                IsAudit = false;
-                return;
-            }
+            SubmissionId = hodAuditId.Value;
             IsHodDailyAudit = true;
             IsAudit = true;
-            SubmissionId = hod.Id;
+            if (hod == null)
+            {
+                NotFoundRecord = true;
+                return;
+            }
             HodAuditTypeLabel = HodAuditTypes.LabelFor(hod.AuditType);
             return;
         }
 
         SubmissionId = id ?? 0;
         IsAudit = audit == true;
+        if (SubmissionId == 0)
+            NotFoundRecord = true;
     }
 }
