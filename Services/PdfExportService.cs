@@ -562,6 +562,146 @@ namespace TL.Services
             }).GeneratePdf();
         }
 
+        public byte[] GenerateTeamMeeting(
+            TeamMeeting m, List<TeamMeetingProblem> problems,
+            List<TeamMeetingAttendee> team, List<TeamMeetingAttendee> group, List<TeamMeetingGuest> guests)
+        {
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            void Box(ColumnDescriptor col, string title, string? text)
+            {
+                col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                {
+                    inner.Item().Background(LightGray).Padding(4).Text(title).FontSize(8).Bold().FontColor(DarkGray);
+                    inner.Item().Padding(6).Text(string.IsNullOrWhiteSpace(text) ? "—" : text).FontSize(8);
+                });
+            }
+
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(30);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
+                    page.Header().Column(col =>
+                    {
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("RITTAL CSM Plymouth").FontSize(20).Bold().FontColor(DarkGray);
+                                c.Item().Text("Team Meeting").FontSize(11).FontColor(MidGray);
+                            });
+                            row.ConstantItem(90).AlignRight().Text("Doc CI038/01/1123/CW").FontSize(7).FontColor(MidGray);
+                            row.ConstantItem(6).Background(Red);
+                        });
+                        col.Item().Height(8);
+                    });
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(6);
+
+                        col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                        {
+                            inner.Item().Background(LightGray).Padding(4).Text("MEETING DETAILS").FontSize(8).Bold().FontColor(DarkGray);
+                            inner.Item().Padding(6).Table(t =>
+                            {
+                                t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.RelativeColumn(2); cd.RelativeColumn(); cd.RelativeColumn(2); });
+                                void KV(string k, string? v) { t.Cell().Element(LabelCell).Text(k).FontSize(8); t.Cell().Element(ValueCell).Text(string.IsNullOrWhiteSpace(v) ? "—" : v).FontSize(8); }
+                                KV("Area", m.Area); KV("Shift", $"{m.Shift} {MeetingShifts.TimeFor(m.Shift)}".Trim());
+                                KV("Meeting date", m.MeetingDate.ToString("dd MMM yyyy")); KV("Date / Time", m.MeetingDateTime);
+                                KV("Supervisor", m.Supervisor); KV("Cost Centre", m.CostCentre);
+                                KV("Team", m.Team); KV("Location", m.Location);
+                                KV("Compiled on", m.CompiledOn?.ToString("dd MMM yyyy")); KV("Minutes keeper", m.MinutesKeeper);
+                            });
+                        });
+
+                        Box(col, "ACTIONS", m.Actions);
+                        Box(col, "H&S (SAFE STARTS, HAZARDS & NEAR MISSES, PRE-TASK RISK ASSESSMENT)", m.HealthSafety);
+                        Box(col, "CUSTOMER SATISFACTION", m.CustomerSatisfaction);
+                        Box(col, "KPIs", m.Kpis);
+                        Box(col, "EMPLOYEE SATISFACTION (1-TO-1s, TEAM MEETINGS, NEW ENGINEERS)", m.EmployeeSatisfaction);
+                        Box(col, "AOB", m.Aob);
+                        Box(col, "MEETING RESULTS", m.MeetingResults);
+
+                        if (problems.Count > 0)
+                        {
+                            col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                            {
+                                inner.Item().Background("#1e3a5f").Padding(4).Text("TOP 3 PROBLEMS").FontSize(8).Bold().FontColor("#fff");
+                                inner.Item().Padding(6).Table(t =>
+                                {
+                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(3); cd.RelativeColumn(2); cd.RelativeColumn(2); cd.ConstantColumn(28); });
+                                    foreach (var h in new[] { "Problem", "Action", "Responsible", "Finish", "St." })
+                                        t.Cell().Background(LightGray).Padding(3).Text(h).FontSize(7).Bold();
+                                    foreach (var p in problems)
+                                    {
+                                        t.Cell().Padding(3).Text(p.Problem ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).Text(p.Action ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).Text(p.Responsible ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).Text(p.FinishDate?.ToString("dd/MM/yy") ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).AlignCenter().Text(TeamMeetingStatus.Short(p.Status)).FontSize(8).Bold();
+                                    }
+                                });
+                            });
+                        }
+
+                        col.Item().Row(r =>
+                        {
+                            r.Spacing(6);
+                            r.RelativeItem().Element(c => AttendeeTable(c, "TEAM MEMBERS", team));
+                            r.RelativeItem().Element(c => AttendeeTable(c, "GROUP MEMBERS", group));
+                        });
+
+                        if (guests.Count > 0)
+                        {
+                            col.Item().Border(0.5f).BorderColor(BorderGray).Column(inner =>
+                            {
+                                inner.Item().Background(LightGray).Padding(4).Text("GUESTS").FontSize(8).Bold().FontColor(DarkGray);
+                                inner.Item().Padding(6).Table(t =>
+                                {
+                                    t.ColumnsDefinition(cd => { cd.RelativeColumn(2); cd.RelativeColumn(2); cd.RelativeColumn(); });
+                                    foreach (var h in new[] { "Name", "Department", "Telephone" })
+                                        t.Cell().Background(LightGray).Padding(3).Text(h).FontSize(7).Bold();
+                                    foreach (var g in guests)
+                                    {
+                                        t.Cell().Padding(3).Text(g.Name ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).Text(g.Department ?? "—").FontSize(8);
+                                        t.Cell().Padding(3).Text(g.Telephone ?? "—").FontSize(8);
+                                    }
+                                });
+                            });
+                        }
+                    });
+                    page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
+                });
+            }).GeneratePdf();
+        }
+
+        static void AttendeeTable(IContainer container, string title, List<TeamMeetingAttendee> people)
+        {
+            container.Border(0.5f).BorderColor(BorderGray).Column(inner =>
+            {
+                inner.Item().Background(LightGray).Padding(4).Text(title).FontSize(8).Bold().FontColor(DarkGray);
+                if (people.Count == 0)
+                {
+                    inner.Item().Padding(6).Text("—").FontSize(8);
+                    return;
+                }
+                inner.Item().Padding(6).Table(t =>
+                {
+                    t.ColumnsDefinition(cd => { cd.RelativeColumn(); cd.ConstantColumn(52); });
+                    foreach (var p in people)
+                    {
+                        t.Cell().PaddingVertical(2).Text(p.Name ?? "—").FontSize(8);
+                        t.Cell().PaddingVertical(2).AlignRight().Text(p.Present ? "Present" : "Absent")
+                            .FontSize(8).FontColor(p.Present ? GreenText : MidGray);
+                    }
+                });
+            });
+        }
+
         static void SeniorScoreFooter(IContainer container, int overall, string? verdict)
         {
             var color = SeniorAuditScoring.GaugeColor(overall);

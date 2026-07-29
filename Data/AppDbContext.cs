@@ -12,6 +12,7 @@ namespace TL.Data
         public DbSet<SeniorWeeklyAudit> SeniorWeeklyAudits => Set<SeniorWeeklyAudit>();
         public DbSet<HodDailyAudit> HodDailyAudits => Set<HodDailyAudit>();
         public DbSet<PickerPerson> PickerPersons => Set<PickerPerson>();
+        public DbSet<TeamMeeting> TeamMeetings => Set<TeamMeeting>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -29,6 +30,13 @@ namespace TL.Data
             mb.Entity<PickerPerson>(e =>
             {
                 e.HasIndex(p => new { p.ListKind, p.Name }).IsUnique();
+            });
+            // Non-unique index for the natural-key lookup (date + area + shift).
+            // Not unique so a concurrent insert can't hard-fail; continuity is
+            // resolved in code, matching the audit pattern.
+            mb.Entity<TeamMeeting>(e =>
+            {
+                e.HasIndex(m => new { m.MeetingDate, m.Area, m.Shift });
             });
         }
     }

@@ -1,6 +1,10 @@
 @page
 @model MeetingRotaModel
-@{ ViewData["Title"] = "Meeting Rota"; }
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Meeting Rota";
+    var camel = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+}
 
 <div class="dwrap">
 
@@ -101,6 +105,29 @@
 (function () {
     'use strict';
 
+    // Server data: meetings already recorded this week + whether this user may record.
+    var RECORDED = {};
+    (@Html.Raw(JsonSerializer.Serialize(Model.Recorded, camel))).forEach(function (r) {
+        RECORDED[r.date + '|' + r.area + '|' + r.shift] = r.id;
+    });
+    var CAN_EDIT = @(Model.CanEdit ? "true" : "false");
+    var SHIFT_NAMES = ['Nightshift', 'Dayshift', 'Backshift'];
+
+    // Clickable meeting slot: view existing (tick) or record new (＋ Record).
+    function slotCell(dateStr, area, shift, time) {
+        var rec = RECORDED[dateStr + '|' + area + '|' + shift];
+        var aff = '';
+        if (rec) {
+            aff = ' <span style="font-size:11px;margin-left:4px"><span title="Meeting recorded" style="color:#16a34a;font-weight:700">&#10003;</span> ' +
+                '<a href="/MeetingSession?id=' + rec + '" style="color:#1e3a5f;font-weight:600">View</a></span>';
+        } else if (CAN_EDIT) {
+            var href = '/MeetingSession?date=' + encodeURIComponent(dateStr) + '&area=' + encodeURIComponent(area) + '&shift=' + shift;
+            aff = ' <span style="font-size:11px;margin-left:4px"><a href="' + href + '" style="color:#CC1F2C;font-weight:700">&#65291; Record</a></span>';
+        }
+        var bg = rec ? ' style="background:#f0fdf4"' : '';
+        return '<td' + bg + '>' + time + aff + '</td>';
+    }
+
     // Area assignments by weekday (0=Mon … 4=Fri).
     var WEEK_A = ['Paint', 'Sheetmetal Weld', 'Sheetmetal Pierce & Fold', 'Assembly 1', 'Assembly 2'];
     var WEEK_B = ['Assembly 3', 'Assembly 4', 'Assembly 5', 'Spare / Catch-up', 'Spare / Catch-up'];
@@ -191,7 +218,12 @@
                 var t = timesFor(area);
                 if (t.flexible) cells = '<td>' + FLEX + '</td><td>' + FLEX + '</td><td>' + FLEX + '</td>';
                 else if (t.none) cells = '<td>&ndash;</td><td>&ndash;</td><td>&ndash;</td>';
-                else cells = '<td>' + t.night + '</td><td>' + t.day + '</td><td>' + t.back + '</td>';
+                else {
+                    var ds = ymd(d);
+                    cells = slotCell(ds, area, 'Nightshift', t.night) +
+                        slotCell(ds, area, 'Dayshift', t.day) +
+                        slotCell(ds, area, 'Backshift', t.back);
+                }
             }
             rows += '<tr' + (isToday ? ' style="background:#eff6ff"' : '') + '>' +
                 '<td style="font-weight:' + (isToday ? '700' : '500') + '">' + DAYS[i] + (isToday ? ' (today)' : '') + '</td>' +

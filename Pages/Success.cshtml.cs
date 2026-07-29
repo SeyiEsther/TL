@@ -14,11 +14,22 @@ public class SuccessModel : PageModel
     public bool IsHodDailyAudit { get; set; }
     public bool NotFoundRecord { get; set; }
     public bool IsProgressSave { get; set; }
+    public bool IsMeeting { get; set; }
     public string? HodAuditTypeLabel { get; set; }
 
-    public async Task OnGetAsync(int? id, int? hodAuditId, bool? audit, bool? saved)
+    public async Task OnGetAsync(int? id, int? hodAuditId, int? meetingId, bool? audit, bool? saved)
     {
         IsProgressSave = saved == true;
+
+        if (meetingId.HasValue)
+        {
+            var meeting = await _db.TeamMeetings.FindAsync(meetingId.Value);
+            SubmissionId = meetingId.Value;
+            IsMeeting = true;
+            NotFoundRecord = meeting == null;
+            return;
+        }
+
         if (hodAuditId.HasValue)
         {
             var hod = await _db.HodDailyAudits.FindAsync(hodAuditId.Value);

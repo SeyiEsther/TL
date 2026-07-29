@@ -19,6 +19,16 @@
                 <a asp-page="/Index" class="welcome-btn primary">Back to home</a>
             }
         }
+        else if (Model.IsMeeting)
+        {
+            <div class="success-icon">&#10003;</div>
+            <div class="success-title">Team meeting saved</div>
+            <div class="success-sub">Saved successfully.</div>
+            <div class="success-ref">Ref #@Model.SubmissionId</div>
+            <a asp-page="/MeetingSession" asp-route-id="@Model.SubmissionId" class="welcome-btn primary">View / edit meeting</a>
+            <a href="/api/meetings/@Model.SubmissionId/pdf" class="welcome-btn secondary pdf-dl" data-filename="TeamMeeting.pdf">&#8595; Download PDF</a>
+            <a asp-page="/MeetingRota" class="welcome-btn secondary">Back to Meeting Rota</a>
+        }
         else if (Model.IsProgressSave)
         {
             <div class="success-icon">&#10003;</div>
