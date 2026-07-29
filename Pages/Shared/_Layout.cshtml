@@ -30,6 +30,8 @@
         <div class="brand">RITTAL</div>
         <div class="subbrand">Production Audit System</div>
     </div>
+    <a class="tbtn @(pg == "/MeetingRota" ? "active" : "")" asp-page="/MeetingRota"
+       style="margin-left:16px;background:#CC1F2C;color:#fff;border-color:#CC1F2C;font-weight:700">Meeting Rota</a>
     <div class="topbar-right">
         @if (!string.IsNullOrEmpty(user.DisplayName))
         {
@@ -49,7 +51,6 @@
             <a class="tbtn @(isSeniorArea ? "active" : "")" asp-page="/SeniorStart">Senior</a>
         }
         <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
-        <a class="tbtn @(pg == "/MeetingRota" ? "active" : "")" asp-page="/MeetingRota">Meeting Rota</a>
         @if (PortalAccess.CanAccessManagement())
         {
             <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
