@@ -1,0 +1,248 @@
+@page
+@model MeetingRotaModel
+@{ ViewData["Title"] = "Meeting Rota"; }
+
+<div class="dwrap">
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Meeting Rota</div>
+            <div class="page-sub">Shopfloor team-meeting schedule &bull; 2-week A/B cycle</div>
+        </div>
+        <div class="ff" style="margin:0">
+            <span class="ff-label">Cycle start date</span>
+            <div class="ff-control">
+                <input type="date" id="cycleStart" class="ff-input" value="2026-08-03" style="min-width:170px">
+            </div>
+        </div>
+    </div>
+
+    <!-- This week -->
+    <div class="card" style="margin-bottom:14px;border-color:#f0c9cc">
+        <div class="card-head" style="background:#fdf2f3">
+            <span class="card-title" style="color:#CC1F2C">This week</span>
+            <span class="card-sub" id="tw-summary"></span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:720px">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Date</th>
+                        <th>Hosting area</th>
+                        <th>Nightshift <span style="font-weight:400;color:var(--muted)">(23:00&ndash;07:00)</span></th>
+                        <th>Dayshift <span style="font-weight:400;color:var(--muted)">(07:00&ndash;15:00)</span></th>
+                        <th>Backshift <span style="font-weight:400;color:var(--muted)">(15:00&ndash;23:00)</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tw-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Reference -->
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+            <span class="card-title">Meeting times by shift</span>
+            <span class="card-sub">Standard times for hosting areas</span>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-wrap:wrap;gap:14px">
+            <div style="flex:1;min-width:160px;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Nightshift</div>
+                <div style="font-size:22px;font-weight:800;color:#1e3a5f">06:45</div>
+                <div style="font-size:11px;color:var(--muted)">23:00&ndash;07:00 shift</div>
+            </div>
+            <div style="flex:1;min-width:160px;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Dayshift</div>
+                <div style="font-size:22px;font-weight:800;color:#1e3a5f">08:00</div>
+                <div style="font-size:11px;color:var(--muted)">07:00&ndash;15:00 shift</div>
+            </div>
+            <div style="flex:1;min-width:160px;border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+                <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Backshift</div>
+                <div style="font-size:22px;font-weight:800;color:#1e3a5f">15:15</div>
+                <div style="font-size:11px;color:var(--muted)">15:00&ndash;23:00 shift</div>
+            </div>
+        </div>
+        <div style="padding:0 18px 14px;font-size:12px;color:var(--muted);line-height:1.6">
+            <strong>Paint:</strong> no fixed times &mdash; <em>Flexible &ndash; agree with Team Leader</em> for all shifts.<br>
+            <strong>Spare / Catch-up:</strong> no meeting scheduled.<br>
+            <span style="display:inline-block;margin-top:4px;padding:2px 8px;border-radius:6px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700">Bank holiday</span>
+            days are flagged &mdash; the meeting is cancelled / to be rescheduled.
+        </div>
+    </div>
+
+    <!-- Full schedule -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Full schedule</span>
+            <span class="card-sub" id="grid-range"></span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:900px">
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>W/C (Mon)</th>
+                        <th>Cycle</th>
+                        <th>Monday</th>
+                        <th>Tuesday</th>
+                        <th>Wednesday</th>
+                        <th>Thursday</th>
+                        <th>Friday</th>
+                    </tr>
+                </thead>
+                <tbody id="grid-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // Area assignments by weekday (0=Mon … 4=Fri).
+    var WEEK_A = ['Paint', 'Sheetmetal Weld', 'Sheetmetal Pierce & Fold', 'Assembly 1', 'Assembly 2'];
+    var WEEK_B = ['Assembly 3', 'Assembly 4', 'Assembly 5', 'Spare / Catch-up', 'Spare / Catch-up'];
+    var FLEX = 'Flexible &ndash; agree with Team Leader';
+    var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    // Reusable UK (England & Wales) bank-holiday list, so the schedule stays
+    // correct even if the cycle start date changes. Christmas Day and New
+    // Year's Day are the ones that currently collide with the cycle.
+    var BANK_HOLIDAYS = {
+        '2026-01-01': "New Year's Day",
+        '2026-04-03': 'Good Friday',
+        '2026-04-06': 'Easter Monday',
+        '2026-05-04': 'Early May bank holiday',
+        '2026-05-25': 'Spring bank holiday',
+        '2026-08-31': 'Summer bank holiday',
+        '2026-12-25': 'Christmas Day',
+        '2026-12-28': 'Boxing Day (substitute)',
+        '2027-01-01': "New Year's Day"
+    };
+
+    var BADGE = 'display:inline-block;padding:1px 7px;border-radius:6px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700';
+
+    function mondayOf(d) {
+        var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        var off = (x.getDay() + 6) % 7; // Mon=0 … Sun=6
+        x.setDate(x.getDate() - off);
+        return x;
+    }
+    function isoWeek(d) {
+        var x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        var day = (x.getUTCDay() + 6) % 7;
+        x.setUTCDate(x.getUTCDate() - day + 3); // Thursday of this week
+        var firstThu = new Date(Date.UTC(x.getUTCFullYear(), 0, 4));
+        var fday = (firstThu.getUTCDay() + 6) % 7;
+        firstThu.setUTCDate(firstThu.getUTCDate() - fday + 3);
+        return 1 + Math.round((x - firstThu) / (7 * 86400000));
+    }
+    // Whole weeks elapsed since the cycle start → even = A, odd = B.
+    function cycleFor(weekMonday, cycleMonday) {
+        var w = Math.round((weekMonday - cycleMonday) / (7 * 86400000));
+        return (((w % 2) + 2) % 2) === 0 ? 'A' : 'B';
+    }
+    function ymd(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function ddmmyy(d) {
+        return String(d.getDate()).padStart(2, '0') + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getFullYear()).slice(2);
+    }
+    function ddmmyyyy(d) {
+        return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
+    function isBankHoliday(d) { return Object.prototype.hasOwnProperty.call(BANK_HOLIDAYS, ymd(d)); }
+    function bankHolidayName(d) { return BANK_HOLIDAYS[ymd(d)] || 'Bank holiday'; }
+
+    function timesFor(area) {
+        if (area === 'Paint') return { flexible: true };
+        if (area === 'Spare / Catch-up') return { none: true };
+        return { night: '06:45', day: '08:00', back: '15:15' };
+    }
+    function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    function cycPill(c) {
+        var bg = c === 'A' ? '#e0edff;color:#1e40af' : '#f3e8ff;color:#6b21a8';
+        return 'display:inline-block;min-width:20px;text-align:center;padding:1px 8px;border-radius:6px;font-weight:700;background:' + bg;
+    }
+
+    function renderThisWeek(cycleMonday) {
+        var now = new Date();
+        var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var wkMon = mondayOf(today);
+        var cyc = cycleFor(wkMon, cycleMonday);
+        var areas = cyc === 'A' ? WEEK_A : WEEK_B;
+
+        document.getElementById('tw-summary').innerHTML =
+            'Today: <strong>' + ddmmyyyy(today) + '</strong> &bull; ISO week <strong>' + isoWeek(today) +
+            '</strong> &bull; Cycle <strong>' + cyc + '</strong>';
+
+        var rows = '';
+        for (var i = 0; i < 5; i++) {
+            var d = addDays(wkMon, i);
+            var isToday = ymd(d) === ymd(today);
+            var area = areas[i];
+            var cells;
+            if (isBankHoliday(d)) {
+                cells = '<td colspan="3"><span style="' + BADGE + '">Bank holiday</span> ' +
+                    bankHolidayName(d) + ' &mdash; meeting cancelled / reschedule</td>';
+            } else {
+                var t = timesFor(area);
+                if (t.flexible) cells = '<td>' + FLEX + '</td><td>' + FLEX + '</td><td>' + FLEX + '</td>';
+                else if (t.none) cells = '<td>&ndash;</td><td>&ndash;</td><td>&ndash;</td>';
+                else cells = '<td>' + t.night + '</td><td>' + t.day + '</td><td>' + t.back + '</td>';
+            }
+            rows += '<tr' + (isToday ? ' style="background:#eff6ff"' : '') + '>' +
+                '<td style="font-weight:' + (isToday ? '700' : '500') + '">' + DAYS[i] + (isToday ? ' (today)' : '') + '</td>' +
+                '<td>' + ddmmyy(d) + '</td>' +
+                '<td style="font-weight:600">' + area + '</td>' + cells + '</tr>';
+        }
+        document.getElementById('tw-body').innerHTML = rows;
+    }
+
+    function renderGrid(cycleMonday, targetYear) {
+        var m = new Date(cycleMonday);
+        var curWkMon = mondayOf(new Date());
+        var rows = '';
+        var first = null, last = null;
+        while (m.getFullYear() <= targetYear) {
+            var cyc = cycleFor(m, cycleMonday);
+            var areas = cyc === 'A' ? WEEK_A : WEEK_B;
+            var wk = isoWeek(m);
+            if (first === null) first = wk;
+            last = wk;
+            var isCur = ymd(m) === ymd(curWkMon);
+            var cells = '';
+            for (var i = 0; i < 5; i++) {
+                var d = addDays(m, i);
+                var bh = isBankHoliday(d);
+                cells += '<td' + (bh ? ' style="background:#fffbeb"' : '') + '>' + areas[i] +
+                    (bh ? ' <span style="' + BADGE + '" title="' + bankHolidayName(d) + ' — meeting cancelled / reschedule">BH</span>' : '') + '</td>';
+            }
+            rows += '<tr' + (isCur ? ' style="background:#eff6ff"' : '') + '>' +
+                '<td style="font-weight:700">WK' + wk + '</td>' +
+                '<td>' + ddmmyy(m) + '</td>' +
+                '<td><span style="' + cycPill(cyc) + '">' + cyc + '</span></td>' +
+                cells + '</tr>';
+            m = addDays(m, 7);
+        }
+        document.getElementById('grid-body').innerHTML = rows;
+        document.getElementById('grid-range').textContent =
+            first !== null ? ('WK' + first + '–WK' + last + ' · ' + targetYear) : '';
+    }
+
+    function render() {
+        var val = document.getElementById('cycleStart').value;
+        if (!val) return;
+        var p = val.split('-');
+        var cs = new Date(+p[0], +p[1] - 1, +p[2]);
+        var cm = mondayOf(cs);
+        renderThisWeek(cm);
+        renderGrid(cm, cs.getFullYear());
+    }
+
+    document.getElementById('cycleStart').addEventListener('change', render);
+    render();
+})();
+</script>

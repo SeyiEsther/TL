@@ -20,6 +20,7 @@ public class PortalAccessServiceTests
         Assert.True(access.CanAccessPage("/Index"));
         Assert.True(access.CanAccessPage("/Form"));
         Assert.True(access.CanAccessPage("/History")); // history is viewable by everyone
+        Assert.True(access.CanAccessPage("/MeetingRota")); // reference page, no role restriction
         Assert.False(access.CanAccessPage("/ShiftHistory"));
         Assert.False(access.CanAccessPage("/HodHistory"));
         Assert.False(access.CanAccessPage("/Today"));
