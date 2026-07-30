@@ -1,0 +1,78 @@
+@page
+@model MeetingHistoryModel
+@{
+    ViewData["Title"] = "Meeting History";
+}
+
+<div class="dwrap">
+
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Meeting History</div>
+            <div class="page-sub">Recorded team meetings &bull; grouped by rota week &amp; A/B cycle</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+            <a class="tbtn" asp-page="/MeetingRota">Rota</a>
+            <a class="tbtn active" asp-page="/MeetingHistory">History</a>
+        </div>
+    </div>
+
+    @if (Model.TotalMeetings == 0)
+    {
+        <div class="card">
+            <div style="padding:28px 18px;text-align:center;color:var(--muted)">
+                No team meetings have been recorded yet. Record one from the
+                <a asp-page="/MeetingRota" style="color:#CC1F2C;font-weight:600">Meeting Rota</a>.
+            </div>
+        </div>
+    }
+    else
+    {
+        @foreach (var wk in Model.Weeks)
+        {
+            var cycBg = wk.Cycle == "A" ? "#e0edff;color:#1e40af" : "#f3e8ff;color:#6b21a8";
+            <div class="card" style="margin-bottom:14px">
+                <div class="card-head">
+                    <span class="card-title">Week @wk.WeekNumber
+                        <span style="font-weight:400;color:var(--muted)">&middot; @wk.Start.ToString("d MMM")–@wk.End.ToString("d MMM yyyy")</span>
+                    </span>
+                    <span class="card-sub">
+                        <span style="display:inline-block;min-width:20px;text-align:center;padding:1px 8px;border-radius:6px;font-weight:700;background:@cycBg">Cycle @wk.Cycle</span>
+                        <span style="margin-left:8px">@wk.Meetings.Count meeting@(wk.Meetings.Count == 1 ? "" : "s")</span>
+                    </span>
+                </div>
+                <div style="overflow-x:auto">
+                    <table class="dash-table" style="min-width:640px">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Hosting area</th>
+                                <th>Shift</th>
+                                <th>Last edited by</th>
+                                <th>When</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in wk.Meetings)
+                            {
+                                <tr>
+                                    <td style="font-weight:600">@m.Date.ToString("ddd dd MMM")</td>
+                                    <td>@m.Area</td>
+                                    <td>@m.Shift</td>
+                                    <td>@m.By</td>
+                                    <td style="color:var(--muted)">@m.When.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                    <td style="white-space:nowrap">
+                                        <a href="/MeetingSession?id=@m.Id" style="color:#1e3a5f;font-weight:600">View</a>
+                                        <span style="color:var(--border);margin:0 4px">|</span>
+                                        <a href="/api/meetings/@m.Id/pdf" style="color:#CC1F2C;font-weight:600">PDF</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>

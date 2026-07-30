@@ -8,6 +8,13 @@ namespace TL.Services
 {
     public class PdfExportService
     {
+        private readonly DocumentNumberService? _docs;
+        // Optional so tests can construct the service without a database; DI
+        // always supplies it in the running app.
+        public PdfExportService(DocumentNumberService? docs = null) => _docs = docs;
+
+        private string DocNo(string formType) => _docs?.Get(formType) ?? "";
+
         private static readonly string Red = "#CC1F2C";
         private static readonly string DarkGray = "#1a1a1a";
         private static readonly string MidGray = "#6b7280";
@@ -386,10 +393,16 @@ namespace TL.Services
                     });
 
                     // ── Footer ───────────────────────────────────────────────
+                    var hodDocNo = DocNo(DocumentFormTypes.HodDaily);
                     page.Footer().PaddingTop(6).BorderTop(0.5f).BorderColor(BorderGray).Row(row =>
                     {
-                        row.RelativeItem().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC")
-                            .FontSize(7).FontColor(MidGray);
+                        row.RelativeItem().Text(txt =>
+                        {
+                            txt.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC")
+                                .FontSize(7).FontColor(MidGray);
+                            if (!string.IsNullOrWhiteSpace(hodDocNo))
+                                txt.Span($"   ·   Doc no. {hodDocNo}").FontSize(7).FontColor(MidGray);
+                        });
                         row.AutoItem().Text(txt =>
                         {
                             txt.Span("Page ").FontSize(7).FontColor(MidGray);
@@ -557,7 +570,13 @@ namespace TL.Services
 
                         col.Item().Element(c => SeniorScoreFooter(c, overall, a.OverallVerdict));
                     });
-                    page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
+                    var seniorDocNo = DocNo(DocumentFormTypes.SeniorWeekly);
+                    page.Footer().AlignCenter().Text(txt =>
+                    {
+                        txt.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
+                        if (!string.IsNullOrWhiteSpace(seniorDocNo))
+                            txt.Span($"   ·   Doc no. {seniorDocNo}").FontSize(8).FontColor(MidGray);
+                    });
                 });
             }).GeneratePdf();
         }
@@ -575,6 +594,7 @@ namespace TL.Services
             const string bannerTop = "#6b6b8f";
             const string hair = "#e5e7eb";
 
+            var docNo = DocNo(DocumentFormTypes.TeamMeeting);
             string V(string? s) => string.IsNullOrWhiteSpace(s) ? "" : s.Trim();
 
             return Document.Create(container =>
@@ -584,6 +604,7 @@ namespace TL.Services
                     page.Size(PageSizes.A4);
                     page.Margin(26);
                     page.DefaultTextStyle(x => x.FontSize(8.2f).FontFamily("Arial").FontColor(ink));
+                    page.Footer().Element(c => DocFooter(c, docNo));
 
                     page.Content().Column(col =>
                     {
@@ -619,8 +640,11 @@ namespace TL.Services
                                 });
                             });
                         });
-                        col.Item().PaddingTop(3).PaddingBottom(8).AlignRight()
-                            .Text("Doc no. CI038/01/1123/CW").FontSize(7f).FontColor(meta);
+                        if (!string.IsNullOrWhiteSpace(docNo))
+                            col.Item().PaddingTop(3).PaddingBottom(8).AlignRight()
+                                .Text("Doc no. " + docNo).FontSize(7f).FontColor(meta);
+                        else
+                            col.Item().PaddingBottom(4);
 
                         // ---- Meeting details ----
                         col.Item().Table(t =>
@@ -778,7 +802,7 @@ namespace TL.Services
                     page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
                     page.Header().Element(ComposeHeader);
                     page.Content().Element(c => ComposeContent(c, s));
-                    page.Footer().Element(ComposeFooter);
+                    page.Footer().Element(c => ComposeFooter(c, DocNo(DocumentFormTypes.Shift)));
                 });
             });
 
@@ -919,12 +943,36 @@ namespace TL.Services
             });
         }
 
-        static void ComposeFooter(IContainer c)
+        static void ComposeFooter(IContainer c, string? docNo)
         {
-            c.Row(row =>
+            c.PaddingTop(6).BorderTop(0.5f).BorderColor("#e5e7eb").PaddingTop(6).Row(row =>
             {
                 row.RelativeItem().Text(t =>
                     t.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor("#6b7280").FontSize(8));
+                if (!string.IsNullOrWhiteSpace(docNo))
+                    row.AutoItem().AlignRight().Text(t =>
+                        t.Span("Doc no. " + docNo).FontColor("#6b7280").FontSize(8));
+            });
+        }
+
+        // Shared footer for documents that render their own header (e.g. the
+        // Team Meeting form): controlled-doc number left, page numbers right.
+        static void DocFooter(IContainer c, string? docNo)
+        {
+            c.PaddingTop(6).BorderTop(0.5f).BorderColor("#e5e7eb").PaddingTop(6).Row(row =>
+            {
+                row.RelativeItem().Text(t =>
+                {
+                    if (!string.IsNullOrWhiteSpace(docNo))
+                        t.Span("Doc no. " + docNo).FontColor("#6b7280").FontSize(8);
+                });
+                row.AutoItem().AlignRight().Text(t =>
+                {
+                    t.Span("Page ").FontColor("#6b7280").FontSize(8);
+                    t.CurrentPageNumber().FontColor("#6b7280").FontSize(8);
+                    t.Span(" of ").FontColor("#6b7280").FontSize(8);
+                    t.TotalPages().FontColor("#6b7280").FontSize(8);
+                });
             });
         }
 

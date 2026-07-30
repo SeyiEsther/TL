@@ -40,6 +40,7 @@ builder.Services.AddScoped<PortalAccessService>();
 builder.Services.AddScoped<PersonListService>();
 builder.Services.AddScoped<RecordDeleteService>();
 builder.Services.AddScoped<HistoryListService>();
+builder.Services.AddScoped<DocumentNumberService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddScoped<ShiftCompletionService>();
 builder.Services.AddScoped<ShiftResumeService>();
@@ -89,6 +90,9 @@ using (var scope = app.Services.CreateScope())
 
     var people = scope.ServiceProvider.GetRequiredService<PersonListService>();
     await people.EnsureLoadedAsync();
+
+    var docs = scope.ServiceProvider.GetRequiredService<DocumentNumberService>();
+    await docs.EnsureSeededAsync();
 }
 
 app.UseStaticFiles();

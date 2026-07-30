@@ -30,6 +30,41 @@
         </div>
     </div>
 
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
+            <span class="card-title">Document numbers</span>
+            <span class="card-sub">Printed in each PDF footer</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:560px">
+                <thead>
+                    <tr>
+                        <th>Form</th>
+                        <th>Document number</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model.DocumentNumbers)
+                    {
+                        <tr>
+                            <td style="font-weight:600">@d.Label</td>
+                            <td colspan="2">
+                                <form method="post" asp-page-handler="UpdateDocNumber"
+                                      style="display:flex;gap:8px;align-items:center">
+                                    <input type="hidden" name="id" value="@d.Id" />
+                                    <input type="text" name="number" value="@d.Number" placeholder="e.g. CI038/01/1123/CW"
+                                           class="ff-input" style="max-width:260px" />
+                                    <button type="submit" class="sbtn sm primary">Save</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-head">
             <span class="card-title">In-progress shifts</span>

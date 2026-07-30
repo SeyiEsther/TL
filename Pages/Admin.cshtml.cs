@@ -11,16 +11,19 @@ public class AdminModel : PageModel
     private readonly AppDbContext _db;
     private readonly AdminService _admin;
     private readonly RecordDeleteService _delete;
+    private readonly DocumentNumberService _docs;
 
-    public AdminModel(AppDbContext db, AdminService admin, RecordDeleteService delete)
+    public AdminModel(AppDbContext db, AdminService admin, RecordDeleteService delete, DocumentNumberService docs)
     {
         _db = db;
         _admin = admin;
         _delete = delete;
+        _docs = docs;
     }
 
     public string? StatusMessage { get; set; }
     public List<InProgressShiftRow> InProgressShifts { get; set; } = [];
+    public List<TL.Models.DocumentNumber> DocumentNumbers { get; set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string? saved)
     {
@@ -30,8 +33,11 @@ public class AdminModel : PageModel
         StatusMessage = saved switch
         {
             "deleted" => "Record deleted.",
+            "docnum" => "Document number updated.",
             _ => null,
         };
+
+        DocumentNumbers = await _docs.AllAsync();
 
         InProgressShifts = await _db.ShiftSubmissions
             .ExcludeAudits()
@@ -59,6 +65,15 @@ public class AdminModel : PageModel
 
         var ok = await _delete.DeleteShiftSubmissionAsync(id);
         return RedirectToPage(new { saved = ok ? "deleted" : null });
+    }
+
+    public async Task<IActionResult> OnPostUpdateDocNumberAsync(int id, string? number)
+    {
+        if (!_admin.IsAdmin())
+            return RedirectToPage("/Index");
+
+        await _docs.UpdateAsync(id, number);
+        return RedirectToPage(new { saved = "docnum" });
     }
 
     public static string PersonLabel(string teamLeader, string? coveringFor) =>

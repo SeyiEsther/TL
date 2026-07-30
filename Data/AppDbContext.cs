@@ -13,6 +13,7 @@ namespace TL.Data
         public DbSet<HodDailyAudit> HodDailyAudits => Set<HodDailyAudit>();
         public DbSet<PickerPerson> PickerPersons => Set<PickerPerson>();
         public DbSet<TeamMeeting> TeamMeetings => Set<TeamMeeting>();
+        public DbSet<DocumentNumber> DocumentNumbers => Set<DocumentNumber>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -43,6 +44,13 @@ namespace TL.Data
                 e.Property(m => m.Area).HasMaxLength(200);
                 e.Property(m => m.Shift).HasMaxLength(30);
                 e.HasIndex(m => new { m.MeetingDate, m.Area, m.Shift });
+            });
+            mb.Entity<DocumentNumber>(e =>
+            {
+                e.Property(d => d.FormType).HasMaxLength(60);
+                e.Property(d => d.Label).HasMaxLength(120);
+                e.Property(d => d.Number).HasMaxLength(120);
+                e.HasIndex(d => d.FormType).IsUnique();
             });
         }
     }
