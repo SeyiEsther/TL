@@ -8,8 +8,70 @@
     string J(object o) => System.Text.Json.JsonSerializer.Serialize(o, jsonOpts);
 }
 
-<div class="dwrap">
-    <div class="page-head" style="margin-bottom:14px">
+<style>
+    .mtg { max-width: 1040px; margin: 0 auto; }
+    .mtg-slot { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 16px; }
+    .mtg-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+        padding: 6px 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--border); color: var(--ink); }
+    .mtg-chip.red { background: var(--red); border-color: var(--red); color: #fff; }
+    .mtg-chip .k { font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
+    .mtg-chip.red .k { color: rgba(255,255,255,.75); }
+
+    .mtg-field { display: flex; flex-direction: column; gap: 5px; }
+    .mtg-field > label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+    .mtg-in, .mtg-sel, .mtg-ta {
+        width: 100%; border: 1px solid var(--border); border-radius: 10px; font-size: 13px;
+        font-family: inherit; color: var(--ink); background: var(--white); padding: 10px 12px;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .mtg-in:focus, .mtg-sel:focus, .mtg-ta:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(204,31,44,.12); }
+    .mtg-ta { min-height: 84px; line-height: 1.5; resize: vertical; }
+    fieldset[disabled] .mtg-in, fieldset[disabled] .mtg-sel, fieldset[disabled] .mtg-ta { background: var(--surface); color: var(--muted); }
+
+    .mtg-hdr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 16px 18px; }
+    .mtg-topics { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px 18px; }
+    .mtg-sec { display: flex; flex-direction: column; gap: 6px; }
+    .mtg-sec-head { display: flex; align-items: center; gap: 8px; }
+    .mtg-num { flex: none; width: 22px; height: 22px; border-radius: 6px; background: #1e3a5f; color: #fff;
+        font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .mtg-sec-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .mtg-sec-hint { font-size: 11px; color: var(--muted); margin: 0 0 1px 30px; line-height: 1.4; }
+
+    .mtg-prob { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; }
+    .mtg-prob-row { display: grid; grid-template-columns: 30px 1.4fr 1.4fr 1fr 130px 160px; gap: 8px; align-items: center; }
+    .mtg-prob-row .rn { width: 24px; height: 24px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border);
+        font-size: 12px; font-weight: 700; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; }
+    .mtg-prob-head { font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+
+    .mtg-att-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 16px 18px; }
+    .mtg-att { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .mtg-att-head { background: var(--surface); padding: 8px 12px; font-size: 12px; font-weight: 700;
+        display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+    .mtg-att-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+    .attend-row { display: flex; gap: 8px; align-items: center; }
+    .attend-row .mtg-in { padding: 8px 10px; }
+    .mtg-present { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+        white-space: nowrap; color: var(--ink); user-select: none; }
+    .mtg-present input { width: 16px; height: 16px; accent-color: #16a34a; }
+    .del-row { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border);
+        background: var(--white); color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer; }
+    .del-row:hover { background: var(--red-bg); border-color: #fca5a5; color: var(--red-text); }
+    .mtg-add { align-self: flex-start; }
+
+    .mtg-actionbar { position: sticky; bottom: 0; z-index: 5; margin-top: 16px; padding: 12px 16px;
+        background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border: 1px solid var(--border);
+        border-radius: 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 -4px 18px rgba(15,17,23,.06); }
+    .mtg-note { font-size: 11px; color: var(--muted); font-style: italic; padding: 0 18px 14px; line-height: 1.5; }
+
+    @@media (max-width: 720px) {
+        .mtg-hdr-grid, .mtg-topics, .mtg-att-wrap { grid-template-columns: 1fr; }
+        .mtg-prob-row { grid-template-columns: 24px 1fr 1fr; }
+        .mtg-prob-row .p-finish, .mtg-prob-row .p-status { grid-column: 2 / 4; }
+    }
+</style>
+
+<div class="dwrap mtg">
+    <div class="page-head" style="margin-bottom:6px">
         <div>
             <div class="page-title" style="font-size:18px;font-weight:700">Team Meeting</div>
             <div class="page-sub">RITTAL-CSM Ltd, Plymouth &bull; Invitation for Team Meeting &bull; doc CI038/01/1123/CW</div>
@@ -24,6 +86,16 @@
         </div>
         return;
     }
+
+    <div class="mtg-slot">
+        <span class="mtg-chip red"><span class="k">Area</span> @Model.Area</span>
+        <span class="mtg-chip"><span class="k">Shift</span> @Model.Shift@(string.IsNullOrEmpty(Model.ShiftTime) ? "" : " · " + Model.ShiftTime)</span>
+        <span class="mtg-chip"><span class="k">Date</span> @Model.MeetingDate</span>
+        @if (Model.EditingId.HasValue)
+        {
+            <span class="mtg-chip"><span class="k">Ref</span> #@Model.EditingId</span>
+        }
+    </div>
 
     @if (!Model.CanEdit)
     {
@@ -50,45 +122,56 @@
 
             <!-- Header -->
             <div class="card" style="margin-bottom:14px">
-                <div class="card-head">
-                    <span class="card-title">Meeting session</span>
-                    <span class="card-sub">@Model.Area &bull; @Model.Shift @(string.IsNullOrEmpty(Model.ShiftTime) ? "" : "(" + Model.ShiftTime + ")") &bull; @Model.MeetingDate</span>
-                </div>
-                <div style="padding:14px 18px">
-                    <div class="sf-row" style="margin-bottom:12px">
-                        <div class="fl"><label>Supervisor</label><input type="text" name="Supervisor" value="@Model.Supervisor"></div>
-                        <div class="fl"><label>Cost Centre</label><input type="text" name="CostCentre" value="@Model.CostCentre"></div>
-                    </div>
-                    <div class="sf-row" style="margin-bottom:12px">
-                        <div class="fl"><label>Team / Area</label><input type="text" name="Team" value="@Model.Team"></div>
-                        <div class="fl"><label>Location</label><input type="text" name="Location" value="@Model.Location"></div>
-                    </div>
-                    <div class="sf-row">
-                        <div class="fl"><label>Compiled on</label><input type="date" name="CompiledOn" value="@Model.CompiledOn"></div>
-                        <div class="fl"><label>Date / Time</label><input type="text" name="MeetingDateTime" value="@Model.MeetingDateTime"></div>
-                    </div>
+                <div class="card-head"><span class="card-title">Meeting details</span></div>
+                <div class="mtg-hdr-grid">
+                    <div class="mtg-field"><label>Supervisor</label><input type="text" class="mtg-in" name="Supervisor" value="@Model.Supervisor"></div>
+                    <div class="mtg-field"><label>Cost Centre</label><input type="text" class="mtg-in" name="CostCentre" value="@Model.CostCentre"></div>
+                    <div class="mtg-field"><label>Team</label><input type="text" class="mtg-in" name="Team" value="@Model.Team"></div>
+                    <div class="mtg-field"><label>Location</label><input type="text" class="mtg-in" name="Location" value="@Model.Location"></div>
+                    <div class="mtg-field"><label>Compiled on</label><input type="date" class="mtg-in" name="CompiledOn" value="@Model.CompiledOn"></div>
+                    <div class="mtg-field"><label>Date / Time</label><input type="text" class="mtg-in" name="MeetingDateTime" value="@Model.MeetingDateTime"></div>
                 </div>
             </div>
 
             <!-- Content sections -->
             <div class="card" style="margin-bottom:14px">
-                <div class="card-head"><span class="card-title">Meeting content</span></div>
-                <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
-                    <div class="fl" style="margin:0"><label>Actions</label><textarea name="Actions" rows="2">@Model.Actions</textarea></div>
-                    <div class="fl" style="margin:0"><label>H&amp;S <span style="font-weight:400;color:var(--muted)">— prevention: safe starts, hazards &amp; near misses, pre-task risk assessment</span></label><textarea name="HealthSafety" rows="2">@Model.HealthSafety</textarea></div>
-                    <div class="fl" style="margin:0"><label>Customer Satisfaction</label><textarea name="CustomerSatisfaction" rows="2">@Model.CustomerSatisfaction</textarea></div>
-                    <div class="fl" style="margin:0"><label>KPIs</label><textarea name="Kpis" rows="2">@Model.Kpis</textarea></div>
-                    <div class="fl" style="margin:0"><label>Employee Satisfaction <span style="font-weight:400;color:var(--muted)">— 1-to-1s &amp; team meetings, new engineers</span></label><textarea name="EmployeeSatisfaction" rows="2">@Model.EmployeeSatisfaction</textarea></div>
-                    <div class="fl" style="margin:0"><label>AOB</label><textarea name="Aob" rows="2">@Model.Aob</textarea></div>
+                <div class="card-head"><span class="card-title">Meeting content</span><span class="card-sub">Fill what's relevant — all optional</span></div>
+                <div class="mtg-topics">
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">1</span><span class="mtg-sec-title">Actions</span></div>
+                        <textarea class="mtg-ta" name="Actions">@Model.Actions</textarea>
+                    </div>
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">2</span><span class="mtg-sec-title">H&amp;S</span></div>
+                        <div class="mtg-sec-hint">Focus on prevention — safe starts, hazards &amp; near misses, pre-task risk assessment.</div>
+                        <textarea class="mtg-ta" name="HealthSafety">@Model.HealthSafety</textarea>
+                    </div>
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">3</span><span class="mtg-sec-title">Customer Satisfaction</span></div>
+                        <textarea class="mtg-ta" name="CustomerSatisfaction">@Model.CustomerSatisfaction</textarea>
+                    </div>
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">4</span><span class="mtg-sec-title">KPIs</span></div>
+                        <textarea class="mtg-ta" name="Kpis">@Model.Kpis</textarea>
+                    </div>
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">5</span><span class="mtg-sec-title">Employee Satisfaction</span></div>
+                        <div class="mtg-sec-hint">1-to-1s &amp; team meetings, new engineers.</div>
+                        <textarea class="mtg-ta" name="EmployeeSatisfaction">@Model.EmployeeSatisfaction</textarea>
+                    </div>
+                    <div class="mtg-sec">
+                        <div class="mtg-sec-head"><span class="mtg-num">6</span><span class="mtg-sec-title">AOB</span></div>
+                        <textarea class="mtg-ta" name="Aob">@Model.Aob</textarea>
+                    </div>
                 </div>
             </div>
 
             <!-- Results -->
             <div class="card" style="margin-bottom:14px">
                 <div class="card-head"><span class="card-title">Meeting results</span></div>
-                <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px">
-                    <div class="fl" style="margin:0"><label>Results</label><textarea name="MeetingResults" rows="3">@Model.MeetingResults</textarea></div>
-                    <div class="fl" style="margin:0;max-width:320px"><label>Minutes keeper</label><input type="text" name="MinutesKeeper" value="@Model.MinutesKeeper"></div>
+                <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+                    <div class="mtg-field"><label>Results</label><textarea class="mtg-ta" style="min-height:110px" name="MeetingResults">@Model.MeetingResults</textarea></div>
+                    <div class="mtg-field" style="max-width:340px"><label>Minutes keeper</label><input type="text" class="mtg-in" name="MinutesKeeper" value="@Model.MinutesKeeper"></div>
                 </div>
             </div>
 
@@ -96,68 +179,74 @@
             <div class="card" style="margin-bottom:14px">
                 <div class="card-head">
                     <span class="card-title">Top 3 problems</span>
-                    <span class="card-sub">Status 0 &rarr; 4 (identified &rarr; standardised)</span>
+                    <span class="card-sub">Status 0 → 4 · identified → standardised</span>
                 </div>
                 <div style="overflow-x:auto">
-                    <table class="dash-table" style="min-width:820px">
-                        <thead>
-                            <tr><th>Problem</th><th>Action</th><th>Responsible</th><th>Finish date</th><th>Status</th></tr>
-                        </thead>
-                        <tbody id="prob-body">
+                    <div class="mtg-prob" style="min-width:760px">
+                        <div class="mtg-prob-row mtg-prob-head">
+                            <span></span><span>Problem</span><span>Action</span><span>Responsible</span><span>Finish date</span><span>Status</span>
+                        </div>
+                        <div id="prob-body" style="display:flex;flex-direction:column;gap:10px">
                             @for (var i = 0; i < 3; i++)
                             {
                                 var p = i < Model.Problems.Count ? Model.Problems[i] : new TeamMeetingProblem();
-                                <tr class="prob-row">
-                                    <td><input type="text" class="p-problem" value="@p.Problem" style="width:100%"></td>
-                                    <td><input type="text" class="p-action" value="@p.Action" style="width:100%"></td>
-                                    <td><input type="text" class="p-resp" value="@p.Responsible" style="width:100%"></td>
-                                    <td><input type="date" class="p-finish" value="@(p.FinishDate?.ToString("yyyy-MM-dd"))"></td>
-                                    <td>
-                                        <select class="p-status">
-                                            @foreach (var s in TeamMeetingStatus.All)
-                                            {
-                                                <option value="@s.Value" selected="@(p.Status == s.Value ? "selected" : null)">@s.Label</option>
-                                            }
-                                        </select>
-                                    </td>
-                                </tr>
+                                <div class="mtg-prob-row prob-row">
+                                    <span class="rn">@(i + 1)</span>
+                                    <input type="text" class="mtg-in p-problem" value="@p.Problem" placeholder="Problem…">
+                                    <input type="text" class="mtg-in p-action" value="@p.Action" placeholder="Action…">
+                                    <input type="text" class="mtg-in p-resp" value="@p.Responsible" placeholder="Who…">
+                                    <input type="date" class="mtg-in p-finish" value="@(p.FinishDate?.ToString("yyyy-MM-dd"))">
+                                    <select class="mtg-sel p-status">
+                                        @foreach (var s in TeamMeetingStatus.All)
+                                        {
+                                            <option value="@s.Value" selected="@(p.Status == s.Value ? "selected" : null)">@s.Label</option>
+                                        }
+                                    </select>
+                                </div>
                             }
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Attendance -->
             <div class="card">
                 <div class="card-head"><span class="card-title">Attendance</span></div>
-                <div style="padding:14px 18px;display:flex;flex-direction:column;gap:16px">
-                    <div>
-                        <div style="font-weight:600;margin-bottom:6px">Team members</div>
-                        <div id="team-rows"></div>
-                        <button type="button" class="sbtn sm add-row" data-target="team-rows" data-kind="present">+ Add team member</button>
+                <div class="mtg-att-wrap">
+                    <div class="mtg-att">
+                        <div class="mtg-att-head">Team members</div>
+                        <div class="mtg-att-body">
+                            <div id="team-rows"></div>
+                            <button type="button" class="sbtn sm add-row mtg-add" data-target="team-rows" data-kind="present">+ Add team member</button>
+                        </div>
                     </div>
-                    <div>
-                        <div style="font-weight:600;margin-bottom:6px">Group members</div>
-                        <div id="group-rows"></div>
-                        <button type="button" class="sbtn sm add-row" data-target="group-rows" data-kind="present">+ Add group member</button>
+                    <div class="mtg-att">
+                        <div class="mtg-att-head">Group members</div>
+                        <div class="mtg-att-body">
+                            <div id="group-rows"></div>
+                            <button type="button" class="sbtn sm add-row mtg-add" data-target="group-rows" data-kind="present">+ Add group member</button>
+                        </div>
                     </div>
-                    <div>
-                        <div style="font-weight:600;margin-bottom:6px">Guests</div>
-                        <div id="guest-rows"></div>
-                        <button type="button" class="sbtn sm add-row" data-target="guest-rows" data-kind="guest">+ Add guest</button>
+                    <div class="mtg-att" style="grid-column:1 / -1">
+                        <div class="mtg-att-head">Guests</div>
+                        <div class="mtg-att-body">
+                            <div id="guest-rows"></div>
+                            <button type="button" class="sbtn sm add-row mtg-add" data-target="guest-rows" data-kind="guest">+ Add guest</button>
+                        </div>
                     </div>
-                    <div style="font-size:11px;color:var(--muted);font-style:italic">
-                        Absent team members are to be informed at the next attendance and are to sign and place the date in the &ldquo;present&rdquo; column.
-                    </div>
+                </div>
+                <div class="mtg-note">
+                    Absent team members are to be informed at the next attendance and are to sign and place the date in the &ldquo;present&rdquo; column.
                 </div>
             </div>
         </fieldset>
 
         @if (Model.CanEdit)
         {
-            <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
+            <div class="mtg-actionbar">
                 <button type="submit" class="sbtn primary">Save meeting</button>
                 <a asp-page="/MeetingRota" class="sbtn">Cancel</a>
+                <span style="font-size:11px;color:var(--muted);margin-left:auto">Saved to the shared record for this area, shift &amp; date.</span>
             </div>
         }
     </form>
@@ -175,19 +264,18 @@
 
     function presentRow(a) {
         a = a || {};
-        return '<div class="attend-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
-            '<input type="text" class="a-name" placeholder="Name" value="' + esc(a.name) + '" style="flex:1;min-width:160px">' +
-            '<label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap">' +
-            '<input type="checkbox" class="a-present"' + (a.present ? ' checked' : '') + '> Present</label>' +
-            '<button type="button" class="sbtn sm del-row" title="Remove">&times;</button></div>';
+        return '<div class="attend-row">' +
+            '<input type="text" class="mtg-in a-name" placeholder="Name" value="' + esc(a.name) + '" style="flex:1;min-width:150px">' +
+            '<label class="mtg-present"><input type="checkbox" class="a-present"' + (a.present ? ' checked' : '') + '> Present</label>' +
+            '<button type="button" class="del-row" title="Remove">&times;</button></div>';
     }
     function guestRow(g) {
         g = g || {};
-        return '<div class="attend-row" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
-            '<input type="text" class="g-name" placeholder="Name" value="' + esc(g.name) + '" style="flex:1;min-width:130px">' +
-            '<input type="text" class="g-dept" placeholder="Department" value="' + esc(g.department) + '" style="flex:1;min-width:130px">' +
-            '<input type="text" class="g-tel" placeholder="Telephone" value="' + esc(g.telephone) + '" style="flex:1;min-width:120px">' +
-            '<button type="button" class="sbtn sm del-row" title="Remove">&times;</button></div>';
+        return '<div class="attend-row">' +
+            '<input type="text" class="mtg-in g-name" placeholder="Name" value="' + esc(g.name) + '" style="flex:1.2;min-width:120px">' +
+            '<input type="text" class="mtg-in g-dept" placeholder="Department" value="' + esc(g.department) + '" style="flex:1;min-width:110px">' +
+            '<input type="text" class="mtg-in g-tel" placeholder="Telephone" value="' + esc(g.telephone) + '" style="flex:1;min-width:110px">' +
+            '<button type="button" class="del-row" title="Remove">&times;</button></div>';
     }
 
     function fill(id, list, kind) {
