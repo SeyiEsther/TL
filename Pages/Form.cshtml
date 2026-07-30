@@ -5,6 +5,7 @@
     ViewData["Title"] = "Hourly Check";
     var H = Model.Hours;
     HourInput hd(int i) => i < Model.H.Count ? Model.H[i] : new HourInput();
+    var isAssembly = AreaList.IsInDepartment(Model.Area, "Assembly");
 }
 
 <div class="page">
@@ -115,6 +116,11 @@
                         "Any instance of non-compliance was identified and acted on"); }
                     @{ await RenderYN("Do the tools match the inspection plan?", "Qiplan", h => hd(h).Qiplan,
                         "No non-conforming tools e.g. tape measure"); }
+                    @if (isAssembly)
+                    {
+                        await RenderYN("Is pre-kitting and break in work processes being followed?", "Pkb", h => hd(h).Pkb,
+                            "Are all pre-kitting processes being followed, bins being returned empty etc… / If work is stopped are break cards being used correctly");
+                    }
                     @{ await RenderNote("Description", "Qnote", h => hd(h).Qnote); }
 
                     <tr class="sec-row perf"><td class="acc"></td><td colspan="@H">Performance</td></tr>

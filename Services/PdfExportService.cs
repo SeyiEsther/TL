@@ -816,6 +816,8 @@ namespace TL.Services
                                     BoolRow(t, "Deviations escalated", h.DeviationsEscalated);
                                     BoolRow(t, "Non-compliance addressed", h.NonComplianceAddressed);
                                     BoolRow(t, "Tools match inspection plan", h.ToolsMatchInspectionPlan);
+                                    if (h.PreKitBreakInFollowed.HasValue)
+                                        BoolRow(t, "Pre-kitting & break-in processes followed", h.PreKitBreakInFollowed);
                                     BoolRow(t, "Hourly target achieved", h.HourlyTargetAchieved);
                                     BoolRow(t, "Maintenance issues", h.MaintenanceIssues);
                                     BoolRow(t, "Materials available", h.MaterialsAvailable);

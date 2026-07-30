@@ -10,6 +10,7 @@ public class HourInput
     public bool? Dev { get; set; }
     public bool? Nc { get; set; }
     public bool? Qiplan { get; set; }
+    public bool? Pkb { get; set; } // Assembly-only: pre-kitting & break-in processes
     public string? Qnote { get; set; }
     public bool? Tgt { get; set; }
     public bool? Maint { get; set; }
@@ -33,7 +34,7 @@ public class HourInput
     public bool HasAnyData() =>
         Haz.HasValue || Uns.HasValue || Pos.HasValue || Qchk.HasValue || Dev.HasValue || Nc.HasValue || Qiplan.HasValue
         || Tgt.HasValue || Maint.HasValue || Mat.HasValue || Tools.HasValue || Escl.HasValue
-        || Pconf.HasValue || Pid.HasValue || Ncp.HasValue || Sixs.HasValue || Tpm.HasValue
+        || Pconf.HasValue || Pid.HasValue || Ncp.HasValue || Sixs.HasValue || Tpm.HasValue || Pkb.HasValue
         || Wb.HasValue || Sup.HasValue || Acc.HasValue
         || !string.IsNullOrWhiteSpace(Snote) || !string.IsNullOrWhiteSpace(Qnote)
         || !string.IsNullOrWhiteSpace(Pnote) || !string.IsNullOrWhiteSpace(Mnote)

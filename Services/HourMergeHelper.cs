@@ -38,6 +38,10 @@ public static class HourMergeHelper
         // Never wipe them on replaceAll when the posted form left them unanswered.
         if (inp.Sixs.HasValue) existing.SixSCompleted = inp.Sixs;
         if (inp.Tpm.HasValue) existing.TPMCompleted = inp.Tpm;
+        // Assembly-only pre-kitting/break-in check; optional, so only set when
+        // answered — a non-Assembly form never renders/posts it, so this leaves
+        // it untouched rather than wiping it on replaceAll.
+        if (inp.Pkb.HasValue) existing.PreKitBreakInFollowed = inp.Pkb;
 
         if (replaceAll) existing.SafetyNotes = inp.Snote;
         else if (!string.IsNullOrWhiteSpace(inp.Snote)) existing.SafetyNotes = inp.Snote;

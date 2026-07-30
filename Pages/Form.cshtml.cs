@@ -403,7 +403,7 @@ public class FormModel : PageModel
     {
         Haz = h.HazardsObserved, Uns = h.UnsafeBehaviours, Pos = h.PositiveBehaviours, Snote = h.SafetyNotes,
         Qchk = h.QualityChecksCompleted, Dev = h.DeviationsEscalated, Nc = h.NonComplianceAddressed,
-        Qiplan = h.ToolsMatchInspectionPlan, Qnote = h.QualityNotes,
+        Qiplan = h.ToolsMatchInspectionPlan, Pkb = h.PreKitBreakInFollowed, Qnote = h.QualityNotes,
         Tgt = h.HourlyTargetAchieved, Maint = h.MaintenanceIssues, Mat = h.MaterialsAvailable, Tools = h.ToolsAvailable,
         Escl = h.EscalationsNeeded, Pconf = h.PartsConfirmed, Pid = h.PartsIdCorrect, Ncp = h.NCPartsStoredCorrectly,
         Sixs = h.SixSCompleted, Tpm = h.TPMCompleted, Pnote = h.PerformanceNotes,
@@ -421,7 +421,7 @@ public class FormModel : PageModel
         HourNumber = (byte)number,
         HazardsObserved = h.Haz, UnsafeBehaviours = h.Uns, PositiveBehaviours = h.Pos, SafetyNotes = h.Snote,
         QualityChecksCompleted = h.Qchk, DeviationsEscalated = h.Dev, NonComplianceAddressed = h.Nc,
-        ToolsMatchInspectionPlan = h.Qiplan, QualityNotes = h.Qnote,
+        ToolsMatchInspectionPlan = h.Qiplan, PreKitBreakInFollowed = h.Pkb, QualityNotes = h.Qnote,
         HourlyTargetAchieved = h.Tgt, MaintenanceIssues = h.Maint, MaterialsAvailable = h.Mat, ToolsAvailable = h.Tools,
         EscalationsNeeded = h.Escl, PartsConfirmed = h.Pconf, PartsIdCorrect = h.Pid, NCPartsStoredCorrectly = h.Ncp,
         SixSCompleted = h.Sixs, TPMCompleted = h.Tpm, PerformanceNotes = h.Pnote,

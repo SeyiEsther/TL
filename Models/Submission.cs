@@ -37,6 +37,8 @@ namespace TL.Models
         public bool? DeviationsEscalated { get; set; }
         public bool? NonComplianceAddressed { get; set; }
         public bool? ToolsMatchInspectionPlan { get; set; }
+        // Assembly-only quality check; optional (not part of "hour complete").
+        public bool? PreKitBreakInFollowed { get; set; }
         public string? QualityNotes { get; set; }
         public bool? HourlyTargetAchieved { get; set; }
         public bool? MaintenanceIssues { get; set; }
