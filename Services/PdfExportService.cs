@@ -590,8 +590,8 @@ namespace TL.Services
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("RITTAL CSM Plymouth").FontSize(20).Bold().FontColor(DarkGray);
-                                c.Item().Text("Team Meeting").FontSize(11).FontColor(MidGray);
+                                c.Item().Text("RITTAL-CSM Ltd · Plymouth").FontSize(18).Bold().FontColor(DarkGray);
+                                c.Item().Text("Invitation for Team Meeting").FontSize(11).FontColor(MidGray);
                             });
                             row.ConstantItem(90).AlignRight().Text("Doc CI038/01/1123/CW").FontSize(7).FontColor(MidGray);
                             row.ConstantItem(6).Background(Red);
@@ -673,6 +673,9 @@ namespace TL.Services
                                 });
                             });
                         }
+                        col.Item().PaddingTop(4).Text(
+                            "Absent team members are to be informed at the next attendance and are to sign and place the date in the “present” column.")
+                            .FontSize(7).Italic().FontColor(MidGray);
                     });
                     page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
                 });
