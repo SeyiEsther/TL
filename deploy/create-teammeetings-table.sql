@@ -4,8 +4,8 @@ GO
 CREATE TABLE [TeamMeetings] (
     [Id] int NOT NULL IDENTITY,
     [MeetingDate] date NOT NULL,
-    [Area] nvarchar(450) NOT NULL,
-    [Shift] nvarchar(450) NOT NULL,
+    [Area] nvarchar(200) NOT NULL,
+    [Shift] nvarchar(30) NOT NULL,
     [Supervisor] nvarchar(max) NULL,
     [CostCentre] nvarchar(max) NULL,
     [Team] nvarchar(max) NULL,
