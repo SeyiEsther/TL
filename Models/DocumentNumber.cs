@@ -14,18 +14,12 @@ public class DocumentNumber
 
 public static class DocumentFormTypes
 {
-    public const string Shift = "Shift";
-    public const string HodDaily = "HodDaily";
-    public const string SeniorWeekly = "SeniorWeekly";
     public const string TeamMeeting = "TeamMeeting";
 
-    // Seeded when a row for the type is missing. Only the Team Meeting number is
-    // known today — the rest are left blank for an admin to fill in.
+    // Seeded when a row for the type is missing. The Team Meeting is the only
+    // controlled form with a document number.
     public static readonly (string Type, string Label, string Number, int Order)[] Defaults =
     [
-        (Shift,         "TL Shift Audit",      "",                 1),
-        (HodDaily,      "HoD Daily Audit",     "",                 2),
-        (SeniorWeekly,  "Senior Weekly Audit", "",                 3),
-        (TeamMeeting,   "Team Meeting",        "CI038/01/1123/CW", 4),
+        (TeamMeeting, "Team Meeting", "CI038/01/1123/CW", 1),
     ];
 }

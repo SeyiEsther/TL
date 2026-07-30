@@ -393,16 +393,10 @@ namespace TL.Services
                     });
 
                     // ── Footer ───────────────────────────────────────────────
-                    var hodDocNo = DocNo(DocumentFormTypes.HodDaily);
                     page.Footer().PaddingTop(6).BorderTop(0.5f).BorderColor(BorderGray).Row(row =>
                     {
-                        row.RelativeItem().Text(txt =>
-                        {
-                            txt.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC")
-                                .FontSize(7).FontColor(MidGray);
-                            if (!string.IsNullOrWhiteSpace(hodDocNo))
-                                txt.Span($"   ·   Doc no. {hodDocNo}").FontSize(7).FontColor(MidGray);
-                        });
+                        row.RelativeItem().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC")
+                            .FontSize(7).FontColor(MidGray);
                         row.AutoItem().Text(txt =>
                         {
                             txt.Span("Page ").FontSize(7).FontColor(MidGray);
@@ -570,13 +564,7 @@ namespace TL.Services
 
                         col.Item().Element(c => SeniorScoreFooter(c, overall, a.OverallVerdict));
                     });
-                    var seniorDocNo = DocNo(DocumentFormTypes.SeniorWeekly);
-                    page.Footer().AlignCenter().Text(txt =>
-                    {
-                        txt.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
-                        if (!string.IsNullOrWhiteSpace(seniorDocNo))
-                            txt.Span($"   ·   Doc no. {seniorDocNo}").FontSize(8).FontColor(MidGray);
-                    });
+                    page.Footer().AlignCenter().Text($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontSize(8).FontColor(MidGray);
                 });
             }).GeneratePdf();
         }
@@ -601,7 +589,7 @@ namespace TL.Services
             {
                 container.Page(page =>
                 {
-                    page.Size(PageSizes.A4);
+                    page.Size(PageSizes.A4.Landscape());
                     page.Margin(26);
                     page.DefaultTextStyle(x => x.FontSize(8.2f).FontFamily("Arial").FontColor(ink));
                     page.Footer().Element(c => DocFooter(c, docNo));
@@ -802,7 +790,7 @@ namespace TL.Services
                     page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Arial"));
                     page.Header().Element(ComposeHeader);
                     page.Content().Element(c => ComposeContent(c, s));
-                    page.Footer().Element(c => ComposeFooter(c, DocNo(DocumentFormTypes.Shift)));
+                    page.Footer().Element(ComposeFooter);
                 });
             });
 
@@ -943,15 +931,12 @@ namespace TL.Services
             });
         }
 
-        static void ComposeFooter(IContainer c, string? docNo)
+        static void ComposeFooter(IContainer c)
         {
-            c.PaddingTop(6).BorderTop(0.5f).BorderColor("#e5e7eb").PaddingTop(6).Row(row =>
+            c.Row(row =>
             {
                 row.RelativeItem().Text(t =>
                     t.Span($"Production Audit System — {DateTime.UtcNow:dd MMM yyyy HH:mm} UTC").FontColor("#6b7280").FontSize(8));
-                if (!string.IsNullOrWhiteSpace(docNo))
-                    row.AutoItem().AlignRight().Text(t =>
-                        t.Span("Doc no. " + docNo).FontColor("#6b7280").FontSize(8));
             });
         }
 
