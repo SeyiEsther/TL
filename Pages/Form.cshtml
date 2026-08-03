@@ -6,6 +6,7 @@
     var H = Model.Hours;
     HourInput hd(int i) => i < Model.H.Count ? Model.H[i] : new HourInput();
     var isAssembly = AreaList.IsInDepartment(Model.Area, "Assembly");
+    var isSheet = AreaList.IsSheetmetal(Model.Area);
 }
 
 <div class="page">
@@ -31,26 +32,37 @@
             }
         </div>
 
-        <div class="sf" style="margin-left:auto">
-            <label>Hours in shift</label>
-            <form method="get" style="display:flex;gap:6px;align-items:center">
-                <input type="hidden" name="date" value="@Model.ShiftDate">
-                <input type="hidden" name="shift" value="@Model.Shift">
-                <input type="hidden" name="area" value="@Model.Area">
-                <input type="hidden" name="tl" value="@Model.TeamLeader">
-                @if (Model.EditingId.HasValue)
-                {
-                    <input type="hidden" name="id" value="@Model.EditingId">
-                }
-                <select name="hours">
-                    @for (int h = 8; h >= 1; h--)
+        @if (isSheet)
+        {
+            <div class="sf" style="margin-left:auto">
+                <label>Checks</label>
+                <input type="text" value="4 checks · every 2 hrs" readonly
+                       style="font-weight:700;color:var(--red);min-width:150px">
+            </div>
+        }
+        else
+        {
+            <div class="sf" style="margin-left:auto">
+                <label>Hours in shift</label>
+                <form method="get" style="display:flex;gap:6px;align-items:center">
+                    <input type="hidden" name="date" value="@Model.ShiftDate">
+                    <input type="hidden" name="shift" value="@Model.Shift">
+                    <input type="hidden" name="area" value="@Model.Area">
+                    <input type="hidden" name="tl" value="@Model.TeamLeader">
+                    @if (Model.EditingId.HasValue)
                     {
-                        <option value="@h" selected="@(Model.Hours == h ? "selected" : null)">@h hrs</option>
+                        <input type="hidden" name="id" value="@Model.EditingId">
                     }
-                </select>
-                <button type="submit" class="sbtn sm">Set</button>
-            </form>
-        </div>
+                    <select name="hours">
+                        @for (int h = 8; h >= 1; h--)
+                        {
+                            <option value="@h" selected="@(Model.Hours == h ? "selected" : null)">@h hrs</option>
+                        }
+                    </select>
+                    <button type="submit" class="sbtn sm">Set</button>
+                </form>
+            </div>
+        }
     </div>
 
     @if (!string.IsNullOrEmpty(Model.SaveMessage))
@@ -92,7 +104,16 @@
                         <th class="qcol">Question</th>
                         @for (int h = 0; h < H; h++)
                         {
-                            <th class="hcol">Hr <span class="hnum">@(h + 1)</span></th>
+                            @if (isSheet)
+                            {
+                                <th class="hcol">Check <span class="hnum">@(h + 1)</span>
+                                    <div style="font-size:9px;font-weight:400;color:var(--muted)">Hrs @(h * 2 + 1)&ndash;@(h * 2 + 2)</div>
+                                </th>
+                            }
+                            else
+                            {
+                                <th class="hcol">Hr <span class="hnum">@(h + 1)</span></th>
+                            }
                         }
                     </tr>
                 </thead>

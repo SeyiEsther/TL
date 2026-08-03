@@ -58,6 +58,8 @@ public class FormModel : PageModel
             if (sub == null) return RedirectToPage("/Index");
             PopulateFromSubmission(sub, tl);
             Hours = Math.Clamp(hours, 1, 8);
+            // Sheetmetal is fixed at a 2-hourly cadence (4 checks), not selectable.
+            if (AreaList.IsSheetmetal(Area)) Hours = AreaList.SheetmetalChecks;
             if (!string.IsNullOrWhiteSpace(coveringFor))
                 CoveringFor = coveringFor.Trim();
             PadHours();
@@ -68,6 +70,7 @@ public class FormModel : PageModel
         Shift = shift ?? "";
         TeamLeader = tl ?? "";
         Area = area ?? "";
+        if (AreaList.IsSheetmetal(Area)) Hours = AreaList.SheetmetalChecks;
 
         if (DateOnly.TryParse(ShiftDate, out var d) && !string.IsNullOrWhiteSpace(Shift) && !string.IsNullOrWhiteSpace(Area))
         {
@@ -135,6 +138,8 @@ public class FormModel : PageModel
 
     async Task<IActionResult> SaveAsync(bool finalSubmit)
     {
+        // Sheetmetal always records 4 (2-hourly) checks regardless of any posted count.
+        if (AreaList.IsSheetmetal(Area)) Hours = AreaList.SheetmetalChecks;
         PadHours();
 
         var user = _users.GetCurrentUser();

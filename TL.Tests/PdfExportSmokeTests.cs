@@ -8,7 +8,7 @@ public class PdfExportSmokeTests
     [Fact]
     public void GenerateHodDaily_Tpm_SheetMetal_does_not_throw()
     {
-        var dept = "Sheet Metal";
+        var dept = "Phase 3 Pierce and Fold";
         var questions = HodAuditDefinitions.GetQuestions(HodAuditTypes.Tpm, dept);
         Assert.True(questions.Count > 20, $"expected many TPM questions, got {questions.Count}");
 

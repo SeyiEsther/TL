@@ -842,15 +842,19 @@ namespace TL.Services
 
                 if (s.Hours?.Any() == true)
                 {
+                    var isSheet = AreaList.IsSheetmetal(s.Area);
                     col.Item().Border(0.5f).BorderColor("#e5e7eb").Column(inner =>
                     {
                         inner.Item().Background("#1c2b1e").Padding(6)
-                            .Text("HOURLY CHECKS").FontSize(8).Bold().FontColor("#fff");
+                            .Text(isSheet ? "2-HOURLY CHECKS" : "HOURLY CHECKS").FontSize(8).Bold().FontColor("#fff");
                         foreach (var h in s.Hours.OrderBy(x => x.HourNumber))
                         {
                             inner.Item().BorderBottom(0.5f).BorderColor("#e5e7eb").Padding(6).Column(hcol =>
                             {
-                                hcol.Item().Text($"Hour {h.HourNumber}").FontSize(8).Bold().FontColor("#1a1a1a");
+                                var label = isSheet
+                                    ? $"Check {h.HourNumber} · Hrs {h.HourNumber * 2 - 1}–{h.HourNumber * 2}"
+                                    : $"Hour {h.HourNumber}";
+                                hcol.Item().Text(label).FontSize(8).Bold().FontColor("#1a1a1a");
                                 hcol.Item().Table(t =>
                                 {
                                     t.ColumnsDefinition(cd => { cd.RelativeColumn(3); cd.RelativeColumn(); });

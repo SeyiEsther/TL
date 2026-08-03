@@ -20,29 +20,29 @@ public static class AreaList
         ("Paint", "14 — White Line",  ""),
         ("Paint", "15 — Back Booth",  ""),
         ("Paint", "16 — Re-Work",     ""),
-        ("Sheet Metal", "Zone 1",  "Trumpf Laser, Trubend F35"),
-        ("Sheet Metal", "Zone 2",  "T500, T5000, T5000–S10, T5000–S11, T7000"),
-        ("Sheet Metal", "Zone 3",  "T5000–S13, T5000–S14"),
-        ("Sheet Metal", "Zone 7",  "Mainframe 2, Microsoft"),
-        ("Sheet Metal", "Zone 8",  "HP Weld"),
-        ("Sheet Metal", "Zone 9",  "German Jig 1"),
-        ("Sheet Metal", "Zone 10", "German Jig 2"),
-        ("Sheet Metal", "Zone 11", "Panasonic V3 & Nvidia"),
-        ("Sheet Metal", "Zone 12", "MGX Galv Weld, Google Small Part Galv Weld"),
-        ("Sheet Metal", "Zone 13", "Microsoft Tops and Bottoms"),
-        ("Sheet Metal", "Zone 14", "R-cell 22/23/24 Flexi Cell"),
-        ("Sheet Metal", "Zone 15", "Small Parts Welding"),
-        ("Sheet Metal", "Zone 16", "100T Xact, Training Bay, 250T"),
-        ("Sheet Metal", "Zone 17", "Trubend F32, F33, F34"),
-        ("Sheet Metal", "Zone 20", "Robot Folding Cell F28, Bystronic F29, F30, F31, F36"),
-        ("Sheet Metal", "Zone 22", "F37, EP3"),
-        ("Phase 1 Sheetmetal", "Zone 4",  "Heilbronn"),
-        ("Phase 1 Sheetmetal", "Zone 5",  "Salv 1"),
-        ("Phase 1 Sheetmetal", "Zone 6",  "Salv 3"),
-        ("Phase 1 Sheetmetal", "Zone 23", "Galv Grindbay"),
-        ("Phase 3 Sheetmetal", "Zone 18", "Grind Master PH1"),
-        ("Phase 3 Sheetmetal", "Zone 19", "Automatic TX Stud Weld Cell"),
-        ("Phase 3 Sheetmetal", "Zone 21", "Sciaky Spot Weld, Spotwelder E11/2 (Serial 770066)"),
+        ("Phase 1 Weld", "Zone 7",  "Mainframe 2, Microsoft"),
+        ("Phase 1 Weld", "Zone 8",  "HP Weld"),
+        ("Phase 1 Weld", "Zone 9",  "German Jig 1"),
+        ("Phase 1 Weld", "Zone 10", "German Jig 2"),
+        ("Phase 1 Weld", "Zone 11", "Panasonic V3 & Nvidia"),
+        ("Phase 1 Weld", "Zone 12", "MGX Galv Weld, Google Small Part Galv Weld"),
+        ("Phase 1 Weld", "Zone 13", "Microsoft Tops and Bottoms"),
+        ("Phase 1 Weld", "Zone 14", "R-cell 22/23/24 Flexi Cell"),
+        ("Phase 1 Weld", "Zone 15", "Small Parts Welding"),
+        ("Phase 3 Pierce and Fold", "Zone 1",  "Trumpf Laser, Trubend F35"),
+        ("Phase 3 Pierce and Fold", "Zone 2",  "T500, T5000, T5000–S10, T5000–S11, T7000"),
+        ("Phase 3 Pierce and Fold", "Zone 3",  "T5000–S13, T5000–S14"),
+        ("Phase 3 Pierce and Fold", "Zone 16", "100T Xact, Training Bay, 250T"),
+        ("Phase 3 Pierce and Fold", "Zone 17", "Trubend F32, F33, F34"),
+        ("Phase 3 Pierce and Fold", "Zone 20", "Robot Folding Cell F28, Bystronic F29, F30, F31, F36"),
+        ("Phase 3 Pierce and Fold", "Zone 22", "F37, EP3"),
+        ("Phase 3 Pierce and Fold", "Zone 4",  "Heilbronn"),
+        ("Phase 3 Pierce and Fold", "Zone 5",  "Salv 1"),
+        ("Phase 3 Pierce and Fold", "Zone 6",  "Salv 3"),
+        ("Phase 3 Pierce and Fold", "Zone 23", "Galv Grindbay"),
+        ("Phase 3 Pierce and Fold", "Zone 18", "Grind Master PH1"),
+        ("Phase 3 Pierce and Fold", "Zone 19", "Automatic TX Stud Weld Cell"),
+        ("Phase 3 Pierce and Fold", "Zone 21", "Sciaky Spot Weld, Spotwelder E11/2 (Serial 770066)"),
         ("Dispatch", "Loading Bays",    ""),
         ("Dispatch", "Mez Floor Above", ""),
         ("Dispatch", "Mez Floor Below", ""),
@@ -68,6 +68,22 @@ public static class AreaList
         !string.IsNullOrWhiteSpace(label)
         && !string.IsNullOrWhiteSpace(department)
         && GetDepartment(label) == department;
+
+    // The two sheetmetal groups. Sheetmetal runs a 2-hourly check cadence
+    // (4 checks per shift) rather than the hourly cadence used elsewhere.
+    public static readonly string[] SheetmetalGroups =
+    [
+        "Phase 1 Weld",
+        "Phase 3 Pierce and Fold",
+    ];
+
+    public static bool IsSheetmetal(string? label) =>
+        SheetmetalGroups.Contains(GetDepartment(label));
+
+    // Number of checks a shift in this area records.
+    public const int SheetmetalChecks = 4;
+    public static int DefaultChecksFor(string? label) =>
+        IsSheetmetal(label) ? SheetmetalChecks : 8;
 
     public static List<string> GetMachineList(string? label)
     {

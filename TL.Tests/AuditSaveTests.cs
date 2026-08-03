@@ -29,7 +29,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
         await ResetDbAsync();
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         var today = DateTime.Today.ToString("yyyy-MM-dd");
-        var department = "Sheet Metal";
+        var department = "Phase 3 Pierce and Fold";
         var area = AreaList.GetLabelsForDepartment(department)[0];
 
         var startHtml = await (await client.GetAsync("/AuditStart")).Content.ReadAsStringAsync();

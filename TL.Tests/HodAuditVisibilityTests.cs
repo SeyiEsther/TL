@@ -23,7 +23,7 @@ public class HodAuditVisibilityTests : IClassFixture<FormSaveWebAppFactory>
             SubmittedBy = "someoneelse",
             AuditorName = "Someone Else",
             AuditDate = DateOnly.FromDateTime(DateTime.Today),
-            Department = "Phase 3 Sheetmetal",
+            Department = "Phase 3 Pierce and Fold",
             EffectivenessArea = "Zone 19",
             Area = "Zone 19",
             AuditType = HodAuditTypes.PartsIdNc,
