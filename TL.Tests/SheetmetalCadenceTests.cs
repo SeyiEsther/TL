@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using TL.Models;
 
 namespace TL.Tests;
@@ -44,6 +45,37 @@ public class SheetmetalCadenceTests : IClassFixture<FormSaveWebAppFactory>
         Assert.Contains("data-hours=\"4\"", html);
         Assert.Contains("Check", html);
         Assert.DoesNotContain("Hours in shift", html); // hourly selector hidden
+    }
+
+    [Fact]
+    public async Task Existing_legacy_8hour_sheetmetal_record_is_preserved()
+    {
+        // A sheetmetal shift started under the old hourly cadence (8 hours of data)
+        // must NOT be truncated to 4 when reopened — nothing captured is lost.
+        int id;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<TL.Data.AppDbContext>();
+            var sub = new ShiftSubmission
+            {
+                TeamLeaderDisplay = "Legacy TL",
+                ShiftDate = DateOnly.FromDateTime(DateTime.Today),
+                Shift = "Day",
+                Area = "Zone 19",
+                HoursCompleted = 8,
+            };
+            for (byte n = 1; n <= 8; n++)
+                sub.Hours.Add(new HourlyCheck { HourNumber = n, HourlyTargetAchieved = true });
+            db.ShiftSubmissions.Add(sub);
+            await db.SaveChangesAsync();
+            id = sub.Id;
+        }
+
+        var client = _factory.CreateClient();
+        var html = await (await client.GetAsync($"/Form?id={id}")).Content.ReadAsStringAsync();
+
+        Assert.Contains("data-hours=\"8\"", html); // all 8 preserved, not clamped to 4
+        Assert.Contains("H[7].", html);            // the 8th check's inputs are rendered
     }
 
     [Fact]

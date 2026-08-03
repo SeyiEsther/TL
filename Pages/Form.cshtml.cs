@@ -58,8 +58,15 @@ public class FormModel : PageModel
             if (sub == null) return RedirectToPage("/Index");
             PopulateFromSubmission(sub, tl);
             Hours = Math.Clamp(hours, 1, 8);
-            // Sheetmetal is fixed at a 2-hourly cadence (4 checks), not selectable.
-            if (AreaList.IsSheetmetal(Area)) Hours = AreaList.SheetmetalChecks;
+            // Sheetmetal uses a 2-hourly cadence (4 checks) for NEW shifts, but an
+            // existing record must never lose data: show whatever it already has
+            // (e.g. a legacy 8-hour shift), so nothing already captured is hidden.
+            if (AreaList.IsSheetmetal(Area))
+            {
+                var maxHour = sub.Hours.Count == 0 ? 0 : sub.Hours.Max(h => (int)h.HourNumber);
+                var existing = Math.Max((int)sub.HoursCompleted, maxHour);
+                Hours = Math.Clamp(Math.Max(AreaList.SheetmetalChecks, existing), 1, 8);
+            }
             if (!string.IsNullOrWhiteSpace(coveringFor))
                 CoveringFor = coveringFor.Trim();
             PadHours();
@@ -138,8 +145,11 @@ public class FormModel : PageModel
 
     async Task<IActionResult> SaveAsync(bool finalSubmit)
     {
-        // Sheetmetal always records 4 (2-hourly) checks regardless of any posted count.
-        if (AreaList.IsSheetmetal(Area)) Hours = AreaList.SheetmetalChecks;
+        // A new sheetmetal shift defaults to 4 (2-hourly) checks, but an existing
+        // record keeps whatever count it was opened with — the posted HoursCount —
+        // so a legacy hourly shift never has hours 5–8 truncated on save.
+        if (AreaList.IsSheetmetal(Area) && !EditingId.HasValue)
+            Hours = Math.Max(Hours, AreaList.SheetmetalChecks);
         PadHours();
 
         var user = _users.GetCurrentUser();
@@ -389,7 +399,9 @@ public class FormModel : PageModel
         Shift = sub.Shift;
         TeamLeader = ShiftResumeService.NormalizeTl(tl ?? sub.TeamLeaderDisplay);
         Area = sub.Area ?? "";
-        Hours = Math.Clamp((int)sub.HoursCompleted, 1, 8);
+        // Never show fewer rows than the record actually has data for.
+        var maxHour = sub.Hours.Count == 0 ? 0 : sub.Hours.Max(h => (int)h.HourNumber);
+        Hours = Math.Clamp(Math.Max((int)sub.HoursCompleted, maxHour), 1, 8);
         Escalations = sub.Escalations;
         KeyRisks = sub.KeyRisks;
         Priorities = sub.Priorities;
