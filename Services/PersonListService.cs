@@ -40,13 +40,54 @@ public class PersonListService
         await SyncSeniorRosterFromDefaultsAsync();
         await SeedFullAccessIfMissingAsync();
 
-        if (_cache.TryGetValue(TeamLeaderCacheKey, out _))
+        // Add-only sync so new default names (HoD, Full-access) appear on the next
+        // start even when the lists were already seeded — mirrors the Senior sync.
+        // Returns true when it inserted anything, so the cache is rebuilt below.
+        var changed = false;
+        changed |= await SyncMissingDefaultsAsync(PersonListKinds.Hod, HodList.Names);
+        changed |= await SyncMissingDefaultsAsync(PersonListKinds.FullAccess, ShiftManagerList.Names);
+
+        if (!changed && _cache.TryGetValue(TeamLeaderCacheKey, out _))
         {
             await RefreshSeniorCacheAsync();
             return;
         }
 
         await ReloadAsync();
+    }
+
+    // Inserts any default names missing from the list for this kind (never
+    // removes or reorders existing rows). Returns whether anything was added.
+    async Task<bool> SyncMissingDefaultsAsync(string kind, IReadOnlyList<string> defaults)
+    {
+        try
+        {
+            var existing = await _db.PickerPersons
+                .Where(p => p.ListKind == kind)
+                .Select(p => p.Name)
+                .ToListAsync();
+            var have = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+
+            var missing = defaults.Where(n => !have.Contains(n)).ToList();
+            if (missing.Count == 0) return false;
+
+            var maxOrder = await _db.PickerPersons
+                .Where(p => p.ListKind == kind)
+                .Select(p => (int?)p.SortOrder)
+                .MaxAsync() ?? 0;
+
+            foreach (var name in missing)
+                _db.PickerPersons.Add(new PickerPerson { ListKind = kind, Name = name, SortOrder = ++maxOrder });
+
+            await _db.SaveChangesAsync();
+            _log.LogInformation("Added {Count} missing default name(s) to {Kind}.", missing.Count, kind);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not sync default names for {Kind}.", kind);
+            return false;
+        }
     }
 
     public async Task ReloadAsync()
