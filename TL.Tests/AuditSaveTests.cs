@@ -43,6 +43,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
             ["department"] = department,
             ["effectivenessArea"] = area,
             ["auditType"] = HodAuditTypes.Tpm,
+            ["shift"] = HodShifts.Days,
         }));
         Assert.Equal(HttpStatusCode.Redirect, startResp.StatusCode);
         var location = startResp.Headers.Location?.ToString() ?? "";
@@ -84,6 +85,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
             new("department", department),
             new("effectivenessArea", area),
             new("auditType", HodAuditTypes.SixS),
+            new("shift", HodShifts.Days),
             new("editingId", id.ToString()),
             new("Actions", "Follow up on TPM board"),
             new("GoodPractice", "Clean area"),
@@ -137,6 +139,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
             new("department", department),
             new("effectivenessArea", area),
             new("auditType", HodAuditTypes.SixS),
+            new("shift", HodShifts.Days),
         };
         for (var i = 0; i < questions.Count; i++)
         {
@@ -163,6 +166,7 @@ public class AuditSaveTests : IClassFixture<FormSaveWebAppFactory>
             ["department"] = department,
             ["effectivenessArea"] = area,
             ["auditType"] = type,
+            ["shift"] = HodShifts.Days,
         }));
         return ParseIdFromLocation(startResp.Headers.Location?.ToString());
     }

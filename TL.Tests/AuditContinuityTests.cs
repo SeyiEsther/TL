@@ -117,7 +117,7 @@ public class AuditContinuityTests : IClassFixture<FormSaveWebAppFactory>
         await db.SaveChangesAsync();
     }
 
-    static async Task<int> StartHodAsync(HttpClient client, string date, string auditor, string dept, string zone, string type)
+    static async Task<int> StartHodAsync(HttpClient client, string date, string auditor, string dept, string zone, string type, string shift = "Days")
     {
         var token = ExtractToken(await (await client.GetAsync("/AuditStart")).Content.ReadAsStringAsync())!;
         var resp = await client.PostAsync("/AuditStart", new FormUrlEncodedContent(new Dictionary<string, string>
@@ -128,6 +128,7 @@ public class AuditContinuityTests : IClassFixture<FormSaveWebAppFactory>
             ["department"] = dept,
             ["effectivenessArea"] = zone,
             ["auditType"] = type,
+            ["shift"] = shift,
         }));
         Assert.Equal(HttpStatusCode.Redirect, resp.StatusCode);
         var id = ParseId(resp.Headers.Location?.ToString());

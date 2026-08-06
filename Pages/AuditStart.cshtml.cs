@@ -21,6 +21,7 @@ public class AuditStartModel : PageModel
     }
 
     public string AuditorName { get; set; } = "";
+    public string? Shift { get; set; }
     public string AuditDate { get; set; } = "";
     public string SuggestedType { get; set; } = "";
     public string SuggestedTypeLabel { get; set; } = "";
@@ -44,9 +45,10 @@ public class AuditStartModel : PageModel
     }
 
     public async Task<IActionResult> OnPostAsync(
-        string auditDate, string auditorName, string department, string effectivenessArea, string auditType)
+        string auditDate, string auditorName, string department, string effectivenessArea, string auditType, string? shift)
     {
         AuditorName = auditorName ?? "";
+        Shift = shift;
         AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
         if (DateOnly.TryParse(AuditDate, out var d))
         {
@@ -59,6 +61,12 @@ public class AuditStartModel : PageModel
             || string.IsNullOrWhiteSpace(effectivenessArea))
         {
             Error = "Please fill in all required fields.";
+            return Page();
+        }
+
+        if (!HodShifts.IsValid(shift))
+        {
+            Error = "Please select the shift this audit was carried out on.";
             return Page();
         }
 
@@ -111,6 +119,7 @@ public class AuditStartModel : PageModel
                 EffectivenessArea = effectivenessArea,
                 Area = effectivenessArea,
                 AuditType = type,
+                Shift = shift,
                 AnswersJson = HodAuditSerializer.ToJson(blankAnswers),
                 TotalScore = 0,
                 MaxScore = questions.Count,

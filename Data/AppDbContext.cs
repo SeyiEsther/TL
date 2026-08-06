@@ -45,6 +45,10 @@ namespace TL.Data
                 e.Property(m => m.Shift).HasMaxLength(30);
                 e.HasIndex(m => new { m.MeetingDate, m.Area, m.Shift });
             });
+            mb.Entity<HodDailyAudit>(e =>
+            {
+                e.Property(a => a.Shift).HasMaxLength(40);
+            });
             mb.Entity<DocumentNumber>(e =>
             {
                 e.Property(d => d.FormType).HasMaxLength(60);

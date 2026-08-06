@@ -74,6 +74,18 @@
             </div>
 
             <div class="fl" style="margin-bottom:14px">
+                <label>Shift <span style="color:var(--red)">*</span></label>
+                <select name="shift" required>
+                    <option value="">Select shift…</option>
+                    @foreach (var sh in HodShifts.All)
+                    {
+                        <option value="@sh" selected="@(sh == Model.Shift ? "selected" : null)">@sh</option>
+                    }
+                </select>
+                <div style="font-size:11px;color:var(--muted);margin-top:4px">Which shift this audit was carried out on</div>
+            </div>
+
+            <div class="fl" style="margin-bottom:14px">
                 <label>Audit type <span style="color:var(--red)">*</span></label>
                 <select name="auditType" required>
                     @foreach (var t in HodAuditTypes.All)

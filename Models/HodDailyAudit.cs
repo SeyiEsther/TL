@@ -15,6 +15,10 @@ public class HodDailyAudit
     public string Area { get; set; } = "";
     public string AuditType { get; set; } = "";
 
+    // Shift the audit was carried out on (Days | Backs | Nights). Nullable: the
+    // 63 pre-existing audits have no shift, and it is captured only going forward.
+    public string? Shift { get; set; }
+
     public string AnswersJson { get; set; } = "[]";
     public int TotalScore { get; set; }
     public int MaxScore { get; set; }
@@ -74,6 +78,16 @@ public record HodShiftComplianceSummary(
     List<HodEffectivenessFinding> Findings);
 
 public record HodAuditQuestion(string Id, string Section, string Label, string? MachineName = null);
+
+public static class HodShifts
+{
+    public const string Days = "Days";
+    public const string Backs = "Backs";
+    public const string Nights = "Nights";
+
+    public static readonly string[] All = [Days, Backs, Nights];
+    public static bool IsValid(string? s) => s != null && All.Contains(s);
+}
 
 public static class HodAuditTypes
 {
