@@ -1,0 +1,204 @@
+@page
+@model HodAuditSummaryModel
+@{
+    ViewData["Title"] = "HOD Audit Summary";
+}
+
+@functions {
+    static string F(double d) => d.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    // Server-drawn inline SVG line chart (prints dependably, no canvas/JS/library).
+    static string BuildSvg(HodAuditSummaryModel.ChartSeries s)
+    {
+        const double left = 46, right = 588, top = 20, bottom = 296, W = 600, H = 340;
+        var n = s.Points.Count;
+        double X(int i) => left + (right - left) * (n <= 1 ? 0.5 : (double)i / (n - 1));
+        double Y(double v) => bottom - (v / 100.0) * (bottom - top);
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"<svg viewBox='0 0 {F(W)} {F(H)}' class='chart-svg' preserveAspectRatio='xMidYMid meet' role='img' aria-label='{s.Label} trend'>");
+
+        // Horizontal gridlines + Y labels (0–100).
+        for (int g = 0; g <= 100; g += 25)
+        {
+            double y = Y(g);
+            sb.Append($"<line x1='{F(left)}' y1='{F(y)}' x2='{F(right)}' y2='{F(y)}' stroke='#e5e7eb' stroke-width='1'/>");
+            sb.Append($"<text x='{F(left - 6)}' y='{F(y + 3)}' text-anchor='end' font-size='11' fill='#6b7280'>{g}</text>");
+        }
+        // Axis line + week labels.
+        sb.Append($"<line x1='{F(left)}' y1='{F(bottom)}' x2='{F(right)}' y2='{F(bottom)}' stroke='#9ca3af' stroke-width='1.5'/>");
+        for (int i = 0; i < n; i++)
+            sb.Append($"<text x='{F(X(i))}' y='{F(bottom + 18)}' text-anchor='middle' font-size='12' font-weight='600' fill='#374151'>{s.Points[i].Label}</text>");
+
+        // Trend line: only between consecutive weeks that both have data (break otherwise).
+        for (int i = 0; i < n - 1; i++)
+        {
+            var a = s.Points[i]; var b = s.Points[i + 1];
+            if (a.Percent.HasValue && b.Percent.HasValue)
+                sb.Append($"<line x1='{F(X(i))}' y1='{F(Y(a.Percent.Value))}' x2='{F(X(i + 1))}' y2='{F(Y(b.Percent.Value))}' stroke='#CC1F2C' stroke-width='3'/>");
+        }
+        // Points + value labels.
+        bool any = false;
+        for (int i = 0; i < n; i++)
+        {
+            var p = s.Points[i];
+            if (!p.Percent.HasValue) continue;
+            any = true;
+            double x = X(i), y = Y(p.Percent.Value);
+            sb.Append($"<circle cx='{F(x)}' cy='{F(y)}' r='4.5' fill='#CC1F2C'/>");
+            sb.Append($"<text x='{F(x)}' y='{F(y - 9)}' text-anchor='middle' font-size='11' font-weight='700' fill='#CC1F2C'>{F(p.Percent.Value)}%</text>");
+        }
+        if (!any)
+            sb.Append($"<text x='{F((left + right) / 2)}' y='{F((top + bottom) / 2)}' text-anchor='middle' font-size='13' fill='#9ca3af'>No audits in this window</text>");
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+}
+
+<style>
+    .hodsum { max-width: 1180px; margin: 0 auto; }
+    .hodsum-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
+    .hodsum-title { font-size:20px; font-weight:800; color:#111827; }
+    .hodsum-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+    .hodsum-meta { font-size:13px; color:#374151; margin-top:6px; }
+    .hodsum-meta strong { color:#111827; }
+    .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .chart-box { border:1px solid var(--border); border-radius:10px; background:#fff; padding:10px 12px; }
+    .chart-box-head { font-size:13px; font-weight:700; color:#CC1F2C; margin-bottom:4px; }
+    .chart-svg { width:100%; height:auto; display:block; }
+    .actions-card { margin-top:14px; }
+    .actions-list { width:100%; border-collapse:collapse; }
+    .actions-list th, .actions-list td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; font-size:12.5px; }
+    .actions-list th { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+    .actions-list td.act-text { white-space:pre-wrap; }
+    .badge-wk { display:inline-block; padding:1px 7px; border-radius:6px; background:#f3f4f6; color:#374151; font-weight:700; font-size:11px; }
+    .badge-type { display:inline-block; padding:1px 7px; border-radius:6px; background:#fdf2f3; color:#CC1F2C; font-weight:700; font-size:11px; }
+    .print-only { display:none; }
+    .shift-note { font-size:11px; color:var(--muted); margin-top:4px; }
+
+    @@media print {
+        @@page { size: A3 landscape; margin: 10mm; }
+        .topbar, .no-print { display:none !important; }
+        .app-main { padding:0 !important; margin:0 !important; }
+        body { background:#fff !important; }
+        .hodsum { max-width:none; }
+        .print-only { display:block; }
+        .chart-grid { gap:8mm; }
+        .chart-box { break-inside:avoid; }
+        .actions-card { break-inside:avoid; }
+        /* Everything on one A3 sheet. */
+        .hodsum, .chart-grid, .actions-card { page-break-inside:avoid; }
+    }
+</style>
+
+<div class="hodsum">
+
+    <!-- Screen header + selectors (hidden in print) -->
+    <div class="hodsum-head no-print">
+        <div>
+            <div class="hodsum-title">Head of Department — Audit Summary</div>
+            <div class="hodsum-sub">Rolling four-week trend &bull; for printing to A3 and pinning on the RPS board</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <form method="get" id="selForm" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                <div class="ff" style="margin:0">
+                    <span class="ff-label">Head of Department</span>
+                    <div class="ff-control">
+                        <select name="hod" class="ff-input" style="min-width:190px" onchange="document.getElementById('selForm').submit()">
+                            @if (Model.HodOptions.Count == 0)
+                            {
+                                <option value="">No audits found</option>
+                            }
+                            @foreach (var h in Model.HodOptions)
+                            {
+                                <option value="@h" selected="@(h == Model.SelectedHod ? "selected" : null)">@h</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="ff" style="margin:0">
+                    <span class="ff-label">Shift</span>
+                    <div class="ff-control">
+                        <select name="shift" class="ff-input" style="min-width:130px" onchange="document.getElementById('selForm').submit()">
+                            @foreach (var sh in HodAuditSummaryModel.ShiftOptions)
+                            {
+                                <option value="@sh" selected="@(sh == Model.SelectedShift ? "selected" : null)">@sh</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </form>
+            <button type="button" class="sbtn sm primary" onclick="window.print()">Print</button>
+        </div>
+    </div>
+    <div class="shift-note no-print">
+        Note: HOD audits are not shift-stamped in the system, so the Shift selector labels this printout only — it does not filter the charts.
+    </div>
+
+    <!-- Print header (hidden on screen) -->
+    <div class="print-only" style="margin-bottom:8px;border-bottom:3px solid #CC1F2C;padding-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div style="font-size:22px;font-weight:800;color:#111827">Head of Department — Audit Summary</div>
+            <div style="font-size:16px;font-weight:700;color:#CC1F2C">@Model.WeekRangeLabel</div>
+        </div>
+        <div style="font-size:14px;color:#374151;margin-top:3px">
+            <strong>@(string.IsNullOrEmpty(Model.SelectedHod) ? "—" : Model.SelectedHod)</strong>
+            &nbsp;&bull;&nbsp; Shift: <strong>@Model.SelectedShift</strong>
+            &nbsp;&bull;&nbsp; Weeks: <strong>@Model.WeekRangeLabel</strong>
+        </div>
+    </div>
+
+    <div class="hodsum-meta no-print" style="margin-bottom:12px">
+        Showing <strong>@(string.IsNullOrEmpty(Model.SelectedHod) ? "—" : Model.SelectedHod)</strong>
+        &bull; window <strong>@Model.WeekRangeLabel</strong>
+        &bull; score shown as % of max (0–100)
+    </div>
+
+    <!-- 2×2 chart grid -->
+    <div class="chart-grid">
+        @foreach (var c in Model.Charts)
+        {
+            <div class="chart-box">
+                <div class="chart-box-head">@c.Label</div>
+                @Html.Raw(BuildSvg(c))
+            </div>
+        }
+    </div>
+
+    <!-- Actions list -->
+    <div class="card actions-card">
+        <div class="card-head">
+            <span class="card-title">Actions raised — @Model.WeekRangeLabel</span>
+            <span class="card-sub">@Model.Actions.Count action@(Model.Actions.Count == 1 ? "" : "s")</span>
+        </div>
+        @if (Model.Actions.Count == 0)
+        {
+            <div style="padding:16px 18px;color:var(--muted);font-size:13px">No actions raised in this window.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="actions-list">
+                    <thead>
+                        <tr>
+                            <th style="width:90px">Week</th>
+                            <th style="width:190px">Audit type</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.Actions)
+                        {
+                            <tr>
+                                <td><span class="badge-wk">@a.WeekLabel</span></td>
+                                <td><span class="badge-type">@a.TypeLabel</span></td>
+                                <td class="act-text">@a.Text</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
