@@ -21,6 +21,7 @@ public static class ShiftManagerList
         "Glen Atkinson",
         "Kyle Anderson",
         "Jim Gray",
+        "Steven White",
 
         // Directors
         "Zoe Forest",

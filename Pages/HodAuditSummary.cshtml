@@ -10,7 +10,9 @@
     // Server-drawn inline SVG line chart (prints dependably, no canvas/JS/library).
     static string BuildSvg(HodAuditSummaryModel.ChartSeries s)
     {
-        const double left = 46, right = 588, top = 20, bottom = 296, W = 600, H = 340;
+        // Inset the plot so the first/last week points and their value labels
+        // sit inside the viewBox instead of being clipped at the edges.
+        const double left = 56, right = 560, top = 26, bottom = 296, W = 600, H = 340;
         var n = s.Points.Count;
         double X(int i) => left + (right - left) * (n <= 1 ? 0.5 : (double)i / (n - 1));
         double Y(double v) => bottom - (v / 100.0) * (bottom - top);
