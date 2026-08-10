@@ -85,6 +85,28 @@ public class TeamMeetingTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Paint_slot_records_and_continuity_works_the_same_as_other_areas()
+    {
+        await ResetAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var date = DateTime.Today.ToString("yyyy-MM-dd");
+
+        // Paint shows "Flexible" instead of a time, but the slot must still open the
+        // form and save (Area = "Paint", a normal shift name).
+        var id1 = await RecordAsync(client, date, "Paint", MeetingShifts.Day, "Paint first");
+        // Reopening the same slot (date + Paint + shift) continues the SAME record.
+        var id2 = await RecordAsync(client, date, "Paint", MeetingShifts.Day, "Paint second");
+
+        Assert.Equal(id1, id2);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(1, await db.TeamMeetings.CountAsync(m => m.Area == "Paint"));
+        var row = await db.TeamMeetings.SingleAsync(m => m.Area == "Paint");
+        Assert.Equal("Paint second", row.Actions);
+    }
+
+    [Fact]
     public async Task Pdf_generates_after_save()
     {
         await ResetAsync();

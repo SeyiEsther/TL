@@ -120,7 +120,9 @@
     var SHIFT_NAMES = ['Nightshift', 'Dayshift', 'Backshift'];
 
     // Clickable meeting slot: view existing (tick) or record new (＋ Record).
-    function slotCell(dateStr, area, shift, time) {
+    // `label` is whatever the cell shows (a time, or flexible text for Paint) —
+    // the Record action is decoupled from it so every recordable slot gets one.
+    function slotCell(dateStr, area, shift, label) {
         var rec = RECORDED[dateStr + '|' + area + '|' + shift];
         var aff = '';
         if (rec) {
@@ -131,7 +133,7 @@
             aff = ' <span style="font-size:11px;margin-left:4px"><a href="' + href + '" style="color:#CC1F2C;font-weight:700">&#65291; Record</a></span>';
         }
         var bg = rec ? ' style="background:#f0fdf4"' : '';
-        return '<td' + bg + '>' + time + aff + '</td>';
+        return '<td' + bg + '>' + label + aff + '</td>';
     }
 
     // Area assignments by weekday (0=Mon … 4=Fri).
@@ -222,14 +224,18 @@
                     bankHolidayName(d) + ' &mdash; meeting cancelled / reschedule</td>';
             } else {
                 var t = timesFor(area);
-                if (t.flexible) cells = '<td>' + FLEX + '</td><td>' + FLEX + '</td><td>' + FLEX + '</td>';
-                else if (t.none) cells = '<td>&ndash;</td><td>&ndash;</td><td>&ndash;</td>';
-                else {
-                    var ds = ymd(d);
+                var ds = ymd(d);
+                // Spare / Catch-up has no meeting → no Record link. Every other
+                // area (including Paint, which shows flexible text) is recordable.
+                if (t.none) cells = '<td>&ndash;</td><td>&ndash;</td><td>&ndash;</td>';
+                else if (t.flexible)
+                    cells = slotCell(ds, area, 'Nightshift', FLEX) +
+                        slotCell(ds, area, 'Dayshift', FLEX) +
+                        slotCell(ds, area, 'Backshift', FLEX);
+                else
                     cells = slotCell(ds, area, 'Nightshift', t.night) +
                         slotCell(ds, area, 'Dayshift', t.day) +
                         slotCell(ds, area, 'Backshift', t.back);
-                }
             }
             rows += '<tr' + (isToday ? ' style="background:#eff6ff"' : '') + '>' +
                 '<td style="font-weight:' + (isToday ? '700' : '500') + '">' + DAYS[i] + (isToday ? ' (today)' : '') + '</td>' +
