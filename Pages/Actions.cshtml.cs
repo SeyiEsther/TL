@@ -32,7 +32,7 @@ public class ActionsModel : PageModel
 
     public async Task OnGetAsync(string? status, string? owner, string? area)
     {
-        StatusFilter = status ?? "Open";
+        StatusFilter = status ?? "all";
         OwnerFilter = owner;
         AreaFilter = area;
 

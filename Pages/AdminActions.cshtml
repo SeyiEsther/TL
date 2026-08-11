@@ -63,7 +63,7 @@
                             <td>@a.RaisedAt.ToLocalTime().ToString("dd/MM/yy")</td>
                             <td>
                                 <div style="display:flex;gap:6px">
-                                    <select id="ao-@a.Id" style="flex:1;min-width:140px;font-size:12px">
+                                    <select id="ao-@a.Id" class="ff-input" style="flex:1;min-width:140px">
                                         <option value="">Choose owner…</option>
                                         @foreach (var o in Model.OwnerChoices)
                                         {
