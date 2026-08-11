@@ -14,6 +14,7 @@ namespace TL.Data
         public DbSet<PickerPerson> PickerPersons => Set<PickerPerson>();
         public DbSet<TeamMeeting> TeamMeetings => Set<TeamMeeting>();
         public DbSet<DocumentNumber> DocumentNumbers => Set<DocumentNumber>();
+        public DbSet<AuditAction> AuditActions => Set<AuditAction>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -48,6 +49,25 @@ namespace TL.Data
             mb.Entity<HodDailyAudit>(e =>
             {
                 e.Property(a => a.Shift).HasMaxLength(40);
+            });
+            mb.Entity<AuditAction>(e =>
+            {
+                // Free text stays unbounded (this project has a history of
+                // truncation crashes); names/keys are generously sized.
+                e.Property(a => a.Text).HasColumnType("nvarchar(max)");
+                e.Property(a => a.CompletionNote).HasColumnType("nvarchar(max)");
+                e.Property(a => a.SourceLabel).HasColumnType("nvarchar(max)");
+                e.Property(a => a.SourceType).HasMaxLength(40);
+                e.Property(a => a.AuditType).HasMaxLength(120);
+                e.Property(a => a.Area).HasMaxLength(200);
+                e.Property(a => a.RaisedByName).HasMaxLength(256);
+                e.Property(a => a.RaisedByUsername).HasMaxLength(256);
+                e.Property(a => a.OwnerName).HasMaxLength(256);
+                e.Property(a => a.OwnerKey).HasMaxLength(256);
+                e.Property(a => a.Status).HasMaxLength(20);
+                e.Property(a => a.CompletedByName).HasMaxLength(256);
+                e.HasIndex(a => new { a.Status, a.OwnerKey });
+                e.HasIndex(a => new { a.SourceType, a.SourceId });
             });
             mb.Entity<DocumentNumber>(e =>
             {

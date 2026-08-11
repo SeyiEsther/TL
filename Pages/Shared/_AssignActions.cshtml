@@ -1,0 +1,84 @@
+@inject TL.Services.PersonListService PersonList
+@{
+    var owners = PersonList.ActionOwnersList;
+}
+<div class="card" style="margin-bottom:14px">
+    <div class="card-head">
+        <span class="card-title">Assign actions</span>
+        <span class="card-sub">Owned follow-ups — each goes to that person's action list</span>
+    </div>
+    <div style="padding:12px 16px">
+        <div style="overflow-x:auto">
+            <table class="dash-table aa-table" style="min-width:640px">
+                <thead>
+                    <tr>
+                        <th style="width:230px">Owner</th>
+                        <th>Action</th>
+                        <th style="width:150px">Due (optional)</th>
+                        <th style="width:40px"></th>
+                    </tr>
+                </thead>
+                <tbody id="aa-rows"></tbody>
+            </table>
+        </div>
+        <button type="button" class="sbtn sm" id="aa-add" style="margin-top:10px">&#65291; Add action</button>
+        <input type="hidden" name="NewActionsJson" id="aa-json">
+    </div>
+</div>
+
+<template id="aa-row-tpl">
+    <tr class="aa-row">
+        <td>
+            <select class="aa-owner" style="width:100%">
+                <option value="">Select owner…</option>
+                @foreach (var o in owners)
+                {
+                    var ext = TL.Models.ActionOwners.IsExternal(o);
+                    <option value="@o">@o@(ext ? " — shared" : "")</option>
+                }
+            </select>
+        </td>
+        <td><input type="text" class="aa-text" placeholder="What needs doing…" style="width:100%"></td>
+        <td><input type="date" class="aa-due" style="width:100%"></td>
+        <td><button type="button" class="aa-del sbtn sm" title="Remove" style="color:#CC1F2C">&times;</button></td>
+    </tr>
+</template>
+
+<script>
+(function () {
+    'use strict';
+    var body = document.getElementById('aa-rows');
+    var tpl = document.getElementById('aa-row-tpl');
+    var json = document.getElementById('aa-json');
+    if (!body || !tpl || !json) return;
+    var form = json.closest('form');
+
+    function sync() {
+        var rows = [];
+        body.querySelectorAll('.aa-row').forEach(function (tr) {
+            var owner = tr.querySelector('.aa-owner').value.trim();
+            var text = tr.querySelector('.aa-text').value.trim();
+            var due = tr.querySelector('.aa-due').value;
+            if (owner && text) rows.push({ owner: owner, text: text, due: due });
+        });
+        json.value = rows.length ? JSON.stringify(rows) : '';
+    }
+
+    function addRow() {
+        body.appendChild(tpl.content.cloneNode(true));
+        sync();
+    }
+
+    document.getElementById('aa-add').addEventListener('click', addRow);
+    body.addEventListener('input', sync);
+    body.addEventListener('change', sync);
+    body.addEventListener('click', function (e) {
+        if (e.target.classList.contains('aa-del')) {
+            e.target.closest('.aa-row').remove();
+            sync();
+        }
+    });
+    // Keep the hidden field current for both normal submit and AJAX autosave.
+    if (form) form.addEventListener('submit', sync);
+})();
+</script>

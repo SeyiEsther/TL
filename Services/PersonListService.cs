@@ -11,6 +11,18 @@ public class PersonListService
     private const string HodCacheKey = "picker-names-hod";
     private const string SeniorCacheKey = "picker-names-senior";
     private const string FullAccessCacheKey = "picker-names-fullaccess";
+    private const string ActionOwnerCacheKey = "picker-names-actionowner";
+
+    // Action-owner defaults: everyone who could own an action (TL, HOD, Senior,
+    // full-access) plus the shared external destinations (e.g. Maintenance).
+    public static IReadOnlyList<string> ActionOwnerDefaults =>
+        TeamLeaderList.Names
+            .Concat(HodList.Names)
+            .Concat(SeniorManagementList.Names)
+            .Concat(ShiftManagerList.Names)
+            .Concat(ActionOwners.External)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
@@ -35,6 +47,9 @@ public class PersonListService
     public IReadOnlyList<string> FullAccess =>
         _cache.Get<IReadOnlyList<string>>(FullAccessCacheKey) ?? ShiftManagerList.Names;
 
+    public IReadOnlyList<string> ActionOwnersList =>
+        _cache.Get<IReadOnlyList<string>>(ActionOwnerCacheKey) ?? ActionOwnerDefaults;
+
     public async Task EnsureLoadedAsync()
     {
         await SyncSeniorRosterFromDefaultsAsync();
@@ -46,6 +61,7 @@ public class PersonListService
         var changed = false;
         changed |= await SyncMissingDefaultsAsync(PersonListKinds.Hod, HodList.Names);
         changed |= await SyncMissingDefaultsAsync(PersonListKinds.FullAccess, ShiftManagerList.Names);
+        changed |= await SyncMissingDefaultsAsync(PersonListKinds.ActionOwner, ActionOwnerDefaults);
 
         if (!changed && _cache.TryGetValue(TeamLeaderCacheKey, out _))
         {
@@ -108,6 +124,8 @@ public class PersonListService
             _cache.Set(HodCacheKey, RowsForKind(rows, PersonListKinds.Hod));
             _cache.Set(SeniorCacheKey, RowsForKind(rows, PersonListKinds.Senior));
             _cache.Set(FullAccessCacheKey, RowsForKind(rows, PersonListKinds.FullAccess));
+            var owners = RowsForKind(rows, PersonListKinds.ActionOwner);
+            _cache.Set(ActionOwnerCacheKey, owners.Count > 0 ? owners : ActionOwnerDefaults);
         }
         catch (Exception ex)
         {
@@ -116,6 +134,7 @@ public class PersonListService
             _cache.Set(HodCacheKey, HodList.Names);
             _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
             _cache.Set(FullAccessCacheKey, ShiftManagerList.Names);
+            _cache.Set(ActionOwnerCacheKey, ActionOwnerDefaults);
         }
     }
 

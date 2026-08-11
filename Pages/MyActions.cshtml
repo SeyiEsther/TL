@@ -1,0 +1,123 @@
+@page
+@model MyActionsModel
+@{
+    ViewData["Title"] = "My Actions";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">My Actions</div>
+            <div class="page-sub">@Model.DisplayName &bull; follow-ups assigned to you, and the ones you raised</div>
+        </div>
+    </div>
+
+    <!-- Assigned to me -->
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+            <span class="card-title">Assigned to me</span>
+            <span class="card-sub">@Model.AssignedOpen.Count open</span>
+        </div>
+        @if (Model.AssignedOpen.Count == 0)
+        {
+            <div style="padding:20px 18px;color:var(--muted);font-size:13px">Nothing open — you're all caught up.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:920px">
+                    <thead>
+                        <tr>
+                            <th style="width:150px">From</th>
+                            <th style="width:110px">Area</th>
+                            <th style="width:90px">Date</th>
+                            <th style="width:130px">Raised by</th>
+                            <th>Action</th>
+                            <th style="width:90px">Due</th>
+                            <th style="width:280px">Complete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.AssignedOpen)
+                        {
+                            <tr id="row-@a.Id">
+                                <td style="font-size:12px">@a.SourceLabel</td>
+                                <td>@a.Area</td>
+                                <td>@(a.AuditDate?.ToString("dd/MM/yy") ?? "—")</td>
+                                <td>@a.RaisedByName</td>
+                                <td>@a.Text</td>
+                                <td>@(a.DueDate?.ToString("dd/MM/yy") ?? "—")</td>
+                                <td>
+                                    <div style="display:flex;gap:6px;align-items:flex-start">
+                                        <textarea id="note-@a.Id" rows="1" placeholder="What did you do? (required)"
+                                                  style="flex:1;min-width:150px;font-size:12px"></textarea>
+                                        <button type="button" class="sbtn sm primary"
+                                                onclick="Actions.complete(@a.Id, document.getElementById('note-@a.Id'), document.getElementById('row-@a.Id'))">Done</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Raised by me -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">Raised by me</span>
+            <span class="card-sub">@Model.Raised.Count total &bull; completion shows here (no email)</span>
+        </div>
+        @if (Model.Raised.Count == 0)
+        {
+            <div style="padding:20px 18px;color:var(--muted);font-size:13px">You haven't raised any actions yet.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:920px">
+                    <thead>
+                        <tr>
+                            <th style="width:160px">Owner</th>
+                            <th>Action</th>
+                            <th style="width:100px">Status</th>
+                            <th>Completion note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.Raised)
+                        {
+                            var done = a.Status == ActionStatus.Complete;
+                            <tr>
+                                <td>@a.OwnerName @(a.OwnerIsExternal ? Html.Raw("<span style=\"color:#6b7280;font-size:11px\">(shared)</span>") : null)</td>
+                                <td>@a.Text</td>
+                                <td>
+                                    @if (done)
+                                    {
+                                        <span style="display:inline-block;padding:1px 8px;border-radius:6px;background:#d1fae5;color:#065f46;font-weight:700;font-size:11px">Complete</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="display:inline-block;padding:1px 8px;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;font-size:11px">Open</span>
+                                    }
+                                </td>
+                                <td style="font-size:12px">
+                                    @if (done)
+                                    {
+                                        <div style="white-space:pre-wrap">@a.CompletionNote</div>
+                                        <div style="color:var(--muted);margin-top:2px">— @a.CompletedByName, @a.CompletedAt?.ToLocalTime().ToString("dd MMM HH:mm")</div>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--muted)">—</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

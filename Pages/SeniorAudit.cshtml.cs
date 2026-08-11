@@ -47,8 +47,12 @@ public class SeniorAuditModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly UserService _users;
+    private readonly ActionService _actions;
 
-    public SeniorAuditModel(AppDbContext db, UserService users) { _db = db; _users = users; }
+    public SeniorAuditModel(AppDbContext db, UserService users, ActionService actions)
+    {
+        _db = db; _users = users; _actions = actions;
+    }
 
     public string AuditDate { get; set; } = "";
     public string AuditorName { get; set; } = "";
@@ -57,6 +61,7 @@ public class SeniorAuditModel : PageModel
     public string? AuditorSignature { get; set; }
 
     [BindProperty] public SeniorAuditInputModel A { get; set; } = new();
+    [BindProperty] public string? NewActionsJson { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string? date, string? auditor, string? area, int? id)
     {
@@ -170,6 +175,7 @@ public class SeniorAuditModel : PageModel
                 sub.LastEditedBy = user.DisplayName;
                 sub.LastEditedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
+                await CreateActionsForAsync(sub);
                 return RedirectToPage("/SeniorSuccess", new { id = sub.Id });
             }
 
@@ -185,6 +191,7 @@ public class SeniorAuditModel : PageModel
 
             _db.SeniorWeeklyAudits.Add(audit);
             await _db.SaveChangesAsync();
+            await CreateActionsForAsync(audit);
             return RedirectToPage("/SeniorSuccess", new { id = audit.Id });
         }
         catch (Exception ex)
@@ -194,6 +201,16 @@ public class SeniorAuditModel : PageModel
             ModelState.AddModelError("", "Could not save audit — please try again.");
             return Page();
         }
+    }
+
+    // Persist any structured actions assigned on this senior audit (on submit).
+    async Task CreateActionsForAsync(SeniorWeeklyAudit a)
+    {
+        var rows = ActionSerializer.Parse(NewActionsJson);
+        if (rows.Count == 0) return;
+        await _actions.CreateFromAuditAsync(
+            ActionSourceTypes.SeniorWeekly, a.Id,
+            $"Senior Weekly — {a.Area}", "Senior Weekly", a.Area, a.AuditDate, rows);
     }
 
     static int CountMissingScores(SeniorAuditInputModel a) =>

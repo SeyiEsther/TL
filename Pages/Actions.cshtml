@@ -1,0 +1,153 @@
+@page
+@model ActionsModel
+@{
+    ViewData["Title"] = "Actions";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Actions</div>
+            <div class="page-sub">Shared destinations and unresolved owners &bull; the safety net for the PDCA loop</div>
+        </div>
+    </div>
+
+    <!-- Unresolved owners — errors needing attention -->
+    <div class="card" style="margin-bottom:16px;border-color:#fca5a5">
+        <div class="card-head" style="background:#fef2f2">
+            <span class="card-title" style="color:#991b1b">⚠ Unresolved owners — need attention</span>
+            <span class="card-sub">@Model.Unresolved.Count action(s) assigned to a name that didn't match anyone</span>
+        </div>
+        @if (Model.Unresolved.Count == 0)
+        {
+            <div style="padding:16px 18px;color:var(--muted);font-size:13px">None — every open action resolves to a known person or shared destination.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:900px">
+                    <thead>
+                        <tr><th style="width:150px">Assigned to</th><th>Action</th><th style="width:120px">Area</th><th style="width:130px">Raised by</th><th style="width:300px">Reassign to correct owner</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.Unresolved)
+                        {
+                            <tr>
+                                <td><span style="color:#991b1b;font-weight:700">@a.OwnerName</span></td>
+                                <td>@a.Text</td>
+                                <td>@a.Area</td>
+                                <td>@a.RaisedByName</td>
+                                <td>
+                                    <div style="display:flex;gap:6px">
+                                        <select id="ro-@a.Id" style="flex:1;min-width:150px;font-size:12px">
+                                            <option value="">Choose owner…</option>
+                                            @foreach (var o in Model.OwnerChoices)
+                                            {
+                                                <option value="@o">@o</option>
+                                            }
+                                        </select>
+                                        <button type="button" class="sbtn sm primary" onclick="Actions.reassign(@a.Id, document.getElementById('ro-@a.Id'))">Reassign</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Shared destinations — legitimate, complete on behalf -->
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+            <span class="card-title">Shared destinations</span>
+            <span class="card-sub">Actions for shared owners (e.g. Maintenance) — complete on their behalf</span>
+        </div>
+        @if (Model.Shared.Count == 0)
+        {
+            <div style="padding:16px 18px;color:var(--muted);font-size:13px">No open actions for shared destinations.</div>
+        }
+        else
+        {
+            @foreach (var grp in Model.Shared)
+            {
+                <div style="padding:8px 18px;font-weight:700;background:#f8fafc;border-top:1px solid var(--border)">@grp.Key <span style="color:#6b7280;font-weight:400;font-size:12px">— shared</span></div>
+                <div style="overflow-x:auto">
+                    <table class="dash-table" style="min-width:900px">
+                        <thead><tr><th style="width:150px">From</th><th style="width:110px">Area</th><th style="width:90px">Date</th><th>Action</th><th style="width:280px">Complete on behalf</th></tr></thead>
+                        <tbody>
+                            @foreach (var a in grp)
+                            {
+                                <tr id="row-@a.Id">
+                                    <td style="font-size:12px">@a.SourceLabel</td>
+                                    <td>@a.Area</td>
+                                    <td>@(a.AuditDate?.ToString("dd/MM/yy") ?? "—")</td>
+                                    <td>@a.Text</td>
+                                    <td>
+                                        <div style="display:flex;gap:6px;align-items:flex-start">
+                                            <textarea id="note-@a.Id" rows="1" placeholder="What was done? (required)" style="flex:1;min-width:150px;font-size:12px"></textarea>
+                                            <button type="button" class="sbtn sm primary" onclick="Actions.complete(@a.Id, document.getElementById('note-@a.Id'), document.getElementById('row-@a.Id'))">Done</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- All actions — filterable -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">All actions</span>
+            <span class="card-sub">@Model.Filtered.Count shown</span>
+        </div>
+        <form method="get" style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px;align-items:flex-end">
+            <div class="ff" style="margin:0"><span class="ff-label">Status</span><div class="ff-control">
+                <select name="status" class="ff-input">
+                    <option value="Open" selected="@(Model.StatusFilter == "Open" ? "selected" : null)">Open</option>
+                    <option value="Complete" selected="@(Model.StatusFilter == "Complete" ? "selected" : null)">Complete</option>
+                    <option value="all" selected="@(Model.StatusFilter == "all" ? "selected" : null)">All</option>
+                </select></div></div>
+            <div class="ff" style="margin:0"><span class="ff-label">Owner</span><div class="ff-control">
+                <select name="owner" class="ff-input"><option value="">Any</option>
+                    @foreach (var o in Model.Owners)
+                    {
+                        <option value="@o" selected="@(Model.OwnerFilter == o ? "selected" : null)">@o</option>
+                    }
+                </select></div></div>
+            <div class="ff" style="margin:0"><span class="ff-label">Area</span><div class="ff-control">
+                <select name="area" class="ff-input"><option value="">Any</option>
+                    @foreach (var ar in Model.Areas)
+                    {
+                        <option value="@ar" selected="@(Model.AreaFilter == ar ? "selected" : null)">@ar</option>
+                    }
+                </select></div></div>
+            <button type="submit" class="sbtn sm">Apply</button>
+        </form>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:1000px">
+                <thead>
+                    <tr><th>Owner</th><th>Action</th><th style="width:110px">Area</th><th style="width:150px">From</th><th style="width:120px">Raised by</th><th style="width:90px">Status</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.Filtered)
+                    {
+                        <tr>
+                            <td>@a.OwnerName @(a.OwnerIsExternal ? Html.Raw("<span style=\"color:#6b7280;font-size:11px\">(shared)</span>") : null)</td>
+                            <td>@a.Text</td>
+                            <td>@a.Area</td>
+                            <td style="font-size:12px">@a.SourceLabel</td>
+                            <td>@a.RaisedByName</td>
+                            <td>@(a.Status == ActionStatus.Complete
+                                ? Html.Raw("<span style=\"color:#065f46;font-weight:700\">Complete</span>")
+                                : Html.Raw("<span style=\"color:#92400e;font-weight:700\">Open</span>"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

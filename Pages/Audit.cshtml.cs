@@ -12,12 +12,14 @@ public class AuditModel : PageModel
     private readonly AppDbContext _db;
     private readonly UserService _users;
     private readonly HodEffectivenessService _effectiveness;
+    private readonly ActionService _actions;
 
-    public AuditModel(AppDbContext db, UserService users, HodEffectivenessService effectiveness)
+    public AuditModel(AppDbContext db, UserService users, HodEffectivenessService effectiveness, ActionService actions)
     {
         _db = db;
         _users = users;
         _effectiveness = effectiveness;
+        _actions = actions;
     }
 
     public string AuditDate { get; set; } = "";
@@ -39,6 +41,7 @@ public class AuditModel : PageModel
 
     [BindProperty] public List<HodAnswerInput> A { get; set; } = [];
     [BindProperty] public string? Actions { get; set; }
+    [BindProperty] public string? NewActionsJson { get; set; }
     [BindProperty] public string? GoodPractice { get; set; }
     [BindProperty] public string? AuditorSignature { get; set; }
     [BindProperty] public string? TeamLeaderSignature { get; set; }
@@ -316,6 +319,7 @@ public class AuditModel : PageModel
                 existing.LastEditedAt = DateTime.UtcNow;
 
                 await _db.SaveChangesAsync();
+                await CreateActionsForAsync(existing);
                 return RedirectToPage("/Success", new { hodAuditId = editingId });
             }
 
@@ -344,6 +348,7 @@ public class AuditModel : PageModel
                 sameKey.LastEditedBy = auditorName ?? user.DisplayName;
                 sameKey.LastEditedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
+                await CreateActionsForAsync(sameKey);
                 return RedirectToPage("/Success", new { hodAuditId = sameKey.Id });
             }
 
@@ -368,6 +373,7 @@ public class AuditModel : PageModel
 
             _db.HodDailyAudits.Add(audit);
             await _db.SaveChangesAsync();
+            await CreateActionsForAsync(audit);
             return RedirectToPage("/Success", new { hodAuditId = audit.Id });
         }
         catch (Exception ex)
@@ -378,6 +384,18 @@ public class AuditModel : PageModel
             await RepopulateForErrorAsync(answers);
             return Page();
         }
+    }
+
+    // Persist any structured actions assigned on this audit (on submit only).
+    async Task CreateActionsForAsync(HodDailyAudit a)
+    {
+        var rows = ActionSerializer.Parse(NewActionsJson);
+        if (rows.Count == 0) return;
+        var typeLabel = HodAuditTypes.LabelFor(a.AuditType);
+        var area = a.ResolveEffectivenessArea();
+        await _actions.CreateFromAuditAsync(
+            ActionSourceTypes.HodDaily, a.Id,
+            $"HOD Daily — {typeLabel} — {area}", typeLabel, area, a.AuditDate, rows);
     }
 
     async Task<List<HodEffectivenessFinding>> SafeGetFindingsAsync(

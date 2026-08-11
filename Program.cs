@@ -41,6 +41,7 @@ builder.Services.AddScoped<PersonListService>();
 builder.Services.AddScoped<RecordDeleteService>();
 builder.Services.AddScoped<HistoryListService>();
 builder.Services.AddScoped<DocumentNumberService>();
+builder.Services.AddScoped<ActionService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddScoped<ShiftCompletionService>();
 builder.Services.AddScoped<ShiftResumeService>();

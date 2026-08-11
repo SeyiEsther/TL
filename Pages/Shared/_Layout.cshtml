@@ -1,10 +1,13 @@
 @inject TL.Services.UserService UserService
 @inject TL.Services.AdminService AdminService
 @inject TL.Services.PortalAccessService PortalAccess
+@inject TL.Services.ActionService ActionService
 @{
     var user = UserService.GetCurrentUser();
     var isAdmin = AdminService.IsAdmin();
     await PortalAccess.EnsureReadyAsync();
+    var openActionCount = 0;
+    try { openActionCount = await ActionService.OpenCountForUserAsync(user.DisplayName); } catch { }
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     var isHodArea = pg is "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory";
     var isSeniorArea = pg is "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory";
@@ -35,7 +38,10 @@
     <div class="topbar-right">
         @if (!string.IsNullOrEmpty(user.DisplayName))
         {
-            <span class="user-chip">@user.DisplayName</span>
+            <a class="user-chip" asp-page="/MyActions" title="My actions" style="position:relative;text-decoration:none">
+                @user.DisplayName
+                <span id="nav-action-badge" class="chip-badge" style="@(openActionCount > 0 ? "" : "display:none")">@openActionCount</span>
+            </a>
         }
         <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
         @if (PortalAccess.CanAccessManagement())
@@ -53,6 +59,10 @@
         <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
         @if (PortalAccess.CanAccessManagement())
         {
+            <a class="tbtn @(pg == "/Actions" ? "active" : "")" asp-page="/Actions">Actions</a>
+        }
+        @if (PortalAccess.CanAccessManagement())
+        {
             <a class="tbtn @(pg == "/Dashboard" ? "active" : "")" asp-page="/Dashboard">Dashboard</a>
             <a class="tbtn @(pg == "/ShiftHistory" ? "active" : "")" asp-page="/ShiftHistory">Shifts</a>
         }
@@ -67,8 +77,17 @@
 @RenderBody()
 </main>
 
+<style>
+    .chip-badge {
+        position: absolute; top: -7px; right: -7px; min-width: 18px; height: 18px;
+        padding: 0 5px; border-radius: 9px; background: #CC1F2C; color: #fff;
+        font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
+        box-shadow: 0 0 0 2px #2b3340;
+    }
+</style>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script src="~/js/form-backup.js" asp-append-version="true"></script>
+<script src="~/js/actions.js" asp-append-version="true"></script>
 @RenderSection("Scripts", required: false)
 </body>
 </html>

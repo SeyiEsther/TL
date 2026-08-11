@@ -1,0 +1,111 @@
+@page
+@model AdminActionsModel
+@{
+    ViewData["Title"] = "Admin — Actions";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Admin — All Actions</div>
+            <div class="page-sub">Live and historical &bull; the full PDCA audit trail</div>
+        </div>
+        <a asp-page="/Admin" class="sbtn sm">Back to Admin</a>
+    </div>
+
+    <form method="get" class="card" style="margin-bottom:14px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px;align-items:flex-end">
+            <div class="ff" style="margin:0"><span class="ff-label">Owner</span><div class="ff-control">
+                <select name="owner" class="ff-input"><option value="">Any</option>
+                    @foreach (var o in Model.Owners)
+                    {
+                        <option value="@o" selected="@(Model.OwnerFilter == o ? "selected" : null)">@o</option>
+                    }
+                </select></div></div>
+            <div class="ff" style="margin:0"><span class="ff-label">Area</span><div class="ff-control">
+                <select name="area" class="ff-input"><option value="">Any</option>
+                    @foreach (var ar in Model.Areas)
+                    {
+                        <option value="@ar" selected="@(Model.AreaFilter == ar ? "selected" : null)">@ar</option>
+                    }
+                </select></div></div>
+            <div class="ff" style="margin:0"><span class="ff-label">Audit type</span><div class="ff-control">
+                <select name="type" class="ff-input"><option value="">Any</option>
+                    @foreach (var t in Model.Types)
+                    {
+                        <option value="@t" selected="@(Model.TypeFilter == t ? "selected" : null)">@t</option>
+                    }
+                </select></div></div>
+            <button type="submit" class="sbtn sm">Apply</button>
+            <a asp-page="/AdminActions" class="sbtn sm">Clear</a>
+        </div>
+    </form>
+
+    <!-- Live -->
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-head">
+            <span class="card-title">Live — open actions</span>
+            <span class="card-sub">@Model.Open.Count open</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:1050px">
+                <thead>
+                    <tr><th style="width:150px">Owner</th><th>Action</th><th style="width:110px">Area</th><th style="width:130px">Raised by</th><th style="width:90px">Raised</th><th style="width:300px">Reassign</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.Open)
+                    {
+                        <tr>
+                            <td>@a.OwnerName @(a.OwnerIsExternal ? Html.Raw("<span style=\"color:#6b7280;font-size:11px\">(shared)</span>") : null)</td>
+                            <td>@a.Text</td>
+                            <td>@a.Area</td>
+                            <td>@a.RaisedByName</td>
+                            <td>@a.RaisedAt.ToLocalTime().ToString("dd/MM/yy")</td>
+                            <td>
+                                <div style="display:flex;gap:6px">
+                                    <select id="ao-@a.Id" style="flex:1;min-width:140px;font-size:12px">
+                                        <option value="">Choose owner…</option>
+                                        @foreach (var o in Model.OwnerChoices)
+                                        {
+                                            <option value="@o">@o</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="sbtn sm" onclick="Actions.reassign(@a.Id, document.getElementById('ao-@a.Id'))">Reassign</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">History — completed actions</span>
+            <span class="card-sub">@Model.Completed.Count completed &bull; loop closed</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:1100px">
+                <thead>
+                    <tr><th style="width:140px">Owner</th><th>Action</th><th>Completion note</th><th style="width:130px">Completed by</th><th style="width:90px">When</th><th style="width:80px">Open for</th><th style="width:80px"></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.Completed)
+                    {
+                        <tr>
+                            <td>@a.OwnerName</td>
+                            <td>@a.Text</td>
+                            <td style="font-size:12px;white-space:pre-wrap">@a.CompletionNote</td>
+                            <td>@a.CompletedByName</td>
+                            <td>@a.CompletedAt?.ToLocalTime().ToString("dd/MM/yy")</td>
+                            <td>@AdminActionsModel.OpenDuration(a)</td>
+                            <td><button type="button" class="sbtn sm" onclick="Actions.reopen(@a.Id)">Reopen</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
