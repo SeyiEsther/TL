@@ -8,5 +8,6 @@ public static class HodList
         "Michal Tymko", "Paul Giles", "Przemyslaw Zygnerski", "Shaun Webber",
         "Sion Llewellyn", "Tyrone Marshall",
         "Piotr Pelka", "Alison Gilley", "Michael Tregillis",
+        "Bethany Hughes",
     ];
 }

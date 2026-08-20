@@ -13,6 +13,11 @@ public class PersonListService
     private const string FullAccessCacheKey = "picker-names-fullaccess";
     private const string ActionOwnerCacheKey = "picker-names-actionowner";
 
+    // Short TTL so a change made on ONE worker/process (or directly in the DB)
+    // converges everywhere within a minute without an app restart. Writes below
+    // still refresh the local cache instantly via ReloadAsync.
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
+
     // Action-owner defaults: everyone who could own an action (TL, HOD, Senior,
     // full-access) plus the shared external destinations (e.g. Maintenance).
     public static IReadOnlyList<string> ActionOwnerDefaults =>
@@ -120,21 +125,21 @@ public class PersonListService
                 .ThenBy(p => p.Name)
                 .ToListAsync();
 
-            _cache.Set(TeamLeaderCacheKey, RowsForKind(rows, PersonListKinds.TeamLeader));
-            _cache.Set(HodCacheKey, RowsForKind(rows, PersonListKinds.Hod));
-            _cache.Set(SeniorCacheKey, RowsForKind(rows, PersonListKinds.Senior));
-            _cache.Set(FullAccessCacheKey, RowsForKind(rows, PersonListKinds.FullAccess));
+            _cache.Set(TeamLeaderCacheKey, RowsForKind(rows, PersonListKinds.TeamLeader), CacheTtl);
+            _cache.Set(HodCacheKey, RowsForKind(rows, PersonListKinds.Hod), CacheTtl);
+            _cache.Set(SeniorCacheKey, RowsForKind(rows, PersonListKinds.Senior), CacheTtl);
+            _cache.Set(FullAccessCacheKey, RowsForKind(rows, PersonListKinds.FullAccess), CacheTtl);
             var owners = RowsForKind(rows, PersonListKinds.ActionOwner);
-            _cache.Set(ActionOwnerCacheKey, owners.Count > 0 ? owners : ActionOwnerDefaults);
+            _cache.Set(ActionOwnerCacheKey, owners.Count > 0 ? owners : ActionOwnerDefaults, CacheTtl);
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "Could not load picker names from database — using built-in defaults.");
-            _cache.Set(TeamLeaderCacheKey, TeamLeaderList.Names);
-            _cache.Set(HodCacheKey, HodList.Names);
-            _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
-            _cache.Set(FullAccessCacheKey, ShiftManagerList.Names);
-            _cache.Set(ActionOwnerCacheKey, ActionOwnerDefaults);
+            _cache.Set(TeamLeaderCacheKey, TeamLeaderList.Names, CacheTtl);
+            _cache.Set(HodCacheKey, HodList.Names, CacheTtl);
+            _cache.Set(SeniorCacheKey, SeniorManagementList.Names, CacheTtl);
+            _cache.Set(FullAccessCacheKey, ShiftManagerList.Names, CacheTtl);
+            _cache.Set(ActionOwnerCacheKey, ActionOwnerDefaults, CacheTtl);
         }
     }
 
@@ -161,10 +166,35 @@ public class PersonListService
             Name = trimmed,
             SortOrder = maxOrder + 1,
         });
+
+        // Any individual added to a person list should also be assignable as an
+        // action owner, so they appear in the actions picker without a second add.
+        if (IsIndividualKind(listKind))
+        {
+            var inOwners = await _db.PickerPersons.AnyAsync(p =>
+                p.ListKind == PersonListKinds.ActionOwner && p.Name.ToLower() == trimmed.ToLower());
+            if (!inOwners)
+            {
+                var ownerMax = await _db.PickerPersons
+                    .Where(p => p.ListKind == PersonListKinds.ActionOwner)
+                    .Select(p => (int?)p.SortOrder).MaxAsync() ?? 0;
+                _db.PickerPersons.Add(new PickerPerson
+                {
+                    ListKind = PersonListKinds.ActionOwner,
+                    Name = trimmed,
+                    SortOrder = ownerMax + 1,
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
         await ReloadAsync();
         return true;
     }
+
+    static bool IsIndividualKind(string kind) => kind is
+        PersonListKinds.TeamLeader or PersonListKinds.Hod
+        or PersonListKinds.Senior or PersonListKinds.FullAccess;
 
     public async Task<bool> RemovePersonAsync(int id)
     {
@@ -306,11 +336,11 @@ public class PersonListService
                 .Select(p => p.Name)
                 .ToListAsync();
             if (names.Count > 0)
-                _cache.Set(SeniorCacheKey, names);
+                _cache.Set(SeniorCacheKey, names, CacheTtl);
         }
         catch
         {
-            _cache.Set(SeniorCacheKey, SeniorManagementList.Names);
+            _cache.Set(SeniorCacheKey, SeniorManagementList.Names, CacheTtl);
         }
     }
 
