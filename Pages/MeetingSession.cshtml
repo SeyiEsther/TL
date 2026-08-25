@@ -81,8 +81,45 @@
 
     @if (Model.SlotMissing)
     {
-        <div class="card" style="padding:16px 18px">
-            <div class="empty">No meeting slot selected. Open a slot from the Meeting Rota &ldquo;This week&rdquo; panel.</div>
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head">
+                <span class="card-title">New team meeting</span>
+                <span class="card-sub">Record a meeting outside the production rota — pick the details to start</span>
+            </div>
+            <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:16px 18px">
+                <div class="ff" style="margin:0">
+                    <span class="ff-label">Date</span>
+                    <div class="ff-control">
+                        <input type="date" name="date" class="ff-input" required
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" style="min-width:170px">
+                    </div>
+                </div>
+                <div class="ff" style="margin:0">
+                    <span class="ff-label">Area / team</span>
+                    <div class="ff-control">
+                        <input type="text" name="area" class="ff-input" required list="adhoc-areas"
+                               placeholder="e.g. Assembly 3, Paint, Maintenance…" style="min-width:220px">
+                    </div>
+                </div>
+                <datalist id="adhoc-areas">
+                    <option value="Assembly 1"></option><option value="Assembly 2"></option>
+                    <option value="Assembly 3"></option><option value="Assembly 4"></option>
+                    <option value="Assembly 5"></option><option value="Paint"></option>
+                    <option value="Sheetmetal Weld"></option><option value="Sheetmetal Pierce &amp; Fold"></option>
+                </datalist>
+                <div class="ff" style="margin:0">
+                    <span class="ff-label">Shift</span>
+                    <div class="ff-control">
+                        <select name="shift" class="ff-input" required style="min-width:150px">
+                            @foreach (var sh in MeetingShifts.All)
+                            {
+                                <option value="@sh">@sh</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="sbtn sm primary">Start meeting &rarr;</button>
+            </form>
         </div>
         return;
     }

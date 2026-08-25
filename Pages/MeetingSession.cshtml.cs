@@ -60,7 +60,8 @@ public class MeetingSessionModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string? date, string? area, string? shift, int? id)
     {
-        CanEdit = _access.CanAccessHod();
+        // Any signed-in user may record a team meeting.
+        CanEdit = true;
 
         TeamMeeting? m = null;
         if (id.HasValue)
@@ -110,8 +111,7 @@ public class MeetingSessionModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(string meetingDate, string area, string shift, int? editingId)
     {
-        if (!_access.CanAccessHod())
-            return Forbid();
+        // Recording a team meeting is open to any signed-in user.
 
         if (!DateOnly.TryParse(meetingDate, out var d) || string.IsNullOrWhiteSpace(area) || !MeetingShifts.IsValid(shift))
             return RedirectToPage("/MeetingRota");

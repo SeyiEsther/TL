@@ -24,7 +24,9 @@ public class MeetingRotaModel : PageModel
 
     public async Task OnGetAsync()
     {
-        CanEdit = _access.CanAccessHod();
+        // Team meetings are run on the shopfloor by team leaders, so any signed-in
+        // user may record one (viewing stays open to everyone).
+        CanEdit = true;
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var (weekStart, weekEnd) = WeekMath.Bounds(today);

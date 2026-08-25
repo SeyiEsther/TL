@@ -107,6 +107,17 @@ public class TeamMeetingTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task New_meeting_page_shows_the_adhoc_start_form()
+    {
+        var client = _factory.CreateClient();
+        var html = await (await client.GetAsync("/MeetingSession")).Content.ReadAsStringAsync();
+        // No slot chosen → the ad-hoc "New team meeting" starter, not a dead end.
+        Assert.Contains("New team meeting", html);
+        Assert.Contains("name=\"area\"", html);
+        Assert.Contains("name=\"shift\"", html);
+    }
+
+    [Fact]
     public async Task Pdf_generates_after_save()
     {
         await ResetAsync();
