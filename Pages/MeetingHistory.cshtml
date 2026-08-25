@@ -17,6 +17,13 @@
         </div>
     </div>
 
+    @if (Model.JustDeleted)
+    {
+        <div class="card" style="margin-bottom:14px;padding:12px 16px;font-size:13px;color:#16a34a;background:#f0fdf4;border-color:#bbf7d0">
+            Team meeting deleted.
+        </div>
+    }
+
     @if (Model.TotalMeetings == 0)
     {
         <div class="card">
@@ -66,6 +73,15 @@
                                         <a href="/MeetingSession?id=@m.Id" style="color:#1e3a5f;font-weight:600">View</a>
                                         <span style="color:var(--border);margin:0 4px">|</span>
                                         <a href="/api/meetings/@m.Id/pdf" style="color:#CC1F2C;font-weight:600">PDF</a>
+                                        @if (Model.IsAdmin)
+                                        {
+                                            <span style="color:var(--border);margin:0 4px">|</span>
+                                            <form method="post" asp-page-handler="Delete" style="display:inline"
+                                                  onsubmit="return confirm('Delete this @m.Area @m.Shift meeting on @m.Date.ToString("dd MMM")? This cannot be undone.');">
+                                                <input type="hidden" name="id" value="@m.Id" />
+                                                <button type="submit" class="dl-link dl-delete" style="background:none;border:0;padding:0;cursor:pointer;color:#CC1F2C;font-weight:600">Delete</button>
+                                            </form>
+                                        }
                                     </td>
                                 </tr>
                             }

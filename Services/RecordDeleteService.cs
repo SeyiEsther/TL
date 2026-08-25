@@ -20,6 +20,7 @@ public class RecordDeleteService
             "shifts" or "session" => await DeleteShiftSubmissionAsync(id),
             "hod" => await DeleteHodByIdAsync(id, preferNew: isNewHodAudit),
             "senior" => await DeleteSeniorAuditAsync(id),
+            "teammeeting" => await DeleteTeamMeetingAsync(id),
             _ => false,
         };
     }
@@ -73,6 +74,16 @@ public class RecordDeleteService
         var audit = await _db.SeniorWeeklyAudits.FindAsync(id);
         if (audit == null) return false;
         _db.SeniorWeeklyAudits.Remove(audit);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    // Single table with JSON columns — no child rows to cascade.
+    public async Task<bool> DeleteTeamMeetingAsync(int id)
+    {
+        var meeting = await _db.TeamMeetings.FindAsync(id);
+        if (meeting == null) return false;
+        _db.TeamMeetings.Remove(meeting);
         await _db.SaveChangesAsync();
         return true;
     }

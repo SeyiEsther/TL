@@ -27,6 +27,37 @@ public class MeetingHistoryTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Admin_can_delete_a_team_meeting()
+    {
+        int id;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.TeamMeetings.RemoveRange(db.TeamMeetings);
+            var m = new TeamMeeting { MeetingDate = new DateOnly(2026, 8, 4), Area = "Assembly 1", Shift = MeetingShifts.Day, SubmittedBy = "t" };
+            db.TeamMeetings.Add(m);
+            await db.SaveChangesAsync();
+            id = m.Id;
+        }
+
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var token = System.Text.RegularExpressions.Regex.Match(
+            await (await client.GetAsync("/MeetingHistory")).Content.ReadAsStringAsync(),
+            @"name=""__RequestVerificationToken""[^>]*value=""([^""]+)""").Groups[1].Value;
+
+        var resp = await client.PostAsync("/MeetingHistory?handler=Delete", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["id"] = id.ToString(),
+        }));
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, resp.StatusCode);
+
+        using var check = _factory.Services.CreateScope();
+        var db2 = check.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db2.TeamMeetings.AnyAsync(x => x.Id == id));
+    }
+
+    [Fact]
     public async Task Groups_meetings_under_their_rota_week()
     {
         // 03 Aug 2026 is the cycle-start Monday (Week A).

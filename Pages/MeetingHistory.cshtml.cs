@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using TL.Data;
@@ -14,13 +15,25 @@ public class MeetingHistoryModel : PageModel
     private static readonly DateOnly CycleStart = new(2026, 8, 3);
 
     private readonly AppDbContext _db;
-    public MeetingHistoryModel(AppDbContext db) => _db = db;
+    private readonly AdminService _admin;
+    private readonly RecordDeleteService _delete;
+
+    public MeetingHistoryModel(AppDbContext db, AdminService admin, RecordDeleteService delete)
+    {
+        _db = db;
+        _admin = admin;
+        _delete = delete;
+    }
 
     public List<WeekGroup> Weeks { get; set; } = [];
     public int TotalMeetings { get; set; }
+    public bool IsAdmin { get; set; }
+    public bool JustDeleted { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(string? deleted)
     {
+        IsAdmin = _admin.IsAdmin();
+        JustDeleted = deleted == "1";
         List<MeetingRow> rows;
         try
         {
@@ -48,6 +61,15 @@ public class MeetingHistoryModel : PageModel
                 CycleFor(g.Key),
                 g.OrderBy(r => r.Date).ThenBy(r => r.Area).ThenBy(r => r.Shift).ToList()))
             .ToList();
+    }
+
+    // Admin-only delete, mirroring the HOD/Senior audit delete on History.
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        if (!_admin.IsAdmin())
+            return RedirectToPage();
+        var ok = await _delete.DeleteTeamMeetingAsync(id);
+        return RedirectToPage(new { deleted = ok ? "1" : null });
     }
 
     // Whole weeks between this week's Monday and the cycle-start Monday: even = A, odd = B.
