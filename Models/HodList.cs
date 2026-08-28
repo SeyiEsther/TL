@@ -1,13 +1,15 @@
 namespace TL.Models;
 
+// Heads of Department only (shift managers are a separate list now). These are
+// the names shown on the HOD auditor picker. Seeded from here; editable in Admin.
 public static class HodList
 {
     public static readonly string[] Names =
     [
-        "Damon Swain", "John Smith", "Kamil Sliwa", "Kenneth Fenn",
-        "Michal Tymko", "Paul Giles", "Przemyslaw Zygnerski", "Shaun Webber",
-        "Sion Llewellyn", "Tyrone Marshall",
-        "Piotr Pelka", "Alison Gilley", "Michael Tregillis",
-        "Bethany Hughes",
+        "George Thompson",
+        "Lukasz Jaworski",
+        "Alison Gilley",
+        "Piotr Pelka",
+        "Michael Tregillis",
     ];
 }

@@ -128,3 +128,12 @@ public class AdminFullAccessModel : AdminPeoplePageModel
     protected override string PageSubtitle => "Shift managers, Group 1, and Directors — can view everything except Admin";
     protected override string HelpText => "Changes take effect immediately — no redeploy needed.";
 }
+
+public class AdminShiftManagersModel : AdminPeoplePageModel
+{
+    public AdminShiftManagersModel(AdminService admin, PersonListService people, UserService users) : base(admin, people, users) { }
+    protected override string ListKind => PersonListKinds.ShiftManager;
+    protected override string PageTitle => "Shift manager names";
+    protected override string PageSubtitle => "Names on the Shift Manager tab and daily report";
+    protected override string HelpText => "Shift managers keep full access; this list drives their name pickers. Changes take effect immediately.";
+}

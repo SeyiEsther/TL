@@ -12,6 +12,7 @@ public class PersonListService
     private const string SeniorCacheKey = "picker-names-senior";
     private const string FullAccessCacheKey = "picker-names-fullaccess";
     private const string ActionOwnerCacheKey = "picker-names-actionowner";
+    private const string ShiftManagerCacheKey = "picker-names-shiftmanager";
 
     // Short TTL so a change made on ONE worker/process (or directly in the DB)
     // converges everywhere within a minute without an app restart. Writes below
@@ -55,6 +56,9 @@ public class PersonListService
     public IReadOnlyList<string> ActionOwnersList =>
         _cache.Get<IReadOnlyList<string>>(ActionOwnerCacheKey) ?? ActionOwnerDefaults;
 
+    public IReadOnlyList<string> ShiftManagers =>
+        _cache.Get<IReadOnlyList<string>>(ShiftManagerCacheKey) ?? ShiftManagerRoleList.Names;
+
     public async Task EnsureLoadedAsync()
     {
         await SyncSeniorRosterFromDefaultsAsync();
@@ -66,7 +70,11 @@ public class PersonListService
         var changed = false;
         changed |= await SyncMissingDefaultsAsync(PersonListKinds.Hod, HodList.Names);
         changed |= await SyncMissingDefaultsAsync(PersonListKinds.FullAccess, ShiftManagerList.Names);
-        changed |= await SyncMissingDefaultsAsync(PersonListKinds.ActionOwner, ActionOwnerDefaults);
+        changed |= await SyncMissingDefaultsAsync(PersonListKinds.ShiftManager, ShiftManagerRoleList.Names);
+        // Action owners = EVERY individual in ANY person list (however they got
+        // there — code default or admin add) plus the shared destinations. This
+        // is what makes admin-added people reliably assignable as owners.
+        changed |= await SyncActionOwnersFromAllListsAsync();
 
         if (!changed && _cache.TryGetValue(TeamLeaderCacheKey, out _))
         {
@@ -111,6 +119,50 @@ public class PersonListService
         }
     }
 
+    // Ensure the ActionOwner list contains every individual currently in any
+    // person list (in the DB), plus the shared external destinations. Add-only.
+    async Task<bool> SyncActionOwnersFromAllListsAsync()
+    {
+        try
+        {
+            var individualKinds = new[]
+            {
+                PersonListKinds.TeamLeader, PersonListKinds.Hod,
+                PersonListKinds.Senior, PersonListKinds.FullAccess, PersonListKinds.ShiftManager,
+            };
+            var wanted = await _db.PickerPersons
+                .Where(p => individualKinds.Contains(p.ListKind))
+                .Select(p => p.Name)
+                .Distinct()
+                .ToListAsync();
+            wanted.AddRange(ActionOwners.External);
+
+            var existing = await _db.PickerPersons
+                .Where(p => p.ListKind == PersonListKinds.ActionOwner)
+                .Select(p => p.Name)
+                .ToListAsync();
+            var have = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+
+            var missing = wanted.Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(n => !string.IsNullOrWhiteSpace(n) && !have.Contains(n)).ToList();
+            if (missing.Count == 0) return false;
+
+            var maxOrder = await _db.PickerPersons
+                .Where(p => p.ListKind == PersonListKinds.ActionOwner)
+                .Select(p => (int?)p.SortOrder).MaxAsync() ?? 0;
+            foreach (var name in missing)
+                _db.PickerPersons.Add(new PickerPerson { ListKind = PersonListKinds.ActionOwner, Name = name, SortOrder = ++maxOrder });
+            await _db.SaveChangesAsync();
+            _log.LogInformation("Added {Count} action owner(s) from person lists.", missing.Count);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not sync action owners from person lists.");
+            return false;
+        }
+    }
+
     public async Task ReloadAsync()
     {
         try
@@ -131,6 +183,8 @@ public class PersonListService
             _cache.Set(FullAccessCacheKey, RowsForKind(rows, PersonListKinds.FullAccess), CacheTtl);
             var owners = RowsForKind(rows, PersonListKinds.ActionOwner);
             _cache.Set(ActionOwnerCacheKey, owners.Count > 0 ? owners : ActionOwnerDefaults, CacheTtl);
+            var sms = RowsForKind(rows, PersonListKinds.ShiftManager);
+            _cache.Set(ShiftManagerCacheKey, sms.Count > 0 ? sms : ShiftManagerRoleList.Names, CacheTtl);
         }
         catch (Exception ex)
         {
@@ -140,6 +194,7 @@ public class PersonListService
             _cache.Set(SeniorCacheKey, SeniorManagementList.Names, CacheTtl);
             _cache.Set(FullAccessCacheKey, ShiftManagerList.Names, CacheTtl);
             _cache.Set(ActionOwnerCacheKey, ActionOwnerDefaults, CacheTtl);
+            _cache.Set(ShiftManagerCacheKey, ShiftManagerRoleList.Names, CacheTtl);
         }
     }
 
@@ -194,7 +249,8 @@ public class PersonListService
 
     static bool IsIndividualKind(string kind) => kind is
         PersonListKinds.TeamLeader or PersonListKinds.Hod
-        or PersonListKinds.Senior or PersonListKinds.FullAccess;
+        or PersonListKinds.Senior or PersonListKinds.FullAccess
+        or PersonListKinds.ShiftManager;
 
     public async Task<bool> RemovePersonAsync(int id)
     {

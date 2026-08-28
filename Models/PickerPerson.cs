@@ -15,4 +15,5 @@ public static class PersonListKinds
     public const string Senior = "Senior";
     public const string FullAccess = "FullAccess";
     public const string ActionOwner = "ActionOwner";
+    public const string ShiftManager = "ShiftManager";
 }

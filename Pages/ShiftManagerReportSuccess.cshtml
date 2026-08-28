@@ -1,0 +1,24 @@
+@page
+@{
+    ViewData["Title"] = "Report saved";
+    var id = Request.Query["id"];
+}
+
+<div class="dwrap">
+    <div class="card" style="max-width:520px;margin:40px auto;text-align:center;border-top:4px solid #16a34a">
+        <div style="padding:28px 26px">
+            <div style="font-size:22px;font-weight:800;color:#111827;margin-bottom:6px">Report saved</div>
+            <div style="font-size:14px;color:#374151;margin-bottom:18px">
+                The Shift Manager Daily Report has been saved@(string.IsNullOrEmpty(id) ? "" : $" (ref #{id})").
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                @if (!string.IsNullOrEmpty(id))
+                {
+                    <a asp-page="/ShiftManagerReport" asp-route-id="@id" class="sbtn sm">Continue editing</a>
+                }
+                <a asp-page="/ShiftManagerReport" class="sbtn primary sm">New report</a>
+                <a asp-page="/ShiftManager" class="sbtn sm">Shift Manager home</a>
+            </div>
+        </div>
+    </div>
+</div>

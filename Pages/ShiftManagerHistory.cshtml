@@ -1,0 +1,44 @@
+@page
+@model ShiftManagerHistoryModel
+@{
+    ViewData["Title"] = "Shift Manager Report History";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Shift Manager Report History</div>
+            <div class="page-sub">@Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</div>
+        </div>
+        <a asp-page="/ShiftManager" class="sbtn sm">&larr; Shift Manager</a>
+    </div>
+
+    <div class="card">
+        @if (Model.Reports.Count == 0)
+        {
+            <div style="padding:24px 18px;text-align:center;color:var(--muted)">
+                No daily reports yet. <a asp-page="/ShiftManagerReport" style="color:#CC1F2C;font-weight:600">Create one</a>.
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:640px">
+                    <thead><tr><th>Date</th><th>Shift</th><th>Manager</th><th>Last saved</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var r in Model.Reports)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@r.Date.ToString("ddd dd MMM yyyy")</td>
+                                <td>@r.Shift</td>
+                                <td>@r.Manager</td>
+                                <td style="color:var(--muted)">@r.When.ToLocalTime().ToString("dd MMM HH:mm")</td>
+                                <td><a asp-page="/ShiftManagerReport" asp-route-id="@r.Id" style="color:#1e3a5f;font-weight:600">Open</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

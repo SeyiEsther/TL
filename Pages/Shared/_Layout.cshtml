@@ -11,6 +11,7 @@
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     var isHodArea = pg is "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory";
     var isSeniorArea = pg is "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory";
+    var isShiftMgrArea = pg is "/ShiftManager" or "/ShiftManagerReport" or "/ShiftManagerReportSuccess" or "/ShiftManagerHistory";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -55,6 +56,10 @@
         @if (PortalAccess.CanAccessSenior())
         {
             <a class="tbtn @(isSeniorArea ? "active" : "")" asp-page="/SeniorStart">Senior</a>
+        }
+        @if (PortalAccess.CanAccessShiftManager())
+        {
+            <a class="tbtn @(isShiftMgrArea ? "active" : "")" asp-page="/ShiftManager">Shift Mgr</a>
         }
         <a class="tbtn @(pg == "/History" ? "active" : "")" asp-page="/History">History</a>
         @if (PortalAccess.CanAccessManagement())

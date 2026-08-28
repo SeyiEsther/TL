@@ -1,0 +1,135 @@
+@page
+@model ShiftManagerReportModel
+@using TL.Models
+@{
+    ViewData["Title"] = "Shift Manager Daily Report";
+}
+
+<div class="dwrap">
+    <div class="page-head" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Shift Manager Daily Report</div>
+            <div class="page-sub">Daily HSE, production and audit summary</div>
+        </div>
+        <a asp-page="/ShiftManager" class="sbtn sm">&larr; Shift Manager</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <div class="err" style="margin-bottom:14px">@Model.Error</div>
+    }
+
+    <form method="post" data-backup="sm-report" data-backup-key="@(Model.EditingId?.ToString() ?? "new")">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="EditingId" value="@(Model.EditingId?.ToString() ?? "")" />
+
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">Report details</span></div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;padding:14px 16px;align-items:flex-end">
+                <div class="ff" style="margin:0"><span class="ff-label">Date</span><div class="ff-control">
+                    <input type="date" name="ReportDate" class="ff-input" value="@Model.ReportDate" required></div></div>
+                <div class="ff" style="margin:0"><span class="ff-label">Shift</span><div class="ff-control">
+                    <select name="Shift" class="ff-input" required>
+                        <option value="">Select…</option>
+                        @foreach (var s in ShiftReportDefs.Shifts)
+                        {
+                            <option value="@s" selected="@(Model.Shift == s ? "selected" : null)">@s</option>
+                        }
+                    </select></div></div>
+                <div class="ff" style="margin:0"><span class="ff-label">Manager</span><div class="ff-control">
+                    <input type="text" name="ManagerName" class="ff-input" list="sm-managers"
+                           value="@Model.ManagerName" required style="min-width:200px">
+                    <datalist id="sm-managers">
+                        @foreach (var m in Model.Managers)
+                        {
+                            <option value="@m"></option>
+                        }
+                    </datalist></div></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">HSE</span><span class="card-sub">Target vs actual</span></div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:520px">
+                    <thead><tr><th>Measure</th><th style="width:150px">Target</th><th style="width:150px">Actual</th></tr></thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.HseRows.Count; i++)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@Model.HseRows[i].Label</td>
+                                <td><input type="text" name="HseTarget[@i]" class="ff-input" value="@Model.HseRows[i].Target" style="width:100%"></td>
+                                <td><input type="text" name="HseActual[@i]" class="ff-input" value="@Model.HseRows[i].Actual" style="width:100%"></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:12px 16px"><label style="font-size:12px;font-weight:600">Manager / HSE comments &amp; actions</label>
+                <textarea name="ManagerHseComments" rows="3" style="width:100%">@Model.ManagerHseComments</textarea></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">Production</span><span class="card-sub">Target vs actual</span></div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:520px">
+                    <thead><tr><th>Line</th><th style="width:150px">Target</th><th style="width:150px">Actual</th></tr></thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.ProductionRows.Count; i++)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@Model.ProductionRows[i].Label</td>
+                                <td><input type="text" name="ProdTarget[@i]" class="ff-input" value="@Model.ProductionRows[i].Target" style="width:100%"></td>
+                                <td><input type="text" name="ProdActual[@i]" class="ff-input" value="@Model.ProductionRows[i].Actual" style="width:100%"></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:12px 16px"><label style="font-size:12px;font-weight:600">Production comments &amp; actions</label>
+                <textarea name="ProductionComments" rows="3" style="width:100%">@Model.ProductionComments</textarea></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">Audits completed</span></div>
+            <div style="overflow-x:auto">
+                <table class="dash-table" style="min-width:420px">
+                    <thead><tr><th>Audit</th><th style="width:130px">Day</th><th style="width:120px">Completed</th></tr></thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Audits.Count; i++)
+                        {
+                            <tr>
+                                <td style="font-weight:600">@Model.Audits[i].Type</td>
+                                <td>@Model.Audits[i].Day</td>
+                                <td>
+                                    <select name="AuditDone[@i]" class="ff-input" style="width:100%">
+                                        <option value="">—</option>
+                                        <option value="Y" selected="@(Model.Audits[i].Completed == "Y" ? "selected" : null)">Y</option>
+                                        <option value="N" selected="@(Model.Audits[i].Completed == "N" ? "selected" : null)">N</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+            <div class="card-head"><span class="card-title">LSW &amp; AOB comments</span></div>
+            <div style="padding:14px 16px;display:grid;gap:12px">
+                <div><label style="font-size:12px;font-weight:600">LSW — Team Leaders</label>
+                    <textarea name="LswTeamLeaderComments" rows="3" style="width:100%">@Model.LswTeamLeaderComments</textarea></div>
+                <div><label style="font-size:12px;font-weight:600">LSW — HoD</label>
+                    <textarea name="LswHodComments" rows="3" style="width:100%">@Model.LswHodComments</textarea></div>
+                <div><label style="font-size:12px;font-weight:600">AOB</label>
+                    <textarea name="Aob" rows="3" style="width:100%">@Model.Aob</textarea></div>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:30px">
+            <button type="submit" class="sbtn primary">Save report</button>
+            <a asp-page="/ShiftManager" class="sbtn">Cancel</a>
+        </div>
+    </form>
+</div>

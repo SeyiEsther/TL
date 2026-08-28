@@ -27,6 +27,13 @@ public class PortalAccessService
         || MatchesList(_people.Seniors)
         || IsShiftManager();
 
+    // Shift Managers get their own tab. Shift managers keep full access, so
+    // full-access users see it too; membership drives their name pickers.
+    public bool CanAccessShiftManager() =>
+        _admin.IsAdmin()
+        || MatchesList(_people.ShiftManagers)
+        || IsShiftManager();
+
     public bool CanAccessManagement() =>
         _admin.IsAdmin() || CanAccessHod() || CanAccessSenior();
 
@@ -36,11 +43,13 @@ public class PortalAccessService
             => CanAccessHod(),
         "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory"
             => CanAccessSenior(),
+        "/ShiftManager" or "/ShiftManagerReport" or "/ShiftManagerReportSuccess" or "/ShiftManagerHistory"
+            => CanAccessShiftManager(),
         "/History"
             => true, // history is viewable by everyone; delete stays admin-only in the page
         "/Dashboard" or "/ShiftHistory" or "/Today" or "/Actions"
             => CanAccessManagement(),
-        "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess" or "/AdminActions"
+        "/Admin" or "/AdminTeamLeaders" or "/AdminHodNames" or "/AdminSeniorNames" or "/AdminFullAccess" or "/AdminActions" or "/AdminShiftManagers"
             => _admin.IsAdmin(),
         _ => true,
     };

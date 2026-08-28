@@ -15,6 +15,7 @@ namespace TL.Data
         public DbSet<TeamMeeting> TeamMeetings => Set<TeamMeeting>();
         public DbSet<DocumentNumber> DocumentNumbers => Set<DocumentNumber>();
         public DbSet<AuditAction> AuditActions => Set<AuditAction>();
+        public DbSet<ShiftManagerReport> ShiftManagerReports => Set<ShiftManagerReport>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -68,6 +69,19 @@ namespace TL.Data
                 e.Property(a => a.CompletedByName).HasMaxLength(256);
                 e.HasIndex(a => new { a.Status, a.OwnerKey });
                 e.HasIndex(a => new { a.SourceType, a.SourceId });
+            });
+            mb.Entity<ShiftManagerReport>(e =>
+            {
+                // Free text stays unbounded to avoid truncation.
+                foreach (var prop in new[] { "HseJson", "ProductionJson", "AuditsJson",
+                    "ManagerHseComments", "ProductionComments", "LswTeamLeaderComments",
+                    "LswHodComments", "Aob" })
+                    e.Property(prop).HasColumnType("nvarchar(max)");
+                e.Property(x => x.Shift).HasMaxLength(30);
+                e.Property(x => x.ManagerName).HasMaxLength(256);
+                e.Property(x => x.SubmittedBy).HasMaxLength(256);
+                e.Property(x => x.LastEditedBy).HasMaxLength(256);
+                e.HasIndex(x => new { x.ReportDate, x.Shift });
             });
             mb.Entity<DocumentNumber>(e =>
             {

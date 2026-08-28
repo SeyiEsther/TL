@@ -30,7 +30,7 @@ public class PortalAccessServiceTests
     [Fact]
     public void Hod_list_member_sees_hod_and_management_not_senior()
     {
-        var access = CreateAccess("Damon Swain", grantAll: false);
+        var access = CreateAccess("George Thompson", grantAll: false);
         Assert.True(access.CanAccessHod());
         Assert.False(access.CanAccessSenior());
         Assert.True(access.CanAccessManagement());
@@ -92,9 +92,9 @@ public class PortalAccessServiceTests
     }
 
     [Theory]
-    [InlineData("Kenneth Fenn", "Kenneth Fenn")]
-    [InlineData("ken", "Kenneth Fenn")]
-    public void Hod_kenneth_fenn_matches_display_name_and_username(string username, string displayName)
+    [InlineData("George Thompson", "George Thompson")]
+    [InlineData("george", "George Thompson")]
+    public void Hod_member_matches_display_name_and_username(string username, string displayName)
     {
         var access = CreateAccess(displayName, username, grantAll: false);
         Assert.True(access.CanAccessHod());
