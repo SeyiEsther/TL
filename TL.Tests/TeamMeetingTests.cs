@@ -107,6 +107,34 @@ public class TeamMeetingTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Next_meeting_prefills_team_names_from_the_last_one()
+    {
+        await ResetAsync();
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var today = DateTime.Today;
+
+        // Record a meeting with a Team member.
+        var getUrl = $"/MeetingSession?date={today:yyyy-MM-dd}&area=Assembly%201&shift={MeetingShifts.Day}";
+        var token = ExtractToken(await (await client.GetAsync(getUrl)).Content.ReadAsStringAsync())!;
+        await client.PostAsync("/MeetingSession", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = token,
+            ["meetingDate"] = today.ToString("yyyy-MM-dd"),
+            ["area"] = "Assembly 1",
+            ["shift"] = MeetingShifts.Day,
+            ["TeamMembersJson"] = "[{\"name\":\"Alice Adams\",\"present\":true}]",
+            ["GroupMembersJson"] = "[]",
+            ["ProblemsJson"] = "[]",
+            ["GuestsJson"] = "[]",
+        }));
+
+        // Start a NEW meeting for the same area+shift on a later date.
+        var nextDate = today.AddDays(7).ToString("yyyy-MM-dd");
+        var html = await (await client.GetAsync($"/MeetingSession?date={nextDate}&area=Assembly%201&shift={MeetingShifts.Day}")).Content.ReadAsStringAsync();
+        Assert.Contains("Alice Adams", html); // carried from last meeting
+    }
+
+    [Fact]
     public async Task New_meeting_page_shows_the_adhoc_start_form()
     {
         var client = _factory.CreateClient();

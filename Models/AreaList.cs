@@ -85,6 +85,16 @@ public static class AreaList
     public static int DefaultChecksFor(string? label) =>
         IsSheetmetal(label) ? SheetmetalChecks : 8;
 
+    // TPM-only board groupings for Assembly. Several assembly lines share one TPM
+    // board, so on a TPM audit they are collapsed into a single board answered
+    // once. This applies ONLY to TPM question generation — every other audit type
+    // and the TL daily form keep the individual lines.
+    public static readonly (string Board, string[] Members)[] TpmLineGroups =
+    [
+        ("MSFT / E4000 / MOR", ["5 — MICROSOFT", "10 — E40001", "7 — MOR"]),
+        ("HP / Ozeki / SPC / TX", ["1 — HP", "2 — OZEKI", "8 — SPECIALS", "9 — TX"]),
+    ];
+
     public static List<string> GetMachineList(string? label)
     {
         var machines = GetMachines(label);

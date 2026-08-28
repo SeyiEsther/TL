@@ -106,6 +106,20 @@ public class MeetingSessionModel : PageModel
         Location = area;
         CompiledOn = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
         MeetingDateTime = $"{nd:dd/MM/yyyy} {ShiftTime}".Trim();
+
+        // Attendee defaults: carry the Team and Group names from the most recent
+        // prior meeting for this same area + shift (fully editable; attendance is
+        // reset so it's ticked fresh each meeting). Guests are one-off, not carried.
+        var last = await _db.TeamMeetings
+            .Where(x => x.Area == area && x.Shift == shift)
+            .OrderByDescending(x => x.MeetingDate)
+            .ThenByDescending(x => x.LastEditedAt ?? x.SubmittedAt)
+            .FirstOrDefaultAsync();
+        if (last != null)
+        {
+            TeamMembers = CarryNames(TeamMeetingSerializer.Attendees(last.TeamMembersJson));
+            GroupMembers = CarryNames(TeamMeetingSerializer.Attendees(last.GroupMembersJson));
+        }
         return Page();
     }
 
@@ -153,6 +167,12 @@ public class MeetingSessionModel : PageModel
 
         return RedirectToPage("/Success", new { meetingId = m.Id, saved = true });
     }
+
+    // Carry names to a new meeting with attendance reset (unticked).
+    static List<TeamMeetingAttendee> CarryNames(List<TeamMeetingAttendee> prior) =>
+        prior.Where(a => !string.IsNullOrWhiteSpace(a.Name))
+             .Select(a => new TeamMeetingAttendee { Name = a.Name, Present = false })
+             .ToList();
 
     // Continuity lookup: newest matching record for the slot, newest-edited first.
     Task<TeamMeeting?> FindByKeyAsync(DateOnly date, string area, string shift) =>

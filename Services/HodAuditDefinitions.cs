@@ -36,25 +36,23 @@ public static class HodAuditDefinitions
 
     static List<HodAuditQuestion> TpmQuestionsForDepartment(string department)
     {
-        var zones = AreaList.All
-            .Where(a => string.IsNullOrEmpty(department) || a.Group == department)
-            .ToList();
+        var zones = TpmZonesForDepartment(department);
 
         if (zones.Count == 0)
             return [];
 
         var questions = new List<HodAuditQuestion>();
         var machineIndex = 0;
-        foreach (var zone in zones)
+        foreach (var zoneLabel in zones)
         {
-            var machines = AreaList.GetMachineList(zone.Label);
+            var machines = AreaList.GetMachineList(zoneLabel);
             if (machines.Count == 0)
-                machines = [zone.Label];
+                machines = [zoneLabel];
 
             foreach (var machine in machines)
             {
                 var idBase = $"tpm_{machineIndex}_{Slug(machine)}";
-                var section = $"TPM — {zone.Label} — {machine}";
+                var section = $"TPM — {zoneLabel} — {machine}";
                 questions.Add(new($"{idBase}_content", section, "Does the TPM board have the required content?", machine));
                 questions.Add(new($"{idBase}_current", section, "Is the TPM board up to date?", machine));
                 questions.Add(new($"{idBase}_filled", section, "Is the TPM board being filled out?", machine));
@@ -63,6 +61,25 @@ public static class HodAuditDefinitions
             }
         }
         return questions;
+    }
+
+    // TPM-only: the zones/boards to audit for a department, collapsing the
+    // Assembly line groups into a single shared board each (answered once).
+    static List<string> TpmZonesForDepartment(string department)
+    {
+        var labels = AreaList.All
+            .Where(a => string.IsNullOrEmpty(department) || a.Group == department)
+            .Select(a => a.Label)
+            .ToList();
+
+        foreach (var g in AreaList.TpmLineGroups)
+        {
+            var idx = labels.FindIndex(l => g.Members.Contains(l, StringComparer.OrdinalIgnoreCase));
+            if (idx < 0) continue; // none of this group's lines are in scope
+            labels.RemoveAll(l => g.Members.Contains(l, StringComparer.OrdinalIgnoreCase));
+            labels.Insert(Math.Min(idx, labels.Count), g.Board);
+        }
+        return labels;
     }
 
     static List<HodAuditQuestion> PartsIdNcQuestions(string department)

@@ -97,6 +97,55 @@ public class ActionServiceTests : IClassFixture<FormSaveWebAppFactory>
     }
 
     [Fact]
+    public async Task Maintenance_shared_owner_full_lifecycle()
+    {
+        // Assign an action to the shared "Maintenance" destination via the audit
+        // path, exactly as the forms do.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.AuditActions.RemoveRange(db.AuditActions);
+            await db.SaveChangesAsync();
+            var svc = scope.ServiceProvider.GetRequiredService<ActionService>();
+            await svc.CreateFromAuditAsync(
+                ActionSourceTypes.HodDaily, 99, "HOD Daily — TPM — Zone 7", "TPM", "Zone 7",
+                DateOnly.FromDateTime(DateTime.Today),
+                new[] { new ActionSerializer.NewAction("Maintenance", "Fix the extractor fan", null) });
+        }
+
+        int id;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var a = await db.AuditActions.SingleAsync(x => x.OwnerName == "Maintenance");
+            id = a.Id;
+            Assert.True(a.OwnerIsExternal);               // flagged shared, not a person
+            Assert.Equal(ActionStatus.Open, a.Status);
+
+            var svc = scope.ServiceProvider.GetRequiredService<ActionService>();
+            // It must NOT sit on any individual's personal list...
+            Assert.Empty(await svc.OpenForUserAsync("Maintenance"));
+            // ...but it IS visible in the full list (Actions tab shows shared).
+            Assert.Contains(await svc.AllAsync(), x => x.Id == id && x.OwnerIsExternal);
+        }
+
+        // Management completes it on behalf, and who did it is recorded.
+        var client = _factory.CreateClient();
+        var resp = await client.PostAsJsonAsync($"/api/actions/{id}/complete",
+            new { note = "Extractor fan repaired and tested by maintenance team." });
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var a = await db.AuditActions.SingleAsync(x => x.Id == id);
+            Assert.Equal(ActionStatus.Complete, a.Status);
+            Assert.False(string.IsNullOrWhiteSpace(a.CompletedByName));  // completer recorded
+            Assert.Contains("Extractor fan repaired", a.CompletionNote);
+        }
+    }
+
+    [Fact]
     public async Task External_owner_is_flagged_and_reassign_reopen_work()
     {
         var id = await SeedActionAsync(a => { a.OwnerName = "Maintenance"; a.OwnerIsExternal = true; a.OwnerKey = PortalNameMatcher.Normalize("Maintenance"); });
