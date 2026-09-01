@@ -23,7 +23,7 @@
     <div class="card">
         <div class="card-head"><span class="card-title">Audits</span><span class="card-sub">Shift managers still perform the daily audits</span></div>
         <div style="padding:16px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-            <a asp-page="/AuditStart" class="sbtn primary sm">Start an audit</a>
+            <a asp-page="/AuditStart" asp-route-from="sm" class="sbtn primary sm">Start an audit</a>
             <a asp-page="/History" asp-route-tab="hod" class="sbtn sm">Audit history</a>
             <span style="font-size:12px;color:var(--muted)">Uses the same audit forms as HOD (6S, TPM, Parts ID, Quality).</span>
         </div>

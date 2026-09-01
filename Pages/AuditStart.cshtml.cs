@@ -23,13 +23,18 @@ public class AuditStartModel : PageModel
     public string AuditorName { get; set; } = "";
     public string? Shift { get; set; }
     public string AuditDate { get; set; } = "";
+    // "sm" when the audit was launched from the Shift Manager tab, so branding
+    // and return links point back there instead of the HOD area.
+    public string? From { get; set; }
+    public bool IsShiftManagerContext => From == "sm";
     public string SuggestedType { get; set; } = "";
     public string SuggestedTypeLabel { get; set; } = "";
     public string? Error { get; set; }
     public List<UnfinishedHodAudit> Unfinished { get; set; } = [];
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(string? from)
     {
+        From = from;
         var user = _users.GetCurrentUser();
         AuditorName = user.DisplayName;
         AuditDate = DateTime.Today.ToString("yyyy-MM-dd");
@@ -45,8 +50,9 @@ public class AuditStartModel : PageModel
     }
 
     public async Task<IActionResult> OnPostAsync(
-        string auditDate, string auditorName, string department, string effectivenessArea, string auditType, string? shift)
+        string auditDate, string auditorName, string department, string effectivenessArea, string auditType, string? shift, string? from)
     {
+        From = from;
         AuditorName = auditorName ?? "";
         Shift = shift;
         AuditDate = auditDate ?? DateTime.Today.ToString("yyyy-MM-dd");
@@ -98,7 +104,7 @@ public class AuditStartModel : PageModel
                 .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
                 .FirstOrDefaultAsync();
             if (existing != null)
-                return RedirectToPage("/Audit", new { id = existing.Id });
+                return RedirectToPage("/Audit", new { id = existing.Id, from });
 
             var user = _users.GetCurrentUser();
             var questions = HodAuditDefinitions.GetQuestions(type, department);
@@ -127,7 +133,7 @@ public class AuditStartModel : PageModel
 
             _db.HodDailyAudits.Add(draft);
             await _db.SaveChangesAsync();
-            return RedirectToPage("/Audit", new { id = draft.Id });
+            return RedirectToPage("/Audit", new { id = draft.Id, from });
         }
         catch (Exception ex)
         {

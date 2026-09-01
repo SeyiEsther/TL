@@ -86,6 +86,7 @@
 
     <form method="post" data-backup="hod-audit" data-backup-key="@(Model.EditingId?.ToString() ?? "new")">
         @Html.AntiForgeryToken()
+        <input type="hidden" name="From" value="@Model.From">
         <input type="hidden" name="auditDate" value="@Model.AuditDate">
         <input type="hidden" name="auditorName" value="@Model.AuditorName">
         <input type="hidden" name="department" value="@Model.Department">
@@ -291,7 +292,7 @@
                     Submit audit
                 </button>
             }
-            <a asp-page="/AuditStart" class="sbtn" id="audit-cancel-link">Cancel</a>
+            <a asp-page="/AuditStart" asp-route-from="@Model.From" class="sbtn" id="audit-cancel-link">Cancel</a>
             <span id="audit-save-status" style="font-size:11px;color:var(--muted);margin-left:10px"></span>
         </div>
     </form>
@@ -304,6 +305,7 @@
     var form = wrap.querySelector('form');
     var maxScore = @Model.MaxScore;
     var editingId = @(Model.EditingId?.ToString() ?? "null");
+    var FROM_Q = '@(Model.IsShiftManagerContext ? "&from=sm" : "")';
     var statusEl = document.getElementById('audit-save-status');
     var saveBtn = document.getElementById('audit-save-btn');
     var dirty = false;
@@ -400,7 +402,7 @@
                 dirty = false;
                 if (reason === 'leave') return;
                 // Explicit Save press → show the full confirmation screen.
-                if (reason === 'manual') { window.location.href = '/Success?hodAuditId=' + editingId + '&saved=true'; return; }
+                if (reason === 'manual') { window.location.href = '/Success?hodAuditId=' + editingId + '&saved=true' + FROM_Q; return; }
                 var t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (statusEl) {
                     statusEl.textContent = '✓ Saved at ' + t +

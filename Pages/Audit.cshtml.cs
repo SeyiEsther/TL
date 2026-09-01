@@ -45,6 +45,9 @@ public class AuditModel : PageModel
     [BindProperty] public string? GoodPractice { get; set; }
     [BindProperty] public string? AuditorSignature { get; set; }
     [BindProperty] public string? TeamLeaderSignature { get; set; }
+    // Return context: "sm" keeps the Shift Manager branding/return through save.
+    [BindProperty(SupportsGet = true)] public string? From { get; set; }
+    public bool IsShiftManagerContext => From == "sm";
 
     public async Task<IActionResult> OnGetAsync(
         string? date, string? auditor, string? department, string? effectivenessArea, string? area, string? type, int? id,
@@ -320,7 +323,7 @@ public class AuditModel : PageModel
 
                 await _db.SaveChangesAsync();
                 await CreateActionsForAsync(existing);
-                return RedirectToPage("/Success", new { hodAuditId = editingId });
+                return RedirectToPage("/Success", new { hodAuditId = editingId, from = From });
             }
 
             // Guard against inserting a duplicate for the same natural key
@@ -349,7 +352,7 @@ public class AuditModel : PageModel
                 sameKey.LastEditedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 await CreateActionsForAsync(sameKey);
-                return RedirectToPage("/Success", new { hodAuditId = sameKey.Id });
+                return RedirectToPage("/Success", new { hodAuditId = sameKey.Id, from = From });
             }
 
             var audit = new HodDailyAudit
@@ -374,7 +377,7 @@ public class AuditModel : PageModel
             _db.HodDailyAudits.Add(audit);
             await _db.SaveChangesAsync();
             await CreateActionsForAsync(audit);
-            return RedirectToPage("/Success", new { hodAuditId = audit.Id });
+            return RedirectToPage("/Success", new { hodAuditId = audit.Id, from = From });
         }
         catch (Exception ex)
         {

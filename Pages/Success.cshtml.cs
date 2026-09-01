@@ -16,10 +16,12 @@ public class SuccessModel : PageModel
     public bool IsProgressSave { get; set; }
     public bool IsMeeting { get; set; }
     public string? HodAuditTypeLabel { get; set; }
+    public bool IsShiftManagerContext { get; set; }
 
-    public async Task OnGetAsync(int? id, int? hodAuditId, int? meetingId, bool? audit, bool? saved)
+    public async Task OnGetAsync(int? id, int? hodAuditId, int? meetingId, bool? audit, bool? saved, string? from)
     {
         IsProgressSave = saved == true;
+        IsShiftManagerContext = from == "sm";
 
         if (meetingId.HasValue)
         {
