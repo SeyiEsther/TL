@@ -9,9 +9,14 @@
     var openActionCount = 0;
     try { openActionCount = await ActionService.OpenCountForUserAsync(user.DisplayName); } catch { }
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
-    var isHodArea = pg is "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory";
+    // An audit launched from the Shift Manager tab carries from=sm; light the
+    // Shift Mgr tab (not HoD) while that context is active.
+    var fromSm = string.Equals(Context.Request.Query["from"], "sm", StringComparison.OrdinalIgnoreCase);
+    var isAuditFlowPage = pg is "/AuditStart" or "/Audit" or "/Success";
+    var isHodArea = (pg is "/HodDashboard" or "/AuditStart" or "/Audit" or "/AuditResult" or "/AuditSuccess" or "/AuditHistory" or "/HodHistory") && !fromSm;
     var isSeniorArea = pg is "/SeniorStart" or "/SeniorAudit" or "/SeniorDashboard" or "/SeniorRota" or "/SeniorSuccess" or "/SeniorHistory";
-    var isShiftMgrArea = pg is "/ShiftManager" or "/ShiftManagerReport" or "/ShiftManagerReportSuccess" or "/ShiftManagerHistory";
+    var isShiftMgrArea = pg is "/ShiftManager" or "/ShiftManagerReport" or "/ShiftManagerReportSuccess" or "/ShiftManagerHistory"
+        || (fromSm && isAuditFlowPage);
 }
 <!DOCTYPE html>
 <html lang="en">
