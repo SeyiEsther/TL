@@ -261,12 +261,8 @@
         </div>
 
         <div class="audit-card audit-findings-card" id="sec-findings">
-            <div class="card-head"><span class="card-title">Actions required</span></div>
+            <div class="card-head"><span class="card-title">Good practice</span></div>
             <div class="audit-findings-body">
-                <div class="sfield full">
-                    <label>Actions raised / concerns identified</label>
-                    <textarea name="Actions" placeholder="What was found and what action is needed…">@Model.Actions</textarea>
-                </div>
                 <div class="sfield full">
                     <label>Good practice observed</label>
                     <textarea name="GoodPractice" placeholder="Positive examples noted during the walkaround…">@Model.GoodPractice</textarea>
@@ -274,6 +270,15 @@
             </div>
         </div>
 
+        @* "Actions raised" free text is no longer entered (item 5); actions are
+           captured as structured items below. The field is still round-tripped
+           hidden so any historical value (and auto-derived fail traceability) is
+           preserved when an existing record is reopened and re-saved. *@
+        <input type="hidden" name="Actions" value="@Model.Actions" />
+
+        @* Actions are now captured as structured, owned items below rather than
+           free text — see item 5. Historical free-text actions remain readable
+           in past records (AuditResult / history). *@
         <partial name="_AssignActions" />
 
         <div class="audit-sign-card">

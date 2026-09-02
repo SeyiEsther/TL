@@ -171,11 +171,71 @@
         }
     </div>
 
-    <!-- Actions list -->
+    <!-- Actions this person has assigned to others (item 5) -->
     <div class="card actions-card">
         <div class="card-head">
-            <span class="card-title">Actions raised — @Model.WeekRangeLabel</span>
-            <span class="card-sub">@Model.Actions.Count action@(Model.Actions.Count == 1 ? "" : "s")</span>
+            <span class="card-title">Actions assigned to others</span>
+            <span class="card-sub">@Model.AssignedByPerson.Count action@(Model.AssignedByPerson.Count == 1 ? "" : "s") raised by @(string.IsNullOrEmpty(Model.SelectedHod) ? "—" : Model.SelectedHod)</span>
+        </div>
+        @if (Model.AssignedByPerson.Count == 0)
+        {
+            <div style="padding:16px 18px;color:var(--muted);font-size:13px">No actions assigned to others.</div>
+        }
+        else
+        {
+            <div style="overflow-x:auto">
+                <table class="actions-list">
+                    <thead>
+                        <tr>
+                            <th style="width:170px">Assigned to</th>
+                            <th>Relates to</th>
+                            <th style="width:110px">Due</th>
+                            <th style="width:110px">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in Model.AssignedByPerson)
+                        {
+                            var overdue = a.DueDate.HasValue && a.DueDate.Value < DateOnly.FromDateTime(DateTime.Today) && a.Status != TL.Models.ActionStatus.Complete;
+                            <tr>
+                                <td style="font-weight:600">@a.AssignedTo</td>
+                                <td class="act-text">@a.RelatesTo</td>
+                                <td>
+                                    @if (a.DueDate.HasValue)
+                                    {
+                                        <span style="@(overdue ? "color:#CC1F2C;font-weight:700" : "")">@a.DueDate.Value.ToString("dd MMM")</span>
+                                    }
+                                    else { <span style="color:var(--muted)">—</span> }
+                                </td>
+                                <td>
+                                    @if (a.Status == TL.Models.ActionStatus.Complete)
+                                    {
+                                        <span class="rag g">Complete</span>
+                                    }
+                                    else if (overdue)
+                                    {
+                                        <span class="rag r">Overdue</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rag a">Open</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Historical audit notes (legacy free-text; read-only, past records) -->
+    @if (Model.Actions.Any(a => !string.IsNullOrWhiteSpace(a.Text) || !string.IsNullOrWhiteSpace(a.FindingsSummary)))
+    {
+    <div class="card actions-card">
+        <div class="card-head">
+            <span class="card-title">Historical audit notes — @Model.WeekRangeLabel</span>
+            <span class="card-sub">@Model.Actions.Count note@(Model.Actions.Count == 1 ? "" : "s") from audit records</span>
         </div>
         @if (Model.Actions.Count == 0)
         {
@@ -219,4 +279,5 @@
             </div>
         }
     </div>
+    }
 </div>

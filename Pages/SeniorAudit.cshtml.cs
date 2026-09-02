@@ -280,7 +280,11 @@ public class SeniorAuditModel : PageModel
         s.PerformanceNotes = a.PerformanceNotes;
         s.GoodPracticeObserved = a.GoodPracticeObserved;
         s.AreasForImprovement = a.AreasForImprovement;
-        s.ActionsRaised = a.ActionsRaised;
+        // "Actions raised" free text is no longer entered (item 5). Preserve any
+        // existing historical value when an older record is reopened/edited —
+        // only overwrite if the form actually supplied text (it no longer does).
+        if (!string.IsNullOrWhiteSpace(a.ActionsRaised))
+            s.ActionsRaised = a.ActionsRaised;
         s.OverallVerdict = a.OverallVerdict;
     }
 }

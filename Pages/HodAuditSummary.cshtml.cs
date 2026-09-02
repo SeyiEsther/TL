@@ -13,7 +13,12 @@ namespace TL.Pages;
 public class HodAuditSummaryModel : PageModel
 {
     private readonly AppDbContext _db;
-    public HodAuditSummaryModel(AppDbContext db) => _db = db;
+    private readonly ActionService _actions;
+    public HodAuditSummaryModel(AppDbContext db, ActionService actions)
+    {
+        _db = db;
+        _actions = actions;
+    }
 
     // Selectors (screen only).
     public List<string> HodOptions { get; set; } = [];
@@ -29,8 +34,14 @@ public class HodAuditSummaryModel : PageModel
     // no audit of that type exists that week (so the line breaks, not zero).
     public List<ChartSeries> Charts { get; set; } = [];
 
-    // Actions raised across the same window, newest week first.
+    // Historical free-text actions from the person's own audits (kept readable
+    // for past records; no longer entered on new audits — item 5).
     public List<ActionItem> Actions { get; set; } = [];
+
+    // Item 5: the actions THIS person has assigned to OTHERS through the actions
+    // system — "my results, and then the actions I've given to someone". Each
+    // shows who it went to, what it relates to, and its current status.
+    public List<AssignedAction> AssignedByPerson { get; set; } = [];
 
     // Audit types in the order they appear on the 2×2 grid.
     static readonly string[] TypeOrder =
@@ -122,10 +133,32 @@ public class HodAuditSummaryModel : PageModel
             .Where(a => !string.IsNullOrWhiteSpace(a.Text) || !string.IsNullOrWhiteSpace(a.FindingsSummary))
             .OrderByDescending(a => a.Date)
             .ToList();
+
+        // Structured actions this person assigned to others. Matched by the same
+        // display name the board is keyed on (fuzzy, to bridge AD vs picker names).
+        var raised = await _actions.RaisedByUserAsync("", SelectedHod);
+        AssignedByPerson = raised
+            .Where(a => PortalNameMatcher.Matches(a.RaisedByName, SelectedHod))
+            .Select(a => new AssignedAction(
+                a.OwnerName,
+                a.SourceLabel ?? BuildRelatesTo(a),
+                a.Status,
+                a.DueDate,
+                a.RaisedAt))
+            .OrderByDescending(a => a.RaisedAt)
+            .ToList();
+    }
+
+    static string BuildRelatesTo(AuditAction a)
+    {
+        var parts = new[] { a.AuditType, a.Area }.Where(s => !string.IsNullOrWhiteSpace(s));
+        var joined = string.Join(" · ", parts);
+        return string.IsNullOrWhiteSpace(joined) ? ActionSourceTypes.Label(a.SourceType) : joined;
     }
 
     public record WeekCol(DateOnly Start, DateOnly End, int IsoWeek, string Label);
     public record WeekPoint(string Label, double? Percent);
     public record ChartSeries(string Type, string Label, List<WeekPoint> Points);
     public record ActionItem(string TypeLabel, string WeekLabel, DateOnly Date, string Text, string? FindingsSummary);
+    public record AssignedAction(string AssignedTo, string RelatesTo, string Status, DateOnly? DueDate, DateTime RaisedAt);
 }
