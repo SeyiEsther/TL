@@ -136,6 +136,8 @@ public class AuditModel : PageModel
         int? editingId, int? id, string? auditorSignature, string? teamLeaderSignature)
     {
         editingId ??= id;
+        // TPM records are keyed on the shared board, not the picked line.
+        effectivenessArea = AreaList.CanonicalAreaForAudit(auditType, effectivenessArea);
         AuditDate = auditDate;
         AuditorName = auditorName;
         Department = department;
@@ -235,6 +237,8 @@ public class AuditModel : PageModel
         int? editingId, int? id, string? auditorSignature, string? teamLeaderSignature)
     {
         editingId ??= id;
+        // TPM records are keyed on the shared board, not the picked line.
+        effectivenessArea = AreaList.CanonicalAreaForAudit(auditType, effectivenessArea);
         AuditDate = auditDate;
         AuditorName = auditorName;
         Department = department;

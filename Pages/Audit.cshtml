@@ -14,7 +14,15 @@
             <div>
                 <div class="audit-sticky-title">@Model.AuditTypeLabel</div>
                 <div class="audit-sticky-sub">
-                    @auditDateDisplay &bull; Area to audit: <strong>@Model.Department</strong> &bull; Effectiveness check: <strong>@Model.EffectivenessArea</strong>
+                    @auditDateDisplay &bull; Area to audit: <strong>@Model.Department</strong> &bull;
+                    @if (TL.Models.AreaList.IsTpmBoard(Model.EffectivenessArea))
+                    {
+                        <span>TPM board: <strong>@Model.EffectivenessArea</strong> <span style="color:var(--muted)">(shared — covers all lines on this board)</span></span>
+                    }
+                    else
+                    {
+                        <span>Effectiveness check: <strong>@Model.EffectivenessArea</strong></span>
+                    }
                     @if (!string.IsNullOrEmpty(Model.AuditorName)) { <span> &bull; @Model.AuditorName</span> }
                 </div>
             </div>

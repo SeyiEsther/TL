@@ -86,6 +86,12 @@ public class AuditStartModel : PageModel
             ? (DateOnly.TryParse(auditDate, out var ad) ? HodAuditTypes.SuggestedForDate(ad) : HodAuditTypes.SuggestedForDay(DateTime.Today.DayOfWeek))
             : auditType;
 
+        // For TPM, grouped lines are one shared board: store and match on the
+        // board so anyone picking HP/Ozeki/SPC/TX (or MSFT/E4000/MOR) continues
+        // the SAME record. Validation above used the raw zone; the identity uses
+        // the board. All other audit types keep the individual area.
+        var keyArea = AreaList.CanonicalAreaForAudit(type, effectivenessArea);
+
         if (!DateOnly.TryParse(auditDate, out var auditD))
             auditD = DateOnly.FromDateTime(DateTime.Today);
 
@@ -99,8 +105,8 @@ public class AuditStartModel : PageModel
                 .Where(a => a.AuditDate == auditD
                     && a.Department == department
                     && a.AuditType == type
-                    && (a.EffectivenessArea == effectivenessArea
-                        || ((a.EffectivenessArea == null || a.EffectivenessArea == "") && a.Area == effectivenessArea)))
+                    && (a.EffectivenessArea == keyArea
+                        || ((a.EffectivenessArea == null || a.EffectivenessArea == "") && a.Area == keyArea)))
                 .OrderByDescending(a => a.LastEditedAt ?? a.SubmittedAt)
                 .FirstOrDefaultAsync();
             if (existing != null)
@@ -122,8 +128,8 @@ public class AuditStartModel : PageModel
                 AuditorName = auditorName.Trim(),
                 AuditDate = auditD,
                 Department = department,
-                EffectivenessArea = effectivenessArea,
-                Area = effectivenessArea,
+                EffectivenessArea = keyArea,
+                Area = keyArea,
                 AuditType = type,
                 Shift = shift,
                 AnswersJson = HodAuditSerializer.ToJson(blankAnswers),

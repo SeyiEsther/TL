@@ -95,6 +95,24 @@ public static class AreaList
         ("HP / Ozeki / SPC / TX", ["1 — HP", "2 — OZEKI", "8 — SPECIALS", "9 — TX"]),
     ];
 
+    // The TPM board a line belongs to, or null if it isn't in a group.
+    public static string? TpmBoardFor(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label)) return null;
+        foreach (var g in TpmLineGroups)
+            if (g.Members.Contains(label, StringComparer.OrdinalIgnoreCase))
+                return g.Board;
+        return null;
+    }
+
+    public static bool IsTpmBoard(string? label) =>
+        !string.IsNullOrWhiteSpace(label) && TpmLineGroups.Any(g => string.Equals(g.Board, label, StringComparison.OrdinalIgnoreCase));
+
+    // For TPM audits, a grouped line is stored/matched as its shared board so
+    // everyone lands on one record. Every other audit type keeps the raw area.
+    public static string CanonicalAreaForAudit(string? auditType, string label) =>
+        auditType == HodAuditTypes.Tpm ? (TpmBoardFor(label) ?? label) : label;
+
     public static List<string> GetMachineList(string? label)
     {
         var machines = GetMachines(label);
