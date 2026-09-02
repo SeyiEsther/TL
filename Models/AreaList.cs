@@ -105,6 +105,15 @@ public static class AreaList
         return null;
     }
 
+    // The member line labels for a TPM board name (empty if not a board).
+    public static IReadOnlyList<string> TpmBoardMembers(string? board)
+    {
+        foreach (var g in TpmLineGroups)
+            if (string.Equals(g.Board, board, StringComparison.OrdinalIgnoreCase))
+                return g.Members;
+        return [];
+    }
+
     public static bool IsTpmBoard(string? label) =>
         !string.IsNullOrWhiteSpace(label) && TpmLineGroups.Any(g => string.Equals(g.Board, label, StringComparison.OrdinalIgnoreCase));
 

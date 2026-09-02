@@ -56,7 +56,18 @@ public class HodEffectivenessService
             .ExcludeAudits()
             .Where(s => s.ShiftDate >= weekStart && s.ShiftDate <= weekEnd);
 
-        if (!string.IsNullOrEmpty(effectivenessArea))
+        // A TPM audit keyed on a shared board aggregates the shift forms of every
+        // line on that board (each finding keeps its own line in Area). Every
+        // other audit type keeps the single-area lookup.
+        var boardMembers = auditType == HodAuditTypes.Tpm
+            ? AreaList.TpmBoardMembers(effectivenessArea)
+            : [];
+        if (boardMembers.Count > 0)
+        {
+            var members = boardMembers.ToHashSet();
+            q = q.Where(s => s.Area != null && members.Contains(s.Area));
+        }
+        else if (!string.IsNullOrEmpty(effectivenessArea))
             q = q.Where(s => s.Area == effectivenessArea);
         else if (!string.IsNullOrEmpty(department))
             q = q.Where(s => s.Area != null && deptAreas.Contains(s.Area));

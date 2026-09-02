@@ -167,6 +167,7 @@
                     Who submitted shift forms this week, whether they are signed off, and what still needs closing.
                     Rows highlighted in red are audit findings. Fail answers that contradict TL claims are auto-linked on submit.
                 </p>
+                @{ var showLine = TL.Models.AreaList.IsTpmBoard(Model.EffectivenessArea); }
                 @if (Model.EffectivenessFindings.Count == 0)
                 {
                     <div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534">
@@ -175,10 +176,15 @@
                 }
                 else
                 {
+                    @if (showLine)
+                    {
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Findings combined from all lines on this TPM board — the <strong>Line</strong> column shows which line each came from.</div>
+                    }
                     <div style="overflow-x:auto">
                         <table class="dash-table" style="min-width:820px;font-size:12px">
                             <thead>
                                 <tr>
+                                    @if (showLine) { <th>Line</th> }
                                     <th>Team leader</th>
                                     <th>Shift</th>
                                     <th>Date</th>
@@ -193,6 +199,7 @@
                                 {
                                     var rowStyle = f.IsAuditFinding || f.TlClaimMismatch ? "background:#fef2f2" : null;
                                     <tr style="@rowStyle">
+                                        @if (showLine) { <td style="font-weight:600">@(string.IsNullOrEmpty(f.Area) ? "—" : f.Area)</td> }
                                         <td style="font-weight:600">@(string.IsNullOrEmpty(f.TeamLeader) ? "—" : f.TeamLeader)</td>
                                         <td>@(string.IsNullOrEmpty(f.Shift) ? "—" : f.Shift)</td>
                                         <td>@(f.ShiftDate == default ? "—" : f.ShiftDate.ToString("dd/MM"))</td>
