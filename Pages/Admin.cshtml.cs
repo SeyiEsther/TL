@@ -12,18 +12,24 @@ public class AdminModel : PageModel
     private readonly AdminService _admin;
     private readonly RecordDeleteService _delete;
     private readonly DocumentNumberService _docs;
+    private readonly TargetService _targets;
+    private readonly UserService _users;
 
-    public AdminModel(AppDbContext db, AdminService admin, RecordDeleteService delete, DocumentNumberService docs)
+    public AdminModel(AppDbContext db, AdminService admin, RecordDeleteService delete,
+        DocumentNumberService docs, TargetService targets, UserService users)
     {
         _db = db;
         _admin = admin;
         _delete = delete;
         _docs = docs;
+        _targets = targets;
+        _users = users;
     }
 
     public string? StatusMessage { get; set; }
     public List<InProgressShiftRow> InProgressShifts { get; set; } = [];
     public List<TL.Models.DocumentNumber> DocumentNumbers { get; set; } = [];
+    public List<TargetService.TargetRow> Targets { get; set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string? saved)
     {
@@ -34,10 +40,13 @@ public class AdminModel : PageModel
         {
             "deleted" => "Record deleted.",
             "docnum" => "Document number updated.",
+            "target" => "Target saved.",
+            "targetfail" => "Target not saved — enter a whole number of 0 or more.",
             _ => null,
         };
 
         DocumentNumbers = await _docs.AllAsync();
+        Targets = await _targets.AllAsync();
 
         InProgressShifts = await _db.ShiftSubmissions
             .ExcludeAudits()
@@ -74,6 +83,20 @@ public class AdminModel : PageModel
 
         await _docs.UpdateAsync(id, number);
         return RedirectToPage(new { saved = "docnum" });
+    }
+
+    public async Task<IActionResult> OnPostUpdateTargetAsync(string key, string? value)
+    {
+        if (!_admin.IsAdmin())
+            return RedirectToPage("/Index");
+
+        var by = _users.GetCurrentUser();
+        var byName = string.IsNullOrWhiteSpace(by.DisplayName) ? by.Username : by.DisplayName;
+
+        // Confirmed-write: only report success once the server has stored it.
+        var ok = int.TryParse(value, out var v)
+                 && await _targets.UpdateAsync(key ?? "", v, byName);
+        return RedirectToPage(new { saved = ok ? "target" : "targetfail" });
     }
 
     public static string PersonLabel(string teamLeader, string? coveringFor) =>

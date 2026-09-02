@@ -42,7 +42,7 @@ public class WeekMathTests
     [InlineData(50, false)]
     public void Shift_row_flags_under_target_below_35(int achieved, bool expectedUnder)
     {
-        var row = new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", achieved);
+        var row = new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", achieved, 35);
         Assert.Equal(35, row.Target);
         Assert.Equal(expectedUnder, row.Under);
     }
@@ -50,14 +50,14 @@ public class WeekMathTests
     [Fact]
     public void Shift_row_progress_caps_at_100_percent()
     {
-        Assert.Equal(100, new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", 70).Pct); // caps at 100
-        Assert.Equal(48, new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", 17).Pct);  // 17/35 = 48%
+        Assert.Equal(100, new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", 70, 35).Pct); // caps at 100
+        Assert.Equal(48, new ShiftTargetRow(new DateOnly(2026, 7, 20), "Day", 17, 35).Pct);  // 17/35 = 48%
     }
 
     [Fact]
-    public void Day_row_uses_105_target()
+    public void Day_row_uses_provided_target()
     {
-        var row = new DayTargetRow(new DateOnly(2026, 7, 20), 100);
+        var row = new DayTargetRow(new DateOnly(2026, 7, 20), 100, 105);
         Assert.Equal(105, row.Target);
         Assert.True(row.Under);
     }

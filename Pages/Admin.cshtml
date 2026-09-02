@@ -34,6 +34,50 @@
 
     <div class="card" style="margin-bottom:14px">
         <div class="card-head">
+            <span class="card-title">Production targets</span>
+            <span class="card-sub">Pull through read-only wherever targets are shown</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:640px">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>Value</th>
+                        <th>Last changed</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.Targets)
+                    {
+                        <tr>
+                            <td style="font-weight:600">@t.Label</td>
+                            <td colspan="2">
+                                <form method="post" asp-page-handler="UpdateTarget"
+                                      style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <input type="hidden" name="key" value="@t.Key" />
+                                    <input type="number" name="value" value="@t.Value" min="0" step="1"
+                                           class="ff-input" style="max-width:120px" required />
+                                    <button type="submit" class="sbtn sm primary">Save</button>
+                                    <span style="font-size:12px;color:var(--muted)">
+                                        @if (t.UpdatedAt.HasValue)
+                                        {
+                                            <text>@(t.UpdatedBy ?? "—") &bull; @t.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</text>
+                                        }
+                                        else { <text>Default value</text> }
+                                    </span>
+                                </form>
+                            </td>
+                            <td></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
             <span class="card-title">Document numbers</span>
             <span class="card-sub">Printed in each PDF footer</span>
         </div>

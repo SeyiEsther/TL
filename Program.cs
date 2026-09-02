@@ -61,6 +61,7 @@ builder.Services.AddScoped<HistoryListService>();
 builder.Services.AddScoped<DocumentNumberService>();
 builder.Services.AddScoped<ActionService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<TargetService>();
 builder.Services.AddScoped<PdfExportService>();
 builder.Services.AddScoped<ShiftCompletionService>();
 builder.Services.AddScoped<ShiftResumeService>();
@@ -123,6 +124,9 @@ using (var scope = app.Services.CreateScope())
 
     var docs = scope.ServiceProvider.GetRequiredService<DocumentNumberService>();
     await docs.EnsureSeededAsync();
+
+    var targets = scope.ServiceProvider.GetRequiredService<TargetService>();
+    await targets.EnsureSeededAsync();
 }
 
 // Turn the raw "HTTP 400" that an expired antiforgery token produces into a

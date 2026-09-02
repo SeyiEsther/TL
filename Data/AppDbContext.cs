@@ -16,6 +16,7 @@ namespace TL.Data
         public DbSet<DocumentNumber> DocumentNumbers => Set<DocumentNumber>();
         public DbSet<AuditAction> AuditActions => Set<AuditAction>();
         public DbSet<ShiftManagerReport> ShiftManagerReports => Set<ShiftManagerReport>();
+        public DbSet<TargetSetting> TargetSettings => Set<TargetSetting>();
         protected override void OnModelCreating(ModelBuilder mb)
         {
             
@@ -82,6 +83,12 @@ namespace TL.Data
                 e.Property(x => x.SubmittedBy).HasMaxLength(256);
                 e.Property(x => x.LastEditedBy).HasMaxLength(256);
                 e.HasIndex(x => new { x.ReportDate, x.Shift });
+            });
+            mb.Entity<TargetSetting>(e =>
+            {
+                e.Property(t => t.Key).HasMaxLength(60);
+                e.Property(t => t.UpdatedBy).HasMaxLength(256);
+                e.HasIndex(t => t.Key).IsUnique();
             });
             mb.Entity<DocumentNumber>(e =>
             {

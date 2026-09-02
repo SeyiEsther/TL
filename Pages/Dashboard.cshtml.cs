@@ -10,11 +10,13 @@ public class DashboardModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly ShiftCompletionService _completion;
+    private readonly TargetService _targets;
 
-    public DashboardModel(AppDbContext db, ShiftCompletionService completion)
+    public DashboardModel(AppDbContext db, ShiftCompletionService completion, TargetService targets)
     {
         _db = db;
         _completion = completion;
+        _targets = targets;
     }
 
     public string? From { get; set; }
@@ -52,9 +54,11 @@ public class DashboardModel : PageModel
 
     // Weekly report scope (ISO Monday–Sunday). The dashboard defaults to the
     // current week and can page back to any past week; nothing is deleted.
-    public const int ShiftTarget = 35;
-    public const int DayTarget = 105;
-    public const int WeekTarget = 315;
+    // Targets are admin-editable and pulled from the database (item 3); they are
+    // display-only here — shift managers cannot change them.
+    public int ShiftTarget { get; private set; } = TargetKeys.Definitions[TargetKeys.Shift].Default;
+    public int DayTarget { get; private set; } = TargetKeys.Definitions[TargetKeys.Day].Default;
+    public int WeekTarget { get; private set; } = TargetKeys.Definitions[TargetKeys.Week].Default;
 
     public bool CustomRange { get; set; }
     public bool IsCurrentWeek { get; set; }
@@ -80,6 +84,11 @@ public class DashboardModel : PageModel
         ShiftFilter = shift;
         AreaFilter = area;
         TlFilter = tl;
+
+        // Pull current admin-set targets (read-only on this page).
+        ShiftTarget = _targets.Shift;
+        DayTarget = _targets.Day;
+        WeekTarget = _targets.Week;
 
         // A custom from/to range overrides the weekly framing; otherwise scope to
         // the selected ISO week (default = current week).
@@ -145,14 +154,14 @@ public class DashboardModel : PageModel
         // shift is one that ran but closed fewer than 35 forms.
         ShiftTargets = weekShifts
             .GroupBy(s => new { s.ShiftDate, s.Shift })
-            .Select(g => new ShiftTargetRow(g.Key.ShiftDate, g.Key.Shift ?? "", g.Count(Achieved)))
+            .Select(g => new ShiftTargetRow(g.Key.ShiftDate, g.Key.Shift ?? "", g.Count(Achieved), ShiftTarget))
             .OrderBy(r => r.Date).ThenBy(r => ShiftOrder(r.Shift))
             .ToList();
         UnderperformingShiftCount = ShiftTargets.Count(r => r.Under);
 
         DayTargets = weekShifts
             .GroupBy(s => s.ShiftDate)
-            .Select(g => new DayTargetRow(g.Key, g.Count(Achieved)))
+            .Select(g => new DayTargetRow(g.Key, g.Count(Achieved), DayTarget))
             .OrderBy(r => r.Date)
             .ToList();
     }
@@ -271,16 +280,14 @@ public class DashboardModel : PageModel
     public string J(object o) => System.Text.Json.JsonSerializer.Serialize(o);
 }
 
-public record ShiftTargetRow(DateOnly Date, string Shift, int Achieved)
+public record ShiftTargetRow(DateOnly Date, string Shift, int Achieved, int Target)
 {
-    public int Target => DashboardModel.ShiftTarget;
     public bool Under => Achieved < Target;
     public int Pct => Target > 0 ? Math.Min(100, Achieved * 100 / Target) : 0;
 }
 
-public record DayTargetRow(DateOnly Date, int Achieved)
+public record DayTargetRow(DateOnly Date, int Achieved, int Target)
 {
-    public int Target => DashboardModel.DayTarget;
     public bool Under => Achieved < Target;
     public int Pct => Target > 0 ? Math.Min(100, Achieved * 100 / Target) : 0;
 }
