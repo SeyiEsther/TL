@@ -14,9 +14,11 @@
             <div class="page-sub">Shopfloor team-meeting schedule &bull; 2-week A/B cycle</div>
         </div>
         <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-            <div style="display:flex;gap:8px;align-items:center">
-                <a class="tbtn active" asp-page="/MeetingRota">Rota</a>
-                <a class="tbtn" asp-page="/MeetingHistory">History</a>
+            <div style="display:flex;gap:12px;align-items:center">
+                <div class="rtabs" role="tablist">
+                    <a class="rtab active" asp-page="/MeetingRota" role="tab" aria-selected="true">Rota</a>
+                    <a class="rtab" asp-page="/MeetingHistory" role="tab" aria-selected="false">History</a>
+                </div>
                 <a class="sbtn sm primary" asp-page="/MeetingSession">&#65291; New team meeting</a>
             </div>
             <div class="ff" style="margin:0">

@@ -11,9 +11,9 @@
             <div class="page-title" style="font-size:18px;font-weight:700">Meeting History</div>
             <div class="page-sub">Recorded team meetings &bull; grouped by rota week &amp; A/B cycle</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-            <a class="tbtn" asp-page="/MeetingRota">Rota</a>
-            <a class="tbtn active" asp-page="/MeetingHistory">History</a>
+        <div class="rtabs" role="tablist">
+            <a class="rtab" asp-page="/MeetingRota" role="tab" aria-selected="false">Rota</a>
+            <a class="rtab active" asp-page="/MeetingHistory" role="tab" aria-selected="true">History</a>
         </div>
     </div>
 

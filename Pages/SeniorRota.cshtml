@@ -8,7 +8,10 @@
             <div class="page-title">Senior audit rota — @Model.Year</div>
             <div class="page-sub">Groups of @SeniorRota.GroupSize rotate weekly through the senior list — combinations change each week so duty is shared evenly across the year. Order reshuffles every January.</div>
         </div>
-        <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a asp-page="/SeniorAccountability" class="sbtn sm">Accountability</a>
+            <a asp-page="/SeniorDashboard" class="sbtn sm">Back to dashboard</a>
+        </div>
     </div>
 
     <div class="card" style="margin-bottom:20px;padding:18px 20px">

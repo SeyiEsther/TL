@@ -1,0 +1,115 @@
+@page
+@model SeniorAccountabilityModel
+@{ ViewData["Title"] = "Senior audit accountability"; }
+
+<style>
+    .acc-grid { width:100%; border-collapse:collapse; min-width:640px; }
+    .acc-grid th, .acc-grid td { padding:7px 9px; border:1px solid var(--border); text-align:center; font-size:12px; }
+    .acc-grid th { background:var(--surface); font-weight:700; color:var(--muted);
+        text-transform:uppercase; letter-spacing:.05em; font-size:10px; white-space:nowrap; }
+    .acc-grid td.person { text-align:left; font-weight:700; color:var(--ink); white-space:nowrap; }
+    .acc-grid td.miss { color:#b31b27; font-weight:800; }
+    .acc-grid td.tot { font-weight:700; }
+    .acc-yes { color:#16a34a; font-weight:700; }
+    .acc-no { color:#CC1F2C; font-weight:800; }
+    .acc-na { color:var(--border); }
+    .acc-sum { font-size:12px; color:var(--muted); }
+    @@media print {
+        .no-print { display:none !important; }
+        .dwrap { max-width:none; }
+        .card { box-shadow:none; border:1px solid #999; }
+        .acc-grid th, .acc-grid td { border-color:#999; }
+    }
+</style>
+
+<div class="dwrap">
+    <div class="page-head no-print" style="margin-bottom:14px">
+        <div>
+            <div class="page-title" style="font-size:18px;font-weight:700">Senior audit accountability</div>
+            <div class="page-sub">Who was rostered for a senior audit each week, and whether it was completed</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <a asp-page="/SeniorRota" class="sbtn sm">Rota</a>
+            <a asp-page="/SeniorHistory" class="sbtn sm">History</a>
+        </div>
+    </div>
+
+    <div class="card card-filter no-print" style="margin-bottom:14px">
+        <form method="get" class="filters">
+            <partial name="_DatePicker" model='new DatePickerModel("from", Model.From.ToString("yyyy-MM-dd"), "From")' />
+            <partial name="_DatePicker" model='new DatePickerModel("to", Model.To.ToString("yyyy-MM-dd"), "To")' />
+            <div class="ff" style="align-self:end">
+                <label class="ff-check" style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;cursor:pointer">
+                    <input type="checkbox" name="missed" value="true" @(Model.MissedOnly ? "checked" : "") onchange="this.form.submit()">
+                    Non-completions only
+                </label>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="sbtn sm filter-apply">Apply</button>
+                <a asp-page="/SeniorAccountability" class="sbtn sm">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-head">
+            <span class="card-title">
+                @Model.From.ToString("d MMM yyyy") – @Model.To.ToString("d MMM yyyy")
+            </span>
+            <span class="card-sub" style="display:flex;gap:10px;align-items:center">
+                <span class="acc-sum">@Model.TotalCompleted / @Model.TotalExpected completed</span>
+                <a href="?handler=Csv&from=@Model.From.ToString("yyyy-MM-dd")&to=@Model.To.ToString("yyyy-MM-dd")&missed=@Model.MissedOnly.ToString().ToLower()" class="sbtn sm no-print">Export CSV</a>
+                <button type="button" class="sbtn sm no-print" onclick="window.print()">Print</button>
+            </span>
+        </div>
+
+        @if (Model.Weeks.Count == 0 || Model.People.Count == 0)
+        {
+            <div class="empty">
+                @if (Model.MissedOnly) { <text>No non-completions in this range — everyone rostered completed their senior audit.</text> }
+                else { <text>No rostered senior audits in the selected range.</text> }
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+                <table class="acc-grid">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left">Person</th>
+                            @foreach (var w in Model.Weeks)
+                            {
+                                <th title="@w.Start.ToString("d MMM") – @w.End.ToString("d MMM yyyy")">
+                                    @w.Label<br><span style="font-weight:400;text-transform:none;letter-spacing:0">@w.Start.ToString("d/M")</span>
+                                </th>
+                            }
+                            <th>Done</th>
+                            <th>Missed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.People)
+                        {
+                            <tr>
+                                <td class="person">@p.Person</td>
+                                @foreach (var cell in p.Cells)
+                                {
+                                    @if (cell == true) { <td class="acc-yes" title="Completed">&#10003;</td> }
+                                    else if (cell == false) { <td class="acc-no" title="Not completed">&#10007;</td> }
+                                    else { <td class="acc-na" title="Not rostered">&middot;</td> }
+                                }
+                                <td class="tot">@p.Completed / @p.Expected</td>
+                                <td class="@(p.Missed > 0 ? "miss" : "tot")">@p.Missed</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div style="padding:10px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)">
+                <span class="acc-yes">&#10003;</span> completed &nbsp;
+                <span class="acc-no">&#10007;</span> rostered, not completed &nbsp;
+                <span class="acc-na">&middot;</span> not rostered that week
+            </div>
+        }
+    </div>
+</div>

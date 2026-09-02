@@ -985,3 +985,11 @@ a.pdf-loading { opacity: .55; pointer-events: none; }
     .shift-preview-val { font-size: 28px; }
     .shift-hub-tab { font-size: 10px; padding: 7px 8px; }
 }
+
+/* Meeting Rota / History tabs — must read unambiguously as tabs (item 6). */
+.rtabs { display: inline-flex; border: 2px solid var(--red); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(204,31,44,.12); }
+.rtab { padding: 8px 20px; font-size: 13px; font-weight: 700; letter-spacing: .01em; color: var(--red); background: #fff; text-decoration: none; border-right: 2px solid var(--red); transition: background var(--dur-fast) var(--ease-ios), color var(--dur-fast) var(--ease-ios); }
+.rtab:last-child { border-right: 0; }
+.rtab:hover { background: #fdecec; }
+.rtab.active { background: var(--red); color: #fff; }
+.rtab.active:hover { background: #b31b27; }
