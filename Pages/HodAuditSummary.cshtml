@@ -73,7 +73,10 @@
     .actions-list { width:100%; border-collapse:collapse; }
     .actions-list th, .actions-list td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; font-size:12.5px; }
     .actions-list th { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
-    .actions-list td.act-text { white-space:pre-wrap; }
+    .actions-list td.act-text { white-space:normal; }
+    .act-typed { font-size:13.5px; color:#111827; font-weight:600; white-space:pre-wrap; line-height:1.35; }
+    .act-typed.act-none { font-weight:400; color:#9ca3af; font-style:italic; }
+    .act-findings { font-size:11px; color:#6b7280; margin-top:3px; }
     .badge-wk { display:inline-block; padding:1px 7px; border-radius:6px; background:#f3f4f6; color:#374151; font-weight:700; font-size:11px; }
     .badge-type { display:inline-block; padding:1px 7px; border-radius:6px; background:#fdf2f3; color:#CC1F2C; font-weight:700; font-size:11px; }
     .print-only { display:none; }
@@ -195,7 +198,20 @@
                             <tr>
                                 <td><span class="badge-wk">@a.WeekLabel</span></td>
                                 <td><span class="badge-type">@a.TypeLabel</span></td>
-                                <td class="act-text">@a.Text</td>
+                                <td class="act-text">
+                                    @if (!string.IsNullOrWhiteSpace(a.Text))
+                                    {
+                                        <div class="act-typed">@a.Text</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="act-typed act-none">No action recorded</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(a.FindingsSummary))
+                                    {
+                                        <div class="act-findings">@a.FindingsSummary</div>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>

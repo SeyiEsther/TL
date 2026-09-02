@@ -107,12 +107,19 @@ public class HodAuditSummaryModel : PageModel
         }).ToList();
 
         Actions = audits
-            .Where(a => !string.IsNullOrWhiteSpace(a.ActionsRaised))
-            .Select(a => new ActionItem(
-                HodAuditTypes.LabelFor(a.AuditType),
-                Weeks[Math.Max(0, WeekIndexOf(a.AuditDate))].Label,
-                a.AuditDate,
-                a.ActionsRaised!.Trim()))
+            .Select(a =>
+            {
+                var s = ActionSummaryFormatter.Summarise(a.ActionsRaised);
+                return new ActionItem(
+                    HodAuditTypes.LabelFor(a.AuditType),
+                    Weeks[Math.Max(0, WeekIndexOf(a.AuditDate))].Label,
+                    a.AuditDate,
+                    s.Typed,
+                    s.Summary);
+            })
+            // Only keep rows that carry a human-typed action or a real finding
+            // summary — drop the noise.
+            .Where(a => !string.IsNullOrWhiteSpace(a.Text) || !string.IsNullOrWhiteSpace(a.FindingsSummary))
             .OrderByDescending(a => a.Date)
             .ToList();
     }
@@ -120,5 +127,5 @@ public class HodAuditSummaryModel : PageModel
     public record WeekCol(DateOnly Start, DateOnly End, int IsoWeek, string Label);
     public record WeekPoint(string Label, double? Percent);
     public record ChartSeries(string Type, string Label, List<WeekPoint> Points);
-    public record ActionItem(string TypeLabel, string WeekLabel, DateOnly Date, string Text);
+    public record ActionItem(string TypeLabel, string WeekLabel, DateOnly Date, string Text, string? FindingsSummary);
 }

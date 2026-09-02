@@ -77,7 +77,12 @@ public static class HodFailEffectivenessLinker
             .ToList();
         if (newLines.Count == 0) return existingActions;
 
-        return existingActions.TrimEnd() + "\n\n--- Auto-linked from audit ---\n" + string.Join("\n", newLines);
+        const string marker = "--- Auto-linked from audit ---";
+        // Append under a single marker — never add a second one if it's already there.
+        if (existingActions.Contains(marker, StringComparison.OrdinalIgnoreCase))
+            return existingActions.TrimEnd() + "\n" + string.Join("\n", newLines);
+
+        return existingActions.TrimEnd() + "\n\n" + marker + "\n" + string.Join("\n", newLines);
     }
 
     static bool MatchesAuditType(HodAuditAnswer answer, string auditType) =>
