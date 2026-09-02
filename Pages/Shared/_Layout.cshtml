@@ -2,12 +2,14 @@
 @inject TL.Services.AdminService AdminService
 @inject TL.Services.PortalAccessService PortalAccess
 @inject TL.Services.ActionService ActionService
+@inject TL.Services.NotificationService NotificationService
 @{
     var user = UserService.GetCurrentUser();
     var isAdmin = AdminService.IsAdmin();
     await PortalAccess.EnsureReadyAsync();
-    var openActionCount = 0;
-    try { openActionCount = await ActionService.OpenCountForUserAsync(user.DisplayName); } catch { }
+    TL.Services.NotificationService.UserNotifications notes = new([], []);
+    try { notes = await NotificationService.ForCurrentUserAsync(); } catch { }
+    var noteCount = notes.Count;
     var pg = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     // An audit launched from the Shift Manager tab carries from=sm; light the
     // Shift Mgr tab (not HoD) while that context is active.
@@ -44,10 +46,59 @@
     <div class="topbar-right">
         @if (!string.IsNullOrEmpty(user.DisplayName))
         {
-            <a class="user-chip" asp-page="/MyActions" title="My actions" style="position:relative;text-decoration:none">
-                @user.DisplayName
-                <span id="nav-action-badge" class="chip-badge" style="@(openActionCount > 0 ? "" : "display:none")">@openActionCount</span>
-            </a>
+            <div class="user-note-wrap" style="position:relative">
+                <button type="button" class="user-chip" id="user-note-toggle" title="Your outstanding items"
+                        aria-haspopup="true" aria-expanded="false"
+                        style="position:relative;text-decoration:none;background:none;border:0;cursor:pointer;font:inherit;color:inherit">
+                    @user.DisplayName
+                    <span id="nav-action-badge" class="chip-badge" style="@(noteCount > 0 ? "" : "display:none")">@noteCount</span>
+                </button>
+                <div class="user-note-panel" id="user-note-panel" hidden>
+                    @if (!notes.Any)
+                    {
+                        <div class="unp-empty">You're all caught up — nothing outstanding.</div>
+                    }
+                    else
+                    {
+                        @if (notes.Unfinished.Count > 0)
+                        {
+                            <div class="unp-group">
+                                <div class="unp-head">Unfinished audits <span class="unp-n">@notes.Unfinished.Count</span></div>
+                                @foreach (var u in notes.Unfinished)
+                                {
+                                    <a class="unp-item" href="@u.ResumeUrl">
+                                        <span class="unp-title">@u.Kind — @u.Label</span>
+                                        <span class="unp-sub">@u.Area &bull; @u.Date.ToString("ddd dd MMM") &bull; @u.Answered/@u.Total answered</span>
+                                        <span class="unp-cta">Resume</span>
+                                    </a>
+                                }
+                            </div>
+                        }
+                        @if (notes.Actions.Count > 0)
+                        {
+                            <div class="unp-group">
+                                <div class="unp-head">Actions assigned to you <span class="unp-n">@notes.Actions.Count</span></div>
+                                @foreach (var a in notes.Actions)
+                                {
+                                    <a class="unp-item" href="/MyActions#action-@a.Id">
+                                        <span class="unp-title">@a.Text</span>
+                                        <span class="unp-sub">
+                                            @if (!string.IsNullOrEmpty(a.SourceLabel)) { <text>@a.SourceLabel</text> }
+                                            @if (a.DueDate.HasValue)
+                                            {
+                                                <text> &bull; </text>
+                                                @if (a.Overdue) { <span class="unp-overdue">Overdue @a.DueDate.Value.ToString("dd MMM")</span> }
+                                                else { <text>Due @a.DueDate.Value.ToString("dd MMM")</text> }
+                                            }
+                                        </span>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    }
+                    <a class="unp-foot" asp-page="/MyActions">Open my actions &rarr;</a>
+                </div>
+            </div>
         }
         <a class="tbtn @(pg == "/Index" ? "active" : "")" asp-page="/Index">Home</a>
         @if (PortalAccess.CanAccessManagement())
@@ -94,7 +145,58 @@
         font-size: 11px; font-weight: 700; line-height: 18px; text-align: center;
         box-shadow: 0 0 0 2px #2b3340;
     }
+    .user-note-panel {
+        position: absolute; top: calc(100% + 10px); right: 0; width: 340px; max-width: 86vw;
+        max-height: 70vh; overflow-y: auto; background: #fff; color: #1f2530;
+        border: 1px solid #e3e6ea; border-radius: 12px; box-shadow: 0 12px 34px rgba(15,17,23,.22);
+        z-index: 60; padding: 6px;
+    }
+    .user-note-panel::before {
+        content: ""; position: absolute; top: -6px; right: 20px; width: 11px; height: 11px;
+        background: #fff; border-left: 1px solid #e3e6ea; border-top: 1px solid #e3e6ea;
+        transform: rotate(45deg);
+    }
+    .unp-empty { padding: 22px 14px; text-align: center; color: #6b7280; font-size: 13px; }
+    .unp-group { padding: 6px 4px; }
+    .unp-group + .unp-group { border-top: 1px solid #eef0f2; }
+    .unp-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px 6px;
+        font-size: 10px; text-transform: uppercase; letter-spacing: .07em; font-weight: 800; color: #6b7280; }
+    .unp-n { background: #f1f3f5; color: #40474f; border-radius: 8px; padding: 1px 7px; font-size: 11px; }
+    .unp-item { display: block; position: relative; padding: 9px 12px; border-radius: 9px; text-decoration: none; color: inherit; }
+    .unp-item:hover { background: #f7f8fa; }
+    .unp-title { display: block; font-size: 13px; font-weight: 700; color: #1f2530; padding-right: 58px;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .unp-sub { display: block; font-size: 11.5px; color: #6b7280; margin-top: 2px; }
+    .unp-overdue { color: #CC1F2C; font-weight: 700; }
+    .unp-cta { position: absolute; top: 9px; right: 12px; font-size: 11px; font-weight: 800; color: #CC1F2C;
+        text-transform: uppercase; letter-spacing: .05em; }
+    .unp-foot { display: block; text-align: center; padding: 10px; margin-top: 4px; font-size: 12px; font-weight: 700;
+        color: #CC1F2C; text-decoration: none; border-top: 1px solid #eef0f2; }
+    .unp-foot:hover { background: #fdecec; border-radius: 0 0 10px 10px; }
 </style>
+<script>
+    // Header notification panel: click the name to open/close; close on outside
+    // click or Escape. Pure toggle — content is server-rendered above.
+    (function () {
+        var toggle = document.getElementById('user-note-toggle');
+        var panel = document.getElementById('user-note-panel');
+        if (!toggle || !panel) return;
+        function setOpen(open) {
+            panel.hidden = !open;
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
+        toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            setOpen(panel.hidden);
+        });
+        document.addEventListener('click', function (e) {
+            if (!panel.hidden && !panel.contains(e.target) && e.target !== toggle) setOpen(false);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') setOpen(false);
+        });
+    })();
+</script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script src="~/js/form-backup.js" asp-append-version="true"></script>
 <script src="~/js/actions.js" asp-append-version="true"></script>
