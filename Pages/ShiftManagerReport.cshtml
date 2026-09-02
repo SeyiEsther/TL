@@ -3,37 +3,33 @@
 @using TL.Models
 @{
     ViewData["Title"] = "Shift Manager Daily Report";
-    // Visual sub-groups for the HSE block (indices into ShiftReportDefs.HseRows).
     var hseHeads = new Dictionary<int, string> { [0] = "Safety", [5] = "Process & quality", [8] = "Absence", [14] = "People" };
 }
 
 <style>
-    .smr-head-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; padding:16px; }
+    .smr-body { padding: 14px 16px; }
     .smr-metrics { width:100%; border-collapse:collapse; }
     .smr-metrics thead th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-        color:var(--muted); font-weight:600; padding:12px 16px 8px; }
+        color:var(--muted); font-weight:700; padding:2px 16px 10px; }
     .smr-metrics thead th.num { text-align:center; width:130px; }
     .smr-metrics td { padding:6px 16px; border-top:1px solid var(--border); }
     .smr-metrics td.num { text-align:center; }
     .smr-metrics td.label { font-size:13px; color:var(--ink); }
-    .smr-sub td { background:var(--surface); font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-        color:var(--muted); font-weight:700; padding:7px 16px; border-top:1px solid var(--border); }
-    .smr-num { width:104px; padding:7px 10px; border:1px solid var(--border); border-radius:9px; font-size:13px;
-        text-align:center; font-family:inherit; color:var(--ink); background:var(--white); }
-    .smr-num:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(43,90,237,.12); }
-    .smr-note { padding:12px 16px; border-top:1px solid var(--border); }
+    .smr-sub td { background:var(--surface); font-size:10px; text-transform:uppercase; letter-spacing:.07em;
+        color:#6b7280; font-weight:800; padding:8px 16px; border-top:1px solid var(--border); }
+    .smr-num { width:104px; padding:8px 10px; border:1px solid var(--border); border-radius:9px; font-size:13px;
+        text-align:center; font-family:inherit; color:var(--ink); background:var(--white);
+        box-shadow:0 1px 2px rgba(15,17,23,.03); }
+    .smr-num:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(204,31,44,.10); }
+    .smr-note { padding:14px 16px; border-top:1px solid var(--border); }
     .smr-note label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-        color:var(--muted); font-weight:600; margin-bottom:5px; }
-    .smr-ta { width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:10px; font-size:13px;
-        font-family:inherit; color:var(--ink); background:var(--white); resize:vertical; min-height:62px; line-height:1.45; }
-    .smr-ta:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(43,90,237,.12); }
-    .smr-audit { display:grid; grid-template-columns:1fr auto auto; gap:10px 16px; align-items:center; padding:12px 16px; }
-    .smr-audit .a-type { font-size:13px; font-weight:600; color:var(--ink); }
-    .smr-audit .a-day { font-size:12px; color:var(--muted); }
-    .smr-audit .ff-select { min-width:92px; }
-    .smr-actionbar { position:sticky; bottom:0; z-index:5; background:var(--white); border:1px solid var(--border);
-        border-radius:12px; padding:12px 16px; display:flex; gap:10px; align-items:center; margin-bottom:30px;
-        box-shadow:0 -2px 14px rgba(0,0,0,.05); }
+        color:var(--muted); font-weight:700; margin-bottom:6px; }
+    .smr-audit-row { display:grid; grid-template-columns:1fr auto auto; gap:12px 16px; align-items:center;
+        padding:12px 16px; }
+    .smr-audit-row + .smr-audit-row { border-top:1px solid var(--border); }
+    .smr-audit-row .a-type { font-size:14px; font-weight:700; color:var(--ink); }
+    .smr-audit-row .a-day { font-size:12px; color:var(--muted); }
+    .smr-help { font-size:12px; color:var(--muted); padding:0 2px 12px; }
 </style>
 
 <div class="dwrap">
@@ -54,9 +50,10 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="EditingId" value="@(Model.EditingId?.ToString() ?? "")" />
 
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Report details</span></div>
-            <div class="smr-head-grid">
+        <!-- Report details -->
+        <div class="audit-card">
+            <div class="audit-head final"><div class="audit-acc"></div><span>Report details</span></div>
+            <div class="smr-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
                 <div class="ff" style="margin:0"><span class="ff-label">Date</span><div class="ff-control">
                     <input type="date" name="ReportDate" class="ff-input" value="@Model.ReportDate" required></div></div>
                 <div class="ff" style="margin:0"><span class="ff-label">Shift</span><div class="ff-control">
@@ -70,14 +67,14 @@
                 <div class="ff" style="margin:0"><span class="ff-label">Manager</span><div class="ff-control">
                     <input type="text" name="ManagerName" class="ff-input" list="sm-managers"
                            value="@Model.ManagerName" placeholder="Name…" required>
-                    <datalist id="sm-managers">
-                        @foreach (var m in Model.Managers) { <option value="@m"></option> }
-                    </datalist></div></div>
+                    <datalist id="sm-managers">@foreach (var m in Model.Managers) { <option value="@m"></option> }</datalist>
+                </div></div>
             </div>
         </div>
 
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">HSE</span><span class="card-sub">Target vs actual</span></div>
+        <!-- HSE -->
+        <div class="audit-card">
+            <div class="audit-head safety"><div class="audit-acc"></div><span>HSE — target vs actual</span></div>
             <div style="overflow-x:auto">
                 <table class="smr-metrics">
                     <thead><tr><th>Measure</th><th class="num">Target</th><th class="num">Actual</th></tr></thead>
@@ -99,12 +96,13 @@
             </div>
             <div class="smr-note">
                 <label>Manager / HSE comments &amp; actions</label>
-                <textarea name="ManagerHseComments" class="smr-ta">@Model.ManagerHseComments</textarea>
+                <textarea name="ManagerHseComments" class="audit-ta">@Model.ManagerHseComments</textarea>
             </div>
         </div>
 
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Production</span><span class="card-sub">Target vs actual</span></div>
+        <!-- Production -->
+        <div class="audit-card">
+            <div class="audit-head quality"><div class="audit-acc"></div><span>Production — target vs actual</span></div>
             <div style="overflow-x:auto">
                 <table class="smr-metrics">
                     <thead><tr><th>Line</th><th class="num">Target</th><th class="num">Actual</th></tr></thead>
@@ -122,18 +120,19 @@
             </div>
             <div class="smr-note">
                 <label>Production comments &amp; actions</label>
-                <textarea name="ProductionComments" class="smr-ta">@Model.ProductionComments</textarea>
+                <textarea name="ProductionComments" class="audit-ta">@Model.ProductionComments</textarea>
             </div>
         </div>
 
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">Audits completed</span><span class="card-sub">This week's schedule</span></div>
+        <!-- Audits completed -->
+        <div class="audit-card">
+            <div class="audit-head perf"><div class="audit-acc"></div><span>Audits completed</span></div>
             @for (int i = 0; i < Model.Audits.Count; i++)
             {
-                <div class="smr-audit" style="@(i > 0 ? "border-top:1px solid var(--border)" : "")">
+                <div class="smr-audit-row">
                     <div><span class="a-type">@Model.Audits[i].Type</span></div>
                     <div class="a-day">@Model.Audits[i].Day</div>
-                    <select name="AuditDone[@i]" class="ff-select">
+                    <select name="AuditDone[@i]" class="ff-select" style="min-width:96px">
                         <option value="">—</option>
                         <option value="Y" selected="@(Model.Audits[i].Completed == "Y" ? "selected" : null)">Yes</option>
                         <option value="N" selected="@(Model.Audits[i].Completed == "N" ? "selected" : null)">No</option>
@@ -142,26 +141,26 @@
             }
         </div>
 
-        <div class="card" style="margin-bottom:14px">
-            <div class="card-head"><span class="card-title">LSW &amp; AOB comments</span></div>
+        <!-- LSW & AOB -->
+        <div class="audit-card">
+            <div class="audit-head morale"><div class="audit-acc"></div><span>LSW &amp; AOB comments</span></div>
             <div class="smr-note" style="border-top:0">
                 <label>LSW — Team Leaders</label>
-                <textarea name="LswTeamLeaderComments" class="smr-ta">@Model.LswTeamLeaderComments</textarea>
+                <textarea name="LswTeamLeaderComments" class="audit-ta">@Model.LswTeamLeaderComments</textarea>
             </div>
             <div class="smr-note">
                 <label>LSW — HoD</label>
-                <textarea name="LswHodComments" class="smr-ta">@Model.LswHodComments</textarea>
+                <textarea name="LswHodComments" class="audit-ta">@Model.LswHodComments</textarea>
             </div>
             <div class="smr-note">
                 <label>AOB</label>
-                <textarea name="Aob" class="smr-ta">@Model.Aob</textarea>
+                <textarea name="Aob" class="audit-ta">@Model.Aob</textarea>
             </div>
         </div>
 
-        <div class="smr-actionbar">
+        <div class="audit-footer">
             <button type="submit" class="sbtn primary">Save report</button>
             <a asp-page="/ShiftManager" class="sbtn">Cancel</a>
-            <span style="font-size:12px;color:var(--muted);margin-left:auto">Auto-saved in this browser as you type.</span>
         </div>
     </form>
 </div>
