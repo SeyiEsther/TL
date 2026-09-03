@@ -25,20 +25,42 @@ public class ShiftManagerReportModel : PageModel
     [BindProperty] public string Shift { get; set; } = "";
     [BindProperty] public string ManagerName { get; set; } = "";
 
+    // One indexed set of lists per section, each carrying the spreadsheet's
+    // Target / Actual / Comments-Actions / Progress(O/C) columns. Morale has no
+    // target (single count + comment).
     [BindProperty] public List<string?> HseTarget { get; set; } = [];
     [BindProperty] public List<string?> HseActual { get; set; } = [];
+    [BindProperty] public List<string?> HseComments { get; set; } = [];
+    [BindProperty] public List<string?> HseProgress { get; set; } = [];
+
+    [BindProperty] public List<string?> QualTarget { get; set; } = [];
+    [BindProperty] public List<string?> QualActual { get; set; } = [];
+    [BindProperty] public List<string?> QualComments { get; set; } = [];
+    [BindProperty] public List<string?> QualProgress { get; set; } = [];
+
+    [BindProperty] public List<string?> MoraleActual { get; set; } = [];
+    [BindProperty] public List<string?> MoraleComments { get; set; } = [];
+    [BindProperty] public List<string?> MoraleProgress { get; set; } = [];
+
     [BindProperty] public List<string?> ProdTarget { get; set; } = [];
     [BindProperty] public List<string?> ProdActual { get; set; } = [];
+    [BindProperty] public List<string?> ProdComments { get; set; } = [];
+    [BindProperty] public List<string?> ProdProgress { get; set; } = [];
+
     [BindProperty] public List<string?> AuditDone { get; set; } = [];
 
-    [BindProperty] public string? ManagerHseComments { get; set; }
-    [BindProperty] public string? ProductionComments { get; set; }
     [BindProperty] public string? LswTeamLeaderComments { get; set; }
     [BindProperty] public string? LswHodComments { get; set; }
     [BindProperty] public string? Aob { get; set; }
+    // Legacy section-level comment fields, preserved (round-tripped) now that
+    // comments live per row.
+    [BindProperty] public string? ManagerHseComments { get; set; }
+    [BindProperty] public string? ProductionComments { get; set; }
 
     // For rendering (labels + any saved values).
     public List<ShiftMetricRow> HseRows { get; set; } = [];
+    public List<ShiftMetricRow> QualityRows { get; set; } = [];
+    public List<ShiftMetricRow> MoraleRows { get; set; } = [];
     public List<ShiftMetricRow> ProductionRows { get; set; } = [];
     public List<ShiftAuditRow> Audits { get; set; } = [];
     public IReadOnlyList<string> Managers => _people.ShiftManagers;
@@ -63,6 +85,8 @@ public class ShiftManagerReportModel : PageModel
             LswHodComments = r.LswHodComments;
             Aob = r.Aob;
             HseRows = ShiftReportSerializer.HseRows(r.HseJson);
+            QualityRows = ShiftReportSerializer.QualityRows(r.HseJson);
+            MoraleRows = ShiftReportSerializer.MoraleRows(r.HseJson);
             ProductionRows = ShiftReportSerializer.ProductionRows(r.ProductionJson);
             Audits = ShiftReportSerializer.AuditRows(r.AuditsJson);
         }
@@ -71,6 +95,8 @@ public class ShiftManagerReportModel : PageModel
             ReportDate = DateTime.Today.ToString("yyyy-MM-dd");
             ManagerName = user.DisplayName;
             HseRows = ShiftReportSerializer.HseRows(null);
+            QualityRows = ShiftReportSerializer.QualityRows(null);
+            MoraleRows = ShiftReportSerializer.MoraleRows(null);
             ProductionRows = ShiftReportSerializer.ProductionRows(null);
             Audits = ShiftReportSerializer.AuditRows(null);
         }
@@ -97,8 +123,15 @@ public class ShiftManagerReportModel : PageModel
         r.ReportDate = d;
         r.Shift = Shift;
         r.ManagerName = ManagerName.Trim();
-        r.HseJson = ShiftReportSerializer.Metrics(Zip(ShiftReportDefs.HseRows, HseTarget, HseActual));
-        r.ProductionJson = ShiftReportSerializer.Metrics(Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual));
+        // HSE + Quality + Morale all persist to the single metrics store, in the
+        // canonical MetricRows order, so old readers/records stay compatible.
+        var metrics = new List<ShiftMetricRow>();
+        metrics.AddRange(Zip(ShiftReportDefs.HseRows, HseTarget, HseActual, HseComments, HseProgress));
+        metrics.AddRange(Zip(ShiftReportDefs.QualityRows, QualTarget, QualActual, QualComments, QualProgress));
+        metrics.AddRange(Zip(ShiftReportDefs.MoraleRows, null, MoraleActual, MoraleComments, MoraleProgress));
+        r.HseJson = ShiftReportSerializer.Metrics(metrics);
+        r.ProductionJson = ShiftReportSerializer.Metrics(
+            Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual, ProdComments, ProdProgress));
         r.AuditsJson = ShiftReportSerializer.Audits(ZipAudits(AuditDone));
         r.ManagerHseComments = ManagerHseComments;
         r.ProductionComments = ProductionComments;
@@ -112,11 +145,14 @@ public class ShiftManagerReportModel : PageModel
         return RedirectToPage("/ShiftManagerReportSuccess", new { id = r.Id });
     }
 
-    static List<ShiftMetricRow> Zip(string[] labels, List<string?> targets, List<string?> actuals) =>
+    static List<ShiftMetricRow> Zip(string[] labels, List<string?>? targets, List<string?> actuals,
+        List<string?> comments, List<string?> progress) =>
         labels.Select((l, i) => new ShiftMetricRow(
             l,
-            i < targets.Count ? targets[i] : null,
-            i < actuals.Count ? actuals[i] : null)).ToList();
+            targets != null && i < targets.Count ? targets[i] : null,
+            i < actuals.Count ? actuals[i] : null,
+            i < comments.Count ? comments[i] : null,
+            i < progress.Count ? progress[i] : null)).ToList();
 
     static List<ShiftAuditRow> ZipAudits(List<string?> done) =>
         ShiftReportDefs.AuditRows.Select((a, i) => new ShiftAuditRow(
@@ -124,8 +160,10 @@ public class ShiftManagerReportModel : PageModel
 
     void Rehydrate()
     {
-        HseRows = Zip(ShiftReportDefs.HseRows, HseTarget, HseActual);
-        ProductionRows = Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual);
+        HseRows = Zip(ShiftReportDefs.HseRows, HseTarget, HseActual, HseComments, HseProgress);
+        QualityRows = Zip(ShiftReportDefs.QualityRows, QualTarget, QualActual, QualComments, QualProgress);
+        MoraleRows = Zip(ShiftReportDefs.MoraleRows, null, MoraleActual, MoraleComments, MoraleProgress);
+        ProductionRows = Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual, ProdComments, ProdProgress);
         Audits = ZipAudits(AuditDone);
     }
 }

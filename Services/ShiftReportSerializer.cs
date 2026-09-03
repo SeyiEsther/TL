@@ -25,8 +25,16 @@ public static class ShiftReportSerializer
     }
 
     // Build the fixed row sets, filling values from a saved report if present.
+    // HSE / Quality / Morale all draw from the same metrics JSON (matched by
+    // label), so the section split is display-only and old data still resolves.
     public static List<ShiftMetricRow> HseRows(string? savedJson)
         => Fill(ShiftReportDefs.HseRows, savedJson);
+
+    public static List<ShiftMetricRow> QualityRows(string? savedJson)
+        => Fill(ShiftReportDefs.QualityRows, savedJson);
+
+    public static List<ShiftMetricRow> MoraleRows(string? savedJson)
+        => Fill(ShiftReportDefs.MoraleRows, savedJson);
 
     public static List<ShiftMetricRow> ProductionRows(string? savedJson)
         => Fill(ShiftReportDefs.ProductionRows, savedJson);
@@ -34,7 +42,7 @@ public static class ShiftReportSerializer
     static List<ShiftMetricRow> Fill(string[] labels, string? savedJson)
     {
         var saved = Metrics(savedJson).ToDictionary(r => r.Label, r => r, StringComparer.OrdinalIgnoreCase);
-        return labels.Select(l => saved.TryGetValue(l, out var r) ? r : new ShiftMetricRow(l, null, null)).ToList();
+        return labels.Select(l => saved.TryGetValue(l, out var r) ? r : new ShiftMetricRow(l, null, null, null, null)).ToList();
     }
 
     public static List<ShiftAuditRow> AuditRows(string? savedJson)

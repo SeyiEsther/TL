@@ -31,8 +31,12 @@ public class ShiftManagerReport
 }
 
 // One metric line: a label with a target and an actual (both free text so "12",
-// "95%" or a short note all fit).
-public record ShiftMetricRow(string Label, string? Target, string? Actual);
+// "95%" or a short note all fit), a per-row Comments/Actions note and an
+// Open/Closed progress flag — matching the emailed Daily Report spreadsheet.
+// Comments/Progress are optional so older saved rows (which lack them)
+// deserialize cleanly.
+public record ShiftMetricRow(string Label, string? Target, string? Actual,
+    string? Comments = null, string? Progress = null);
 
 // Audit-completion line: which audit type, its scheduled day, and Y/N done.
 public record ShiftAuditRow(string Type, string Day, string? Completed);
@@ -40,15 +44,31 @@ public record ShiftAuditRow(string Type, string Day, string? Completed);
 // Fixed row definitions transcribed from the Shift Manager Daily Report form.
 public static class ShiftReportDefs
 {
+    // Sections mirror the emailed Daily Report spreadsheet exactly.
     public static readonly string[] HseRows =
     [
         "Accident", "Near Miss", "Hazards Reported",
         "Safety Walk - Positive conversation", "Safety Walk - NC conversation",
+    ];
+
+    public static readonly string[] QualityRows =
+    [
         "Hold Reports", "Deviation", "Concession Raised",
+    ];
+
+    // Morale is a single count + comment per row (no target/actual split).
+    public static readonly string[] MoraleRows =
+    [
         "Absents PH1", "Absents PH3", "Absents Paint", "Absents Assembly",
         "Absents Internal Logistic", "Absence Furnace",
         "New Starters", "Leavers", "Thank you",
     ];
+
+    // All non-production metric rows share one JSON store (keyed by label), so
+    // the section split above is presentation only — no schema change, and older
+    // reports (which stored every row together) still read back correctly.
+    public static readonly string[] MetricRows =
+        HseRows.Concat(QualityRows).Concat(MoraleRows).ToArray();
 
     public static readonly string[] ProductionRows =
     [

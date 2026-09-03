@@ -3,34 +3,84 @@
 @using TL.Models
 @{
     ViewData["Title"] = "Shift Manager Daily Report";
-    var hseHeads = new Dictionary<int, string> { [0] = "Safety", [5] = "Process & quality", [8] = "Absence", [14] = "People" };
 }
 
 <style>
-    .smr-body { padding: 14px 16px; }
-    .smr-metrics { width:100%; border-collapse:collapse; }
+    .smr-metrics { width:100%; border-collapse:collapse; min-width:720px; }
     .smr-metrics thead th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-        color:var(--muted); font-weight:700; padding:2px 16px 10px; }
-    .smr-metrics thead th.num { text-align:center; width:130px; }
-    .smr-metrics td { padding:6px 16px; border-top:1px solid var(--border); }
+        color:var(--muted); font-weight:700; padding:8px 12px; background:var(--surface); border-bottom:1px solid var(--border); }
+    .smr-metrics thead th.num { text-align:center; width:96px; }
+    .smr-metrics thead th.prog { text-align:center; width:96px; }
+    .smr-metrics td { padding:6px 12px; border-top:1px solid var(--border); vertical-align:middle; }
     .smr-metrics td.num { text-align:center; }
-    .smr-metrics td.label { font-size:13px; color:var(--ink); }
-    .smr-sub td { background:var(--surface); font-size:10px; text-transform:uppercase; letter-spacing:.07em;
-        color:#6b7280; font-weight:800; padding:8px 16px; border-top:1px solid var(--border); }
-    .smr-num { width:104px; padding:8px 10px; border:1px solid var(--border); border-radius:9px; font-size:13px;
+    .smr-metrics td.label { font-size:13px; color:var(--ink); font-weight:600; white-space:nowrap; }
+    .smr-num { width:80px; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:13px;
         text-align:center; font-family:inherit; color:var(--ink); background:var(--white);
         box-shadow:0 1px 2px rgba(15,17,23,.03); }
-    .smr-num:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(204,31,44,.10); }
-    .smr-note { padding:14px 16px; border-top:1px solid var(--border); }
-    .smr-note label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
-        color:var(--muted); font-weight:700; margin-bottom:6px; }
+    .smr-num:focus, .smr-comm:focus, .smr-prog:focus { outline:none; border-color:var(--red); box-shadow:0 0 0 3px rgba(204,31,44,.10); }
+    .smr-comm { width:100%; min-width:180px; padding:7px 10px; border:1px solid var(--border); border-radius:8px;
+        font-size:13px; font-family:inherit; color:var(--ink); background:var(--white); }
+    .smr-prog { width:82px; padding:7px 6px; border:1px solid var(--border); border-radius:8px; font-size:13px;
+        font-family:inherit; color:var(--ink); background:var(--white); text-align:center; }
     .smr-audit-row { display:grid; grid-template-columns:1fr auto auto; gap:12px 16px; align-items:center;
         padding:12px 16px; }
     .smr-audit-row + .smr-audit-row { border-top:1px solid var(--border); }
     .smr-audit-row .a-type { font-size:14px; font-weight:700; color:var(--ink); }
     .smr-audit-row .a-day { font-size:12px; color:var(--muted); }
-    .smr-help { font-size:12px; color:var(--muted); padding:0 2px 12px; }
+    .smr-note { padding:14px 16px; border-top:1px solid var(--border); }
+    .smr-note label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+        color:var(--muted); font-weight:700; margin-bottom:6px; }
+    @@media print {
+        .smr-num, .smr-comm, .smr-prog { border:1px solid #999; box-shadow:none; }
+    }
 </style>
+
+@{
+    // Renders one spreadsheet-style metric section: Target | Actual |
+    // Comments/Actions | Progress(O/C). Morale passes showTarget:false.
+    async Task MetricSection(string title, string headClass, string prefix,
+        List<ShiftMetricRow> rows, bool showTarget)
+    {
+        await Task.CompletedTask;
+        <div class="audit-card">
+            <div class="audit-head @headClass"><div class="audit-acc"></div><span>@title</span></div>
+            <div style="overflow-x:auto">
+                <table class="smr-metrics">
+                    <thead>
+                        <tr>
+                            <th>@title</th>
+                            @if (showTarget) { <th class="num">Target</th> }
+                            <th class="num">Actual</th>
+                            <th>Comments / Actions</th>
+                            <th class="prog">Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < rows.Count; i++)
+                        {
+                            <tr>
+                                <td class="label">@rows[i].Label</td>
+                                @if (showTarget)
+                                {
+                                    <td class="num"><input type="text" inputmode="numeric" name="@(prefix)Target[@i]" class="smr-num" value="@rows[i].Target"></td>
+                                }
+                                <td class="num"><input type="text" name="@(prefix)Actual[@i]" class="smr-num" value="@rows[i].Actual"></td>
+                                <td><input type="text" name="@(prefix)Comments[@i]" class="smr-comm" value="@rows[i].Comments"></td>
+                                <td class="num">
+                                    <select name="@(prefix)Progress[@i]" class="smr-prog">
+                                        <option value="">—</option>
+                                        <option value="O" selected="@(rows[i].Progress == "O" ? "selected" : null)">O</option>
+                                        <option value="C" selected="@(rows[i].Progress == "C" ? "selected" : null)">C</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
 
 <div class="dwrap">
     <div class="page-head" style="margin-bottom:14px">
@@ -72,57 +122,17 @@
             </div>
         </div>
 
-        <!-- HSE -->
-        <div class="audit-card">
-            <div class="audit-head safety"><div class="audit-acc"></div><span>HSE — target vs actual</span></div>
-            <div style="overflow-x:auto">
-                <table class="smr-metrics">
-                    <thead><tr><th>Measure</th><th class="num">Target</th><th class="num">Actual</th></tr></thead>
-                    <tbody>
-                        @for (int i = 0; i < Model.HseRows.Count; i++)
-                        {
-                            @if (hseHeads.TryGetValue(i, out var head))
-                            {
-                                <tr class="smr-sub"><td colspan="3">@head</td></tr>
-                            }
-                            <tr>
-                                <td class="label">@Model.HseRows[i].Label</td>
-                                <td class="num"><input type="text" inputmode="numeric" name="HseTarget[@i]" class="smr-num" value="@Model.HseRows[i].Target"></td>
-                                <td class="num"><input type="text" name="HseActual[@i]" class="smr-num" value="@Model.HseRows[i].Actual"></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="smr-note">
-                <label>Manager / HSE comments &amp; actions</label>
-                <textarea name="ManagerHseComments" class="audit-ta">@Model.ManagerHseComments</textarea>
-            </div>
-        </div>
+        @* Four spreadsheet sections, each Target | Actual | Comments/Actions |
+           Progress(O/C). Morale is a single count + comment (no target). *@
+        @{ await MetricSection("HSE", "safety", "Hse", Model.HseRows, true); }
+        @{ await MetricSection("Quality", "quality", "Qual", Model.QualityRows, true); }
+        @{ await MetricSection("Morale", "morale", "Morale", Model.MoraleRows, false); }
+        @{ await MetricSection("Production", "perf", "Prod", Model.ProductionRows, true); }
 
-        <!-- Production -->
-        <div class="audit-card">
-            <div class="audit-head quality"><div class="audit-acc"></div><span>Production — target vs actual</span></div>
-            <div style="overflow-x:auto">
-                <table class="smr-metrics">
-                    <thead><tr><th>Line</th><th class="num">Target</th><th class="num">Actual</th></tr></thead>
-                    <tbody>
-                        @for (int i = 0; i < Model.ProductionRows.Count; i++)
-                        {
-                            <tr>
-                                <td class="label">@Model.ProductionRows[i].Label</td>
-                                <td class="num"><input type="text" inputmode="numeric" name="ProdTarget[@i]" class="smr-num" value="@Model.ProductionRows[i].Target"></td>
-                                <td class="num"><input type="text" name="ProdActual[@i]" class="smr-num" value="@Model.ProductionRows[i].Actual"></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="smr-note">
-                <label>Production comments &amp; actions</label>
-                <textarea name="ProductionComments" class="audit-ta">@Model.ProductionComments</textarea>
-            </div>
-        </div>
+        @* Legacy section comment fields, now captured per-row above. Round-tripped
+           hidden so any previously-saved text is preserved on edit. *@
+        <input type="hidden" name="ManagerHseComments" value="@Model.ManagerHseComments" />
+        <input type="hidden" name="ProductionComments" value="@Model.ProductionComments" />
 
         <!-- Audits completed -->
         <div class="audit-card">
