@@ -78,6 +78,53 @@
 
     <div class="card" style="margin-bottom:14px">
         <div class="card-head">
+            <span class="card-title">Daily Report targets</span>
+            <span class="card-sub">Shift managers see these read-only on the Daily Report</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="dash-table" style="min-width:680px">
+                <thead>
+                    <tr>
+                        <th>Section</th>
+                        <th>Measure</th>
+                        <th>Target</th>
+                        <th>Last changed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ string? rtSection = null; }
+                    @foreach (var t in Model.ReportTargets)
+                    {
+                        <tr>
+                            <td style="font-weight:600;color:var(--muted)">@(t.Section == rtSection ? "" : t.Section)</td>
+                            <td>@t.Label</td>
+                            <td colspan="2">
+                                <form method="post" asp-page-handler="UpdateReportTarget"
+                                      style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                    <input type="hidden" name="section" value="@t.Section" />
+                                    <input type="hidden" name="label" value="@t.Label" />
+                                    <input type="text" name="value" value="@t.Target" placeholder="e.g. 0, 90 or 95%"
+                                           class="ff-input" style="max-width:140px" />
+                                    <button type="submit" class="sbtn sm primary">Save</button>
+                                    <span style="font-size:12px;color:var(--muted)">
+                                        @if (t.UpdatedAt.HasValue)
+                                        {
+                                            <text>@(t.UpdatedBy ?? "—") &bull; @t.UpdatedAt.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")</text>
+                                        }
+                                        else { <text>Not set</text> }
+                                    </span>
+                                </form>
+                            </td>
+                        </tr>
+                        rtSection = t.Section;
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+        <div class="card-head">
             <span class="card-title">Document numbers</span>
             <span class="card-sub">Printed in each PDF footer</span>
         </div>

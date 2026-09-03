@@ -30,6 +30,7 @@ public class AdminModel : PageModel
     public List<InProgressShiftRow> InProgressShifts { get; set; } = [];
     public List<TL.Models.DocumentNumber> DocumentNumbers { get; set; } = [];
     public List<TargetService.TargetRow> Targets { get; set; } = [];
+    public List<TargetService.ReportTargetRow> ReportTargets { get; set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string? saved)
     {
@@ -42,11 +43,14 @@ public class AdminModel : PageModel
             "docnum" => "Document number updated.",
             "target" => "Target saved.",
             "targetfail" => "Target not saved — enter a whole number of 0 or more.",
+            "rtarget" => "Report target saved.",
+            "rtargetfail" => "Report target not saved.",
             _ => null,
         };
 
         DocumentNumbers = await _docs.AllAsync();
         Targets = await _targets.AllAsync();
+        ReportTargets = await _targets.AllReportTargetsAsync();
 
         InProgressShifts = await _db.ShiftSubmissions
             .ExcludeAudits()
@@ -97,6 +101,18 @@ public class AdminModel : PageModel
         var ok = int.TryParse(value, out var v)
                  && await _targets.UpdateAsync(key ?? "", v, byName);
         return RedirectToPage(new { saved = ok ? "target" : "targetfail" });
+    }
+
+    public async Task<IActionResult> OnPostUpdateReportTargetAsync(string section, string label, string? value)
+    {
+        if (!_admin.IsAdmin())
+            return RedirectToPage("/Index");
+
+        var by = _users.GetCurrentUser();
+        var byName = string.IsNullOrWhiteSpace(by.DisplayName) ? by.Username : by.DisplayName;
+
+        var ok = await _targets.UpdateReportTargetAsync(section ?? "", label ?? "", value, byName);
+        return RedirectToPage(new { saved = ok ? "rtarget" : "rtargetfail" });
     }
 
     public static string PersonLabel(string teamLeader, string? coveringFor) =>

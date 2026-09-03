@@ -12,12 +12,14 @@ public class ShiftManagerReportModel : PageModel
     private readonly AppDbContext _db;
     private readonly UserService _users;
     private readonly PersonListService _people;
+    private readonly TargetService _targets;
 
-    public ShiftManagerReportModel(AppDbContext db, UserService users, PersonListService people)
+    public ShiftManagerReportModel(AppDbContext db, UserService users, PersonListService people, TargetService targets)
     {
         _db = db;
         _users = users;
         _people = people;
+        _targets = targets;
     }
 
     [BindProperty] public int? EditingId { get; set; }
@@ -100,6 +102,9 @@ public class ShiftManagerReportModel : PageModel
             ProductionRows = ShiftReportSerializer.ProductionRows(null);
             Audits = ShiftReportSerializer.AuditRows(null);
         }
+        // Targets are admin-set and read-only here — always show the current
+        // admin value (item 3: pull through automatically wherever displayed).
+        OverlayTargets();
         return Page();
     }
 
@@ -125,13 +130,15 @@ public class ShiftManagerReportModel : PageModel
         r.ManagerName = ManagerName.Trim();
         // HSE + Quality + Morale all persist to the single metrics store, in the
         // canonical MetricRows order, so old readers/records stay compatible.
+        // Target is not posted (read-only); snapshot the current admin value so
+        // the saved record is self-contained for history.
         var metrics = new List<ShiftMetricRow>();
-        metrics.AddRange(Zip(ShiftReportDefs.HseRows, HseTarget, HseActual, HseComments, HseProgress));
-        metrics.AddRange(Zip(ShiftReportDefs.QualityRows, QualTarget, QualActual, QualComments, QualProgress));
+        metrics.AddRange(ZipT(SectionNames.Hse, ShiftReportDefs.HseRows, HseActual, HseComments, HseProgress));
+        metrics.AddRange(ZipT(SectionNames.Quality, ShiftReportDefs.QualityRows, QualActual, QualComments, QualProgress));
         metrics.AddRange(Zip(ShiftReportDefs.MoraleRows, null, MoraleActual, MoraleComments, MoraleProgress));
         r.HseJson = ShiftReportSerializer.Metrics(metrics);
         r.ProductionJson = ShiftReportSerializer.Metrics(
-            Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual, ProdComments, ProdProgress));
+            ZipT(SectionNames.Production, ShiftReportDefs.ProductionRows, ProdActual, ProdComments, ProdProgress));
         r.AuditsJson = ShiftReportSerializer.Audits(ZipAudits(AuditDone));
         r.ManagerHseComments = ManagerHseComments;
         r.ProductionComments = ProductionComments;
@@ -154,6 +161,28 @@ public class ShiftManagerReportModel : PageModel
             i < comments.Count ? comments[i] : null,
             i < progress.Count ? progress[i] : null)).ToList();
 
+    // Like Zip, but the Target comes from the admin-set value for this section
+    // (read-only), not from a posted field.
+    List<ShiftMetricRow> ZipT(string section, string[] labels, List<string?> actuals,
+        List<string?> comments, List<string?> progress) =>
+        labels.Select((l, i) => new ShiftMetricRow(
+            l,
+            _targets.ReportTarget(section, l),
+            i < actuals.Count ? actuals[i] : null,
+            i < comments.Count ? comments[i] : null,
+            i < progress.Count ? progress[i] : null)).ToList();
+
+    // Replace each displayed row's Target with the current admin value.
+    void OverlayTargets()
+    {
+        HseRows = WithTargets(SectionNames.Hse, HseRows);
+        QualityRows = WithTargets(SectionNames.Quality, QualityRows);
+        ProductionRows = WithTargets(SectionNames.Production, ProductionRows);
+    }
+
+    List<ShiftMetricRow> WithTargets(string section, List<ShiftMetricRow> rows) =>
+        rows.Select(r => r with { Target = _targets.ReportTarget(section, r.Label) }).ToList();
+
     static List<ShiftAuditRow> ZipAudits(List<string?> done) =>
         ShiftReportDefs.AuditRows.Select((a, i) => new ShiftAuditRow(
             a.Type, a.Day, i < done.Count ? done[i] : null)).ToList();
@@ -165,5 +194,6 @@ public class ShiftManagerReportModel : PageModel
         MoraleRows = Zip(ShiftReportDefs.MoraleRows, null, MoraleActual, MoraleComments, MoraleProgress);
         ProductionRows = Zip(ShiftReportDefs.ProductionRows, ProdTarget, ProdActual, ProdComments, ProdProgress);
         Audits = ZipAudits(AuditDone);
+        OverlayTargets();
     }
 }

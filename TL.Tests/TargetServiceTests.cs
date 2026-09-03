@@ -59,4 +59,40 @@ public class TargetServiceTests
         Assert.False(await svc.UpdateAsync("NotAKey", 10, "admin"));
         Assert.False(await svc.UpdateAsync(TargetKeys.Day, -1, "admin"));
     }
+
+    [Fact]
+    public async Task Report_target_saves_reads_and_records_audit_trail()
+    {
+        var (svc, db) = Build();
+        var section = TL.Models.SectionNames.Production;
+        var label = TL.Models.ShiftReportDefs.ProductionRows[0]; // "PH1 recovery"
+
+        Assert.Null(svc.ReportTarget(section, label)); // unset by default
+
+        Assert.True(await svc.UpdateReportTargetAsync(section, label, "95%", "Lucas"));
+        Assert.Equal("95%", svc.ReportTarget(section, label)); // read-through after cache bust
+
+        var row = await db.ReportMetricTargets.FirstAsync(t => t.Section == section && t.Label == label);
+        Assert.Equal("Lucas", row.UpdatedBy);
+        Assert.NotNull(row.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task Report_target_rejects_row_outside_targetable_sections()
+    {
+        var (svc, _) = Build();
+        // Morale has no target on the sheet — not a targetable section.
+        Assert.False(await svc.UpdateReportTargetAsync("Morale", "Absents PH1", "3", "admin"));
+        Assert.False(await svc.UpdateReportTargetAsync(TL.Models.SectionNames.Hse, "Not a real row", "1", "admin"));
+    }
+
+    [Fact]
+    public async Task All_report_targets_lists_every_targetable_row()
+    {
+        var (svc, _) = Build();
+        var rows = await svc.AllReportTargetsAsync();
+        var expected = TL.Models.ShiftReportDefs.TargetableSections.Sum(s => s.Labels.Length);
+        Assert.Equal(expected, rows.Count);
+        Assert.DoesNotContain(rows, r => r.Section == "Morale");
+    }
 }

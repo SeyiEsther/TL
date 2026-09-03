@@ -100,6 +100,82 @@ public class TargetService
         }).ToList();
     }
 
+    // ---- Daily Report per-row metric targets (admin-set, read-only to SMs) ----
+
+    private const string ReportCacheKey = "report-metric-targets";
+
+    public record ReportTargetRow(string Section, string Label, string? Target, string? UpdatedBy, DateTime? UpdatedAt);
+
+    // Current target text for one metric row, or null if the admin hasn't set one.
+    public string? ReportTarget(string section, string label)
+        => LoadReportCached().GetValueOrDefault(ReportKey(section, label));
+
+    static string ReportKey(string section, string label) => section + "" + label;
+
+    Dictionary<string, string?> LoadReportCached()
+    {
+        if (_cache.TryGetValue<Dictionary<string, string?>>(ReportCacheKey, out var cached) && cached != null)
+            return cached;
+
+        var map = new Dictionary<string, string?>();
+        try
+        {
+            foreach (var r in _db.ReportMetricTargets.AsNoTracking().ToList())
+                map[ReportKey(r.Section, r.Label)] = r.Target;
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "Could not load Daily Report targets.");
+        }
+        _cache.Set(ReportCacheKey, map, CacheTtl);
+        return map;
+    }
+
+    // Every targetable row (from the fixed defs) with its saved value, for the
+    // admin editor — grouped in section/label order.
+    public async Task<List<ReportTargetRow>> AllReportTargetsAsync()
+    {
+        var saved = new Dictionary<string, ReportMetricTarget>();
+        try
+        {
+            foreach (var r in await _db.ReportMetricTargets.AsNoTracking().ToListAsync())
+                saved[ReportKey(r.Section, r.Label)] = r;
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not load Daily Report targets."); }
+
+        var rows = new List<ReportTargetRow>();
+        foreach (var (section, labels) in ShiftReportDefs.TargetableSections)
+            foreach (var label in labels)
+            {
+                saved.TryGetValue(ReportKey(section, label), out var r);
+                rows.Add(new ReportTargetRow(section, label, r?.Target, r?.UpdatedBy, r?.UpdatedAt));
+            }
+        return rows;
+    }
+
+    public async Task<bool> UpdateReportTargetAsync(string section, string label, string? value, string byName)
+    {
+        // Only accept rows that are part of a targetable section.
+        var known = ShiftReportDefs.TargetableSections
+            .Any(s => s.Section == section && s.Labels.Contains(label));
+        if (!known) return false;
+
+        var row = await _db.ReportMetricTargets
+            .FirstOrDefaultAsync(t => t.Section == section && t.Label == label);
+        if (row == null)
+        {
+            row = new ReportMetricTarget { Section = section, Label = label };
+            _db.ReportMetricTargets.Add(row);
+        }
+        row.Target = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        row.UpdatedBy = string.IsNullOrWhiteSpace(byName) ? "Unknown" : byName;
+        row.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        _cache.Remove(ReportCacheKey);
+        return true;
+    }
+
     // Confirmed-write: persists then returns true only after SaveChanges succeeds.
     // Records who changed the value and when.
     public async Task<bool> UpdateAsync(string key, int value, string byName)

@@ -22,6 +22,8 @@
         font-size:13px; font-family:inherit; color:var(--ink); background:var(--white); }
     .smr-prog { width:82px; padding:7px 6px; border:1px solid var(--border); border-radius:8px; font-size:13px;
         font-family:inherit; color:var(--ink); background:var(--white); text-align:center; }
+    .smr-target { display:inline-block; min-width:56px; padding:6px 8px; font-size:13px; font-weight:700;
+        color:var(--ink); background:var(--surface); border:1px solid var(--border); border-radius:8px; }
     .smr-audit-row { display:grid; grid-template-columns:1fr auto auto; gap:12px 16px; align-items:center;
         padding:12px 16px; }
     .smr-audit-row + .smr-audit-row { border-top:1px solid var(--border); }
@@ -49,7 +51,7 @@
                     <thead>
                         <tr>
                             <th>@title</th>
-                            @if (showTarget) { <th class="num">Target</th> }
+                            @if (showTarget) { <th class="num">Target<span style="font-weight:400;text-transform:none"> (admin)</span></th> }
                             <th class="num">Actual</th>
                             <th>Comments / Actions</th>
                             <th class="prog">Progress</th>
@@ -62,7 +64,7 @@
                                 <td class="label">@rows[i].Label</td>
                                 @if (showTarget)
                                 {
-                                    <td class="num"><input type="text" inputmode="numeric" name="@(prefix)Target[@i]" class="smr-num" value="@rows[i].Target"></td>
+                                    <td class="num"><span class="smr-target" title="Set by admin">@(string.IsNullOrWhiteSpace(rows[i].Target) ? "—" : rows[i].Target)</span></td>
                                 }
                                 <td class="num"><input type="text" name="@(prefix)Actual[@i]" class="smr-num" value="@rows[i].Actual"></td>
                                 <td><input type="text" name="@(prefix)Comments[@i]" class="smr-comm" value="@rows[i].Comments"></td>

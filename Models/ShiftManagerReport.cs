@@ -84,4 +84,33 @@ public static class ShiftReportDefs
     ];
 
     public static readonly string[] Shifts = ["Days", "Backs", "Nights"];
+
+    // Sections whose Target column is admin-set and shown read-only to shift
+    // managers. Morale has no target on the sheet, so it is excluded. Declared
+    // last so every referenced row array is initialised first.
+    public static readonly (string Section, string[] Labels)[] TargetableSections =
+    [
+        (SectionNames.Hse, HseRows),
+        (SectionNames.Quality, QualityRows),
+        (SectionNames.Production, ProductionRows),
+    ];
+}
+
+public static class SectionNames
+{
+    public const string Hse = "HSE";
+    public const string Quality = "Quality";
+    public const string Production = "Production";
+}
+
+// Admin-set target for one Daily Report metric row. Shift managers see it
+// read-only; only admins edit. Free text so "12" or "95%" both fit.
+public class ReportMetricTarget
+{
+    public int Id { get; set; }
+    public string Section { get; set; } = "";   // SectionNames.*
+    public string Label { get; set; } = "";
+    public string? Target { get; set; }
+    public string? UpdatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
