@@ -2,9 +2,6 @@ using TL.Models;
 
 namespace TL.Services;
 
-// Assembles the per-user "outstanding items" shown against the user's name in
-// the header: their own unfinished audits (so they resume the existing record
-// rather than starting a duplicate) and the actions assigned to them.
 public class NotificationService
 {
     private readonly HistoryListService _history;
@@ -18,8 +15,6 @@ public class NotificationService
         _users = users;
     }
 
-    // A single unfinished audit belonging to the current user, with a resume
-    // link that reopens the EXISTING record (never starts a new one).
     public record UnfinishedItem(
         string Kind, string Label, string Area, DateOnly Date,
         string ResumeUrl, int Answered, int Total, DateTime LastActivity);
@@ -42,10 +37,6 @@ public class NotificationService
         if (string.IsNullOrWhiteSpace(name))
             return new UserNotifications([], []);
 
-        // (a) Own unfinished audits. Only HOD daily audits are pre-created and
-        // autosaved as signature-less drafts — senior audits only persist on a
-        // signed submit, so there is no senior "draft" to resume. Filter the
-        // recent draft list down to this user by name.
         var unfinished = new List<UnfinishedItem>();
         try
         {
@@ -56,10 +47,8 @@ public class NotificationService
                     "HoD", a.AuditTypeLabel, a.Area, a.AuditDate,
                     $"/Audit?id={a.Id}", a.Answered, a.Total, a.LastActivity)));
         }
-        catch { /* never let the header fail over a draft lookup */ }
+        catch { }
 
-        // (b) Open actions assigned to this user, overdue first (OpenForUserAsync
-        // already orders by due date ascending, nulls last).
         var actions = new List<AssignedActionItem>();
         try
         {

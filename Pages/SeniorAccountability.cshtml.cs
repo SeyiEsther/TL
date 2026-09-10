@@ -9,10 +9,6 @@ using TL.Services;
 
 namespace TL.Pages;
 
-// Accountability view: who was on the senior-audit rota each week and whether
-// they actually completed a senior audit that week. The expectation comes from
-// the existing SeniorRota (its weekly duty group); completion comes from
-// SeniorWeeklyAudits. No new schema — both already exist.
 public class SeniorAccountabilityModel : PageModel
 {
     private readonly AppDbContext _db;
@@ -71,11 +67,10 @@ public class SeniorAccountabilityModel : PageModel
         MissedOnly = missed;
         var today = DateOnly.FromDateTime(DateTime.Today);
         To = DateOnly.TryParse(to, out var t) ? t : today;
-        From = DateOnly.TryParse(from, out var f) ? f : To.AddDays(-7 * 12); // last 12 weeks
+        From = DateOnly.TryParse(from, out var f) ? f : To.AddDays(-7 * 12);
 
         var names = _people.Seniors;
 
-        // Monday-aligned weeks across the range (cap to keep the grid sane).
         var startMonday = From.AddDays(-(((int)From.DayOfWeek + 6) % 7));
         for (var cur = startMonday; cur <= To && Weeks.Count < 53; cur = cur.AddDays(7))
         {
@@ -83,7 +78,6 @@ public class SeniorAccountabilityModel : PageModel
             Weeks.Add(new WeekCol(ISOWeek.GetWeekOfYear(dt), cur, cur.AddDays(6), $"WK{ISOWeek.GetWeekOfYear(dt)}"));
         }
 
-        // Every senior audit in the window, once.
         var windowStart = Weeks.Count > 0 ? Weeks[0].Start : From;
         var windowEnd = Weeks.Count > 0 ? Weeks[^1].End : To;
         var audits = await _db.SeniorWeeklyAudits
@@ -91,7 +85,6 @@ public class SeniorAccountabilityModel : PageModel
             .Select(a => new { a.AuditorName, a.AuditDate })
             .ToListAsync();
 
-        // Expected duty group per week (from the rota), and completion per person.
         var rows = new List<PersonRow>();
         foreach (var person in names)
         {
@@ -118,7 +111,6 @@ public class SeniorAccountabilityModel : PageModel
         TotalExpected = rows.Sum(r => r.Expected);
         TotalCompleted = rows.Sum(r => r.Completed);
 
-        // Non-completions first is the primary use; sort worst offenders to the top.
         rows = rows.OrderByDescending(r => r.Missed).ThenBy(r => r.Person).ToList();
         if (MissedOnly) rows = rows.Where(r => r.Missed > 0).ToList();
         People = rows;

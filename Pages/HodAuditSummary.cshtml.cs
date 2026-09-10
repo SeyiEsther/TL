@@ -34,13 +34,10 @@ public class HodAuditSummaryModel : PageModel
     // no audit of that type exists that week (so the line breaks, not zero).
     public List<ChartSeries> Charts { get; set; } = [];
 
-    // Historical free-text actions from the person's own audits (kept readable
-    // for past records; no longer entered on new audits — item 5).
+    // Historical free-text actions from the person's own audits.
     public List<ActionItem> Actions { get; set; } = [];
 
-    // Item 5: the actions THIS person has assigned to OTHERS through the actions
-    // system — "my results, and then the actions I've given to someone". Each
-    // shows who it went to, what it relates to, and its current status.
+    // Actions this person has assigned to others through the actions system.
     public List<AssignedAction> AssignedByPerson { get; set; } = [];
 
     // Audit types in the order they appear on the 2×2 grid.
@@ -134,8 +131,6 @@ public class HodAuditSummaryModel : PageModel
             .OrderByDescending(a => a.Date)
             .ToList();
 
-        // Structured actions this person assigned to others. Matched by the same
-        // display name the board is keyed on (fuzzy, to bridge AD vs picker names).
         var raised = await _actions.RaisedByUserAsync("", SelectedHod);
         AssignedByPerson = raised
             .Where(a => PortalNameMatcher.Matches(a.RaisedByName, SelectedHod))

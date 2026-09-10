@@ -1,9 +1,5 @@
 namespace TL.Models;
 
-// Shift Manager Daily Report — a new daily form for shift managers, in addition
-// to the audits they already do. Metric rows are stored as JSON (same pattern as
-// the audits); comment sections are free text. Nothing here is shift-key unique;
-// each submission is its own row.
 public class ShiftManagerReport
 {
     public int Id { get; set; }
@@ -17,12 +13,10 @@ public class ShiftManagerReport
     public string? LastEditedBy { get; set; }
     public DateTime? LastEditedAt { get; set; }
 
-    // JSON arrays of MetricRow / AuditRow (see ShiftReportDefs).
     public string? HseJson { get; set; }
     public string? ProductionJson { get; set; }
     public string? AuditsJson { get; set; }
 
-    // Comments / Actions sections — free text.
     public string? ManagerHseComments { get; set; }
     public string? ProductionComments { get; set; }
     public string? LswTeamLeaderComments { get; set; }
@@ -30,21 +24,13 @@ public class ShiftManagerReport
     public string? Aob { get; set; }
 }
 
-// One metric line: a label with a target and an actual (both free text so "12",
-// "95%" or a short note all fit), a per-row Comments/Actions note and an
-// Open/Closed progress flag — matching the emailed Daily Report spreadsheet.
-// Comments/Progress are optional so older saved rows (which lack them)
-// deserialize cleanly.
 public record ShiftMetricRow(string Label, string? Target, string? Actual,
     string? Comments = null, string? Progress = null);
 
-// Audit-completion line: which audit type, its scheduled day, and Y/N done.
 public record ShiftAuditRow(string Type, string Day, string? Completed);
 
-// Fixed row definitions transcribed from the Shift Manager Daily Report form.
 public static class ShiftReportDefs
 {
-    // Sections mirror the emailed Daily Report spreadsheet exactly.
     public static readonly string[] HseRows =
     [
         "Accident", "Near Miss", "Hazards Reported",
@@ -56,7 +42,6 @@ public static class ShiftReportDefs
         "Hold Reports", "Deviation", "Concession Raised",
     ];
 
-    // Morale is a single count + comment per row (no target/actual split).
     public static readonly string[] MoraleRows =
     [
         "Absents PH1", "Absents PH3", "Absents Paint", "Absents Assembly",
@@ -64,9 +49,6 @@ public static class ShiftReportDefs
         "New Starters", "Leavers", "Thank you",
     ];
 
-    // All non-production metric rows share one JSON store (keyed by label), so
-    // the section split above is presentation only — no schema change, and older
-    // reports (which stored every row together) still read back correctly.
     public static readonly string[] MetricRows =
         HseRows.Concat(QualityRows).Concat(MoraleRows).ToArray();
 
@@ -85,9 +67,7 @@ public static class ShiftReportDefs
 
     public static readonly string[] Shifts = ["Days", "Backs", "Nights"];
 
-    // Sections whose Target column is admin-set and shown read-only to shift
-    // managers. Morale has no target on the sheet, so it is excluded. Declared
-    // last so every referenced row array is initialised first.
+    // Declared after ProductionRows so the referenced arrays are initialised first.
     public static readonly (string Section, string[] Labels)[] TargetableSections =
     [
         (SectionNames.Hse, HseRows),
@@ -103,12 +83,10 @@ public static class SectionNames
     public const string Production = "Production";
 }
 
-// Admin-set target for one Daily Report metric row. Shift managers see it
-// read-only; only admins edit. Free text so "12" or "95%" both fit.
 public class ReportMetricTarget
 {
     public int Id { get; set; }
-    public string Section { get; set; } = "";   // SectionNames.*
+    public string Section { get; set; } = "";
     public string Label { get; set; } = "";
     public string? Target { get; set; }
     public string? UpdatedBy { get; set; }

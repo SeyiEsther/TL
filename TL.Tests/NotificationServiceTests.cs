@@ -10,7 +10,6 @@ public class NotificationServiceTests : IClassFixture<FormSaveWebAppFactory>
     private readonly FormSaveWebAppFactory _factory;
     public NotificationServiceTests(FormSaveWebAppFactory factory) => _factory = factory;
 
-    // Fixes the "current user" without a real HTTP identity.
     sealed class StubUser : UserService
     {
         private readonly string _name;
@@ -39,7 +38,6 @@ public class NotificationServiceTests : IClassFixture<FormSaveWebAppFactory>
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await ResetAsync(db);
 
-        // Unfinished HOD audit (no signature) authored by Dana.
         db.HodDailyAudits.Add(new HodDailyAudit
         {
             AuditorName = "Dana HOD", AuditDate = DateOnly.FromDateTime(DateTime.Today),
@@ -47,7 +45,6 @@ public class NotificationServiceTests : IClassFixture<FormSaveWebAppFactory>
             AuditType = HodAuditTypes.Tpm, AnswersJson = "[]", TotalScore = 0, MaxScore = 10,
             AuditorSignature = null,
         });
-        // A finished audit by Dana must NOT appear.
         db.HodDailyAudits.Add(new HodDailyAudit
         {
             AuditorName = "Dana HOD", AuditDate = DateOnly.FromDateTime(DateTime.Today),
@@ -55,7 +52,6 @@ public class NotificationServiceTests : IClassFixture<FormSaveWebAppFactory>
             AuditType = HodAuditTypes.SixS, AnswersJson = "[]", TotalScore = 9, MaxScore = 10,
             AuditorSignature = "Dana HOD",
         });
-        // Open action assigned to Dana.
         db.AuditActions.Add(new AuditAction
         {
             SourceType = ActionSourceTypes.HodDaily, SourceLabel = "HOD — TPM",
@@ -68,7 +64,6 @@ public class NotificationServiceTests : IClassFixture<FormSaveWebAppFactory>
         var notes = await Build(db, "Dana HOD").ForCurrentUserAsync();
 
         Assert.Single(notes.Unfinished);
-        // Resume link reopens the EXISTING record, never starts a new one.
         Assert.StartsWith("/Audit?id=", notes.Unfinished[0].ResumeUrl);
         Assert.Single(notes.Actions);
         Assert.True(notes.Actions[0].Overdue);

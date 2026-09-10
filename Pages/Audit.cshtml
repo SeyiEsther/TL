@@ -270,15 +270,8 @@
             </div>
         </div>
 
-        @* "Actions raised" free text is no longer entered (item 5); actions are
-           captured as structured items below. The field is still round-tripped
-           hidden so any historical value (and auto-derived fail traceability) is
-           preserved when an existing record is reopened and re-saved. *@
         <input type="hidden" name="Actions" value="@Model.Actions" />
 
-        @* Actions are now captured as structured, owned items below rather than
-           free text — see item 5. Historical free-text actions remain readable
-           in past records (AuditResult / history). *@
         <partial name="_AssignActions" />
 
         <div class="audit-sign-card">

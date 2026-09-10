@@ -10,7 +10,6 @@ public class SeniorAccountabilityTests : IClassFixture<FormSaveWebAppFactory>
     private readonly FormSaveWebAppFactory _factory;
     public SeniorAccountabilityTests(FormSaveWebAppFactory factory) => _factory = factory;
 
-    // A Monday two weeks back — safely inside the default 12-week window.
     static DateOnly TargetMonday()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
@@ -25,7 +24,6 @@ public class SeniorAccountabilityTests : IClassFixture<FormSaveWebAppFactory>
         var team = SeniorRota.TeamForWeek(ISOWeek.GetYear(dt), ISOWeek.GetWeekOfYear(dt),
             SeniorManagementList.Names);
 
-        // First rostered person completes; second is a genuine non-completion.
         var completed = team[0];
         var missed = team[1];
 
@@ -54,20 +52,16 @@ public class SeniorAccountabilityTests : IClassFixture<FormSaveWebAppFactory>
         var html = await (await client.GetAsync(
             $"/SeniorAccountability?from={from}&to={to}")).Content.ReadAsStringAsync();
 
-        // Both rostered people appear; the completer shows 1/ and the misser shows a missed count.
         Assert.Contains(completed, html);
         Assert.Contains(missed, html);
-        // The completer has zero missed for the single in-window week they were rostered.
-        // The misser must have at least one missed cell (✗ present somewhere).
-        Assert.Contains("&#10007;", html); // ✗ missed marker rendered
-        Assert.Contains("&#10003;", html); // ✓ completed marker rendered
+        Assert.Contains("&#10007;", html);
+        Assert.Contains("&#10003;", html);
     }
 
     [Fact]
     public async Task MissedOnly_filter_excludes_full_completers()
     {
         var (completed, missed, monday) = await SeedAsync();
-        // Window = just the target week, so the completer has no misses at all.
         var from = monday.ToString("yyyy-MM-dd");
         var to = monday.AddDays(6).ToString("yyyy-MM-dd");
 
@@ -75,7 +69,6 @@ public class SeniorAccountabilityTests : IClassFixture<FormSaveWebAppFactory>
         var html = await (await client.GetAsync(
             $"/SeniorAccountability?from={from}&to={to}&missed=true")).Content.ReadAsStringAsync();
 
-        // The misser is a non-completion → present; the completer has 0 missed → filtered out.
         Assert.Contains(missed, html);
         Assert.DoesNotContain($">{completed}<", html);
     }

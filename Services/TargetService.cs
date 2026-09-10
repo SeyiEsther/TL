@@ -5,10 +5,6 @@ using TL.Models;
 
 namespace TL.Services;
 
-// Reads and writes the editable production targets. Values are cached briefly
-// so every page that shows a target pulls the current admin-set number without
-// hammering the database, and a change made by an admin converges everywhere
-// within the TTL (mirrors PersonListService).
 public class TargetService
 {
     private const string CacheKey = "production-targets";
@@ -27,8 +23,6 @@ public class TargetService
 
     public record TargetRow(string Key, string Label, int Value, string? UpdatedBy, DateTime? UpdatedAt);
 
-    // Non-throwing accessors used by display pages. Fall back to the built-in
-    // default if the row or the whole table isn't available yet.
     public int Shift => Get(TargetKeys.Shift);
     public int Day => Get(TargetKeys.Day);
     public int Week => Get(TargetKeys.Week);
@@ -53,14 +47,12 @@ public class TargetService
         }
         catch (Exception ex)
         {
-            _log.LogWarning(ex, "Could not load targets — using built-in defaults.");
+            _log.LogWarning(ex, "Could not load targets.");
         }
         _cache.Set(CacheKey, map, CacheTtl);
         return map;
     }
 
-    // Ensures every defined target has a row (seeds defaults on first run). Safe
-    // to call on startup; add-only, never overwrites an admin-set value.
     public async Task EnsureSeededAsync()
     {
         try
@@ -100,13 +92,10 @@ public class TargetService
         }).ToList();
     }
 
-    // ---- Daily Report per-row metric targets (admin-set, read-only to SMs) ----
-
     private const string ReportCacheKey = "report-metric-targets";
 
     public record ReportTargetRow(string Section, string Label, string? Target, string? UpdatedBy, DateTime? UpdatedAt);
 
-    // Current target text for one metric row, or null if the admin hasn't set one.
     public string? ReportTarget(string section, string label)
         => LoadReportCached().GetValueOrDefault(ReportKey(section, label));
 
@@ -131,8 +120,6 @@ public class TargetService
         return map;
     }
 
-    // Every targetable row (from the fixed defs) with its saved value, for the
-    // admin editor — grouped in section/label order.
     public async Task<List<ReportTargetRow>> AllReportTargetsAsync()
     {
         var saved = new Dictionary<string, ReportMetricTarget>();
@@ -155,7 +142,6 @@ public class TargetService
 
     public async Task<bool> UpdateReportTargetAsync(string section, string label, string? value, string byName)
     {
-        // Only accept rows that are part of a targetable section.
         var known = ShiftReportDefs.TargetableSections
             .Any(s => s.Section == section && s.Labels.Contains(label));
         if (!known) return false;
@@ -176,8 +162,6 @@ public class TargetService
         return true;
     }
 
-    // Confirmed-write: persists then returns true only after SaveChanges succeeds.
-    // Records who changed the value and when.
     public async Task<bool> UpdateAsync(string key, int value, string byName)
     {
         if (!TargetKeys.Definitions.ContainsKey(key) || value < 0) return false;

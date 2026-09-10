@@ -32,7 +32,6 @@ public class TargetServiceTests
     public async Task Reads_default_even_before_seeding()
     {
         var (svc, _) = Build();
-        // No row yet — falls back to the built-in default, never throws.
         Assert.Equal(35, svc.Get(TargetKeys.Shift));
     }
 
@@ -44,7 +43,7 @@ public class TargetServiceTests
 
         var ok = await svc.UpdateAsync(TargetKeys.Shift, 40, "George Thompson");
         Assert.True(ok);
-        Assert.Equal(40, svc.Shift); // cache invalidated → new value read through
+        Assert.Equal(40, svc.Shift);
 
         var row = await db.TargetSettings.FirstAsync(t => t.Key == TargetKeys.Shift);
         Assert.Equal(40, row.Value);
@@ -65,12 +64,12 @@ public class TargetServiceTests
     {
         var (svc, db) = Build();
         var section = TL.Models.SectionNames.Production;
-        var label = TL.Models.ShiftReportDefs.ProductionRows[0]; // "PH1 recovery"
+        var label = TL.Models.ShiftReportDefs.ProductionRows[0];
 
-        Assert.Null(svc.ReportTarget(section, label)); // unset by default
+        Assert.Null(svc.ReportTarget(section, label));
 
         Assert.True(await svc.UpdateReportTargetAsync(section, label, "95%", "Lucas"));
-        Assert.Equal("95%", svc.ReportTarget(section, label)); // read-through after cache bust
+        Assert.Equal("95%", svc.ReportTarget(section, label));
 
         var row = await db.ReportMetricTargets.FirstAsync(t => t.Section == section && t.Label == label);
         Assert.Equal("Lucas", row.UpdatedBy);
@@ -81,7 +80,6 @@ public class TargetServiceTests
     public async Task Report_target_rejects_row_outside_targetable_sections()
     {
         var (svc, _) = Build();
-        // Morale has no target on the sheet — not a targetable section.
         Assert.False(await svc.UpdateReportTargetAsync("Morale", "Absents PH1", "3", "admin"));
         Assert.False(await svc.UpdateReportTargetAsync(TL.Models.SectionNames.Hse, "Not a real row", "1", "admin"));
     }

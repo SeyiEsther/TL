@@ -97,7 +97,6 @@ public class AdminModel : PageModel
         var by = _users.GetCurrentUser();
         var byName = string.IsNullOrWhiteSpace(by.DisplayName) ? by.Username : by.DisplayName;
 
-        // Confirmed-write: only report success once the server has stored it.
         var ok = int.TryParse(value, out var v)
                  && await _targets.UpdateAsync(key ?? "", v, byName);
         return RedirectToPage(new { saved = ok ? "target" : "targetfail" });

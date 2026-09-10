@@ -38,8 +38,6 @@
 </style>
 
 @{
-    // Renders one spreadsheet-style metric section: Target | Actual |
-    // Comments/Actions | Progress(O/C). Morale passes showTarget:false.
     async Task MetricSection(string title, string headClass, string prefix,
         List<ShiftMetricRow> rows, bool showTarget)
     {
@@ -124,15 +122,11 @@
             </div>
         </div>
 
-        @* Four spreadsheet sections, each Target | Actual | Comments/Actions |
-           Progress(O/C). Morale is a single count + comment (no target). *@
         @{ await MetricSection("HSE", "safety", "Hse", Model.HseRows, true); }
         @{ await MetricSection("Quality", "quality", "Qual", Model.QualityRows, true); }
         @{ await MetricSection("Morale", "morale", "Morale", Model.MoraleRows, false); }
         @{ await MetricSection("Production", "perf", "Prod", Model.ProductionRows, true); }
 
-        @* Legacy section comment fields, now captured per-row above. Round-tripped
-           hidden so any previously-saved text is preserved on edit. *@
         <input type="hidden" name="ManagerHseComments" value="@Model.ManagerHseComments" />
         <input type="hidden" name="ProductionComments" value="@Model.ProductionComments" />
 

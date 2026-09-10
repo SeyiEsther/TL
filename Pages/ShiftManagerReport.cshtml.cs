@@ -27,9 +27,6 @@ public class ShiftManagerReportModel : PageModel
     [BindProperty] public string Shift { get; set; } = "";
     [BindProperty] public string ManagerName { get; set; } = "";
 
-    // One indexed set of lists per section, each carrying the spreadsheet's
-    // Target / Actual / Comments-Actions / Progress(O/C) columns. Morale has no
-    // target (single count + comment).
     [BindProperty] public List<string?> HseTarget { get; set; } = [];
     [BindProperty] public List<string?> HseActual { get; set; } = [];
     [BindProperty] public List<string?> HseComments { get; set; } = [];
@@ -54,12 +51,9 @@ public class ShiftManagerReportModel : PageModel
     [BindProperty] public string? LswTeamLeaderComments { get; set; }
     [BindProperty] public string? LswHodComments { get; set; }
     [BindProperty] public string? Aob { get; set; }
-    // Legacy section-level comment fields, preserved (round-tripped) now that
-    // comments live per row.
     [BindProperty] public string? ManagerHseComments { get; set; }
     [BindProperty] public string? ProductionComments { get; set; }
 
-    // For rendering (labels + any saved values).
     public List<ShiftMetricRow> HseRows { get; set; } = [];
     public List<ShiftMetricRow> QualityRows { get; set; } = [];
     public List<ShiftMetricRow> MoraleRows { get; set; } = [];
@@ -102,8 +96,6 @@ public class ShiftManagerReportModel : PageModel
             ProductionRows = ShiftReportSerializer.ProductionRows(null);
             Audits = ShiftReportSerializer.AuditRows(null);
         }
-        // Targets are admin-set and read-only here — always show the current
-        // admin value (item 3: pull through automatically wherever displayed).
         OverlayTargets();
         return Page();
     }
@@ -128,10 +120,6 @@ public class ShiftManagerReportModel : PageModel
         r.ReportDate = d;
         r.Shift = Shift;
         r.ManagerName = ManagerName.Trim();
-        // HSE + Quality + Morale all persist to the single metrics store, in the
-        // canonical MetricRows order, so old readers/records stay compatible.
-        // Target is not posted (read-only); snapshot the current admin value so
-        // the saved record is self-contained for history.
         var metrics = new List<ShiftMetricRow>();
         metrics.AddRange(ZipT(SectionNames.Hse, ShiftReportDefs.HseRows, HseActual, HseComments, HseProgress));
         metrics.AddRange(ZipT(SectionNames.Quality, ShiftReportDefs.QualityRows, QualActual, QualComments, QualProgress));
@@ -161,8 +149,6 @@ public class ShiftManagerReportModel : PageModel
             i < comments.Count ? comments[i] : null,
             i < progress.Count ? progress[i] : null)).ToList();
 
-    // Like Zip, but the Target comes from the admin-set value for this section
-    // (read-only), not from a posted field.
     List<ShiftMetricRow> ZipT(string section, string[] labels, List<string?> actuals,
         List<string?> comments, List<string?> progress) =>
         labels.Select((l, i) => new ShiftMetricRow(
@@ -172,7 +158,6 @@ public class ShiftManagerReportModel : PageModel
             i < comments.Count ? comments[i] : null,
             i < progress.Count ? progress[i] : null)).ToList();
 
-    // Replace each displayed row's Target with the current admin value.
     void OverlayTargets()
     {
         HseRows = WithTargets(SectionNames.Hse, HseRows);

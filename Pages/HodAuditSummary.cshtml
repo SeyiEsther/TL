@@ -171,7 +171,7 @@
         }
     </div>
 
-    <!-- Actions this person has assigned to others (item 5) -->
+    <!-- Actions this person has assigned to others -->
     <div class="card actions-card">
         <div class="card-head">
             <span class="card-title">Actions assigned to others</span>
@@ -229,7 +229,7 @@
         }
     </div>
 
-    <!-- Historical audit notes (legacy free-text; read-only, past records) -->
+    <!-- Historical audit notes -->
     @if (Model.Actions.Any(a => !string.IsNullOrWhiteSpace(a.Text) || !string.IsNullOrWhiteSpace(a.FindingsSummary)))
     {
     <div class="card actions-card">

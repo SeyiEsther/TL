@@ -24,9 +24,6 @@ public static class ShiftReportSerializer
         catch { return []; }
     }
 
-    // Build the fixed row sets, filling values from a saved report if present.
-    // HSE / Quality / Morale all draw from the same metrics JSON (matched by
-    // label), so the section split is display-only and old data still resolves.
     public static List<ShiftMetricRow> HseRows(string? savedJson)
         => Fill(ShiftReportDefs.HseRows, savedJson);
 
